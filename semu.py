@@ -42,7 +42,7 @@ def hlt():
 	
 def jmp():
 	global r
-	addr = r.gp[next()]
+	addr = r.bp + r.gp[next()]
 	r.ip = addr
 	
 def add():
@@ -80,7 +80,7 @@ def int():
 def jne():
 	global r
 	val = r.gp[next()]
-	addr = r.gp[next()]
+	addr = r.bp + r.gp[next()]
 	if(val != 0):
 		r.ip = addr
 		
@@ -104,23 +104,30 @@ def ldb():
 	
 def lds():
 	global r
-	r.sp = r.gp[next()]	
+	r.sp = r.gp[next()]
+	
+def do_push(val):
+	global r
+	global memory
+	m = r.sp
+	memory[m:m+4] = struct.pack(">I", val)
+	r.sp += 4
 	
 def psh():
-	global r
-	global memory	
-	v = r.gp[next()]
+	global r	
+	val = r.gp[next()]
+	do_push(val)
+	
+def do_pop():
+	r.sp -= 4
 	m = r.sp
-	print((v, m))
-	memory[m:m+4] = struct.pack(">I", v)
-	r.sp += 4
+	(v,) = struct.unpack(">I", memory[m:m+4])
+	return v
 
 def pop():
 	global r
 	global memory
-	r.sp -= 4
-	m = r.sp
-	(v,) = struct.unpack(">I", memory[m:m+4])
+	v = do_pop()
 	r.gp[next()] = v	
 	
 handlers = {
