@@ -12,27 +12,26 @@ class Regs():
 	def __init__(self):
 		self.ppr = pprint.PrettyPrinter(indent = 4)
 	
+		self.bp  = 0x00  # Base pointer
 		self.ip  = 0x00  # Instruction pointer
 		self.ii  = 0x01  # Interrupt inhibit
-		self.ret = 0x00  # Return pointer
+		self.sp  = 0x00  # Stack pointer
 		
-		self.gp = {}
-		for i in range(conf.gp_regs):
-			self.gp[i] = 0x00
+		self.gp = [0] * conf.gp_regs 
 			
 	def debug_dump(self):
-		logging.debug(self.ppr.pformat((self.ip, self.ii, self.ret)))
+		logging.debug("IP:{0:X} SP:{1:X} BP:{2:X} II:{3}".format(self.ip, self.sp, self.bp, self.ii))
 		logging.debug(self.ppr.pformat(self.gp))
 	
 class Halt(Exception):
 	pass
 
 def next():
-	global r	
-	lb = r.ip + 4
-	buf = memory[r.ip:lb]
+	global r
+	addr = r.ip	
+	buf = memory[addr:addr + 4]
 	(op,) = struct.unpack(">I", buf)
-	r.ip = lb
+	r.ip += 4
 	return op
 	
 def nop():
@@ -61,13 +60,13 @@ def mrm():
 	global r
 	global memory	
 	v = r.gp[next()]
-	m = r.gp[next()]
+	m = r.bp + r.gp[next()]
 	memory[m:m+4] = struct.pack(">I", v)
 	
 def mmr():
 	global r
 	global memory	
-	a = r.gp[next()]
+	a = r.bp + r.gp[next()]
 	(v,) = struct.unpack(">I", memory[a:a+4])
 	r.gp[next()] = v
 	
@@ -99,6 +98,31 @@ def cls():
 	global r	
 	r.ii = 1
 	
+def ldb():
+	global r
+	r.bp = r.gp[next()]
+	
+def lds():
+	global r
+	r.sp = r.gp[next()]	
+	
+def psh():
+	global r
+	global memory	
+	v = r.gp[next()]
+	m = r.sp
+	print((v, m))
+	memory[m:m+4] = struct.pack(">I", v)
+	r.sp += 4
+
+def pop():
+	global r
+	global memory
+	r.sp -= 4
+	m = r.sp
+	(v,) = struct.unpack(">I", memory[m:m+4])
+	r.gp[next()] = v	
+	
 handlers = {
 	ops.nop  : nop,
 	ops.hlt  : hlt,
@@ -111,7 +135,11 @@ handlers = {
 	ops.jne	 : jne,
 	ops.sub	 : sub,
 	ops.opn	 : opn,
-	ops.cls  : cls
+	ops.cls  : cls,
+	ops.ldb  : ldb,
+	ops.lds  : lds,
+	ops.psh  : psh,
+	ops.pop  : pop
 }
 
 # Line -> Device
@@ -169,12 +197,14 @@ def proc_int_queue():
 def interrupt(line, word):
 	global r
 	cls()
-	r.ret = r.ip
 	r.ip = conf.int_vect_base + line*4
 	logging.debug("INT L:{0} D:{1} IP:{2:X}".format(line, word, r.ip))
 
 def run():
 	global r
+
+	start_pp()
+	reset()
 	
 	try:
 		while(True):	
@@ -186,7 +216,5 @@ def run():
 	finally:
 		stop_pp()
 
-logging.basicConfig(level=logging.DEBUG)
-start_pp()
-reset()
+logging.basicConfig(level = logging.DEBUG)
 run()

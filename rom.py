@@ -23,16 +23,12 @@ init_timer = [
 	int, reg0, reg1
 ]
 
-reset = [
-	ldc, 0, reg0,
-	nop,
-	jmp, reg0
-]
-
 script = [
-	#opn,
-	#init_timer,
-	reset,
+	ldc, 0x100F, reg0,
+	lds, reg0,
+	ldc, 65, reg0,
+	psh, reg0,
+	pop, reg1,
 	hlt
 ]
 

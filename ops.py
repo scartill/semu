@@ -11,6 +11,10 @@ jne  = 9  # if R1 ne 0 jmp R2
 sub  = 10 # R1 + R2 -> R3
 opn  = 11 # open interrupts
 cls  = 12 # close interrupts
+ldb  = 13 # R1 -> BP
+lds  = 14 # R1 -> SP
+psh  = 15 # R1 -> [SP++]
+pop  = 16 # [SP--] -> R1
 
 reg0 = 0
 reg1 = 1
