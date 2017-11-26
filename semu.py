@@ -21,8 +21,8 @@ class Regs():
 			self.gp[i] = 0x00
 			
 	def debug_dump(self):
-		logging.debug(self.ppr.pformat(
-			(self.ip, self.ii, self.ret, self.gp)))
+		logging.debug(self.ppr.pformat((self.ip, self.ii, self.ret)))
+		logging.debug(self.ppr.pformat(self.gp))
 	
 class Halt(Exception):
 	pass
@@ -116,8 +116,8 @@ handlers = {
 
 # Line -> Device
 pp = { 
-	ops.int0 : peripheral.SysTimer(),
-	ops.int1 : peripheral.Serial()
+	ops.inttime : peripheral.SysTimer(),
+	ops.intser  : peripheral.Serial()
 }
 
 def start_pp():
@@ -182,7 +182,7 @@ def run():
 			proc_int_queue()
 			r.debug_dump()
 	except Halt:
-		logging.info("Execuion halted")
+		logging.info("Execution halted")
 	finally:
 		stop_pp()
 

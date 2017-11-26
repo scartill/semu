@@ -7,7 +7,7 @@ class Peripheral(th.Thread):
 	def __init__(self):
 		super().__init__()
 		self.in_queue = queue.Queue()
-		self.out_queue = queue.Queue()
+		self.out_queue = queue.Queue()		
 
 	def send_stop(self):
 		self.in_queue.put(('cmd', 'stop'))
@@ -48,6 +48,7 @@ class SysTimer(Peripheral):
 		super().__init__()
 		self.tick = 0
 		self.restart_timer()
+		self.gen_signal = 0      # Starts disactivated
 		
 	def restart_timer(self):
 		self.timer = th.Timer(1.0, self.on_timer)
@@ -55,10 +56,16 @@ class SysTimer(Peripheral):
 		
 	def on_timer(self):
 		self.restart_timer()
-		logging.debug("System timer elapsed")		
-		self.out_queue.put(self.tick)
+				
+		if(self.gen_signal != 0):
+			logging.debug("System timer elapsed")		
+			self.out_queue.put(self.tick)
+			
 		self.tick += 1
 		self.tick &= 0xFFFFFFFF
+		
+	def process(self, word):
+		self.gen_signal = word
 		
 	def on_stop(self):
 		self.timer.cancel()		
