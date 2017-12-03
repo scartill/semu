@@ -1,4 +1,5 @@
 from ops import *
+import semuconf as cf
 from itertools import chain
 import struct
 
@@ -23,12 +24,11 @@ init_timer = [
 	int, reg0, reg1
 ]
 
-script = [
-	ldc, 0x100F, reg0,
-	lds, reg0,
-	ldc, 65, reg0,
-	psh, reg0,
-	pop, reg1,
+script = [	
+	ldc, cf.ram_base, reg0,	 # Stack address
+	lds, reg0,				 # Set stack pointer
+	ldc, 65, reg0,			 # Arbitary value
+	int, reg0,			     # Kernel interrupt
 	hlt
 ]
 

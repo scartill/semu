@@ -1,27 +1,22 @@
 import struct
 import time
 import logging 
-import pprint
 
 import ops
 import peripheral
-
-import semuconf as conf
+import semuconf as cf
 
 class Regs():
 	def __init__(self):
-		self.ppr = pprint.PrettyPrinter(indent = 4)
-	
-		self.bp  = 0x00  # Base pointer
 		self.ip  = 0x00  # Instruction pointer
 		self.ii  = 0x01  # Interrupt inhibit
 		self.sp  = 0x00  # Stack pointer
 		
-		self.gp = [0] * conf.gp_regs 
+		self.gp = [0] * cf.gp_regs 
 			
 	def debug_dump(self):
-		logging.debug("IP:{0:X} SP:{1:X} BP:{2:X} II:{3}".format(self.ip, self.sp, self.bp, self.ii))
-		logging.debug(self.ppr.pformat(self.gp))
+		logging.debug("IP:{0:X} SP:{1:X} II:{2}".format(self.ip, self.sp, self.ii))
+		logging.debug(self.gp)
 	
 class Halt(Exception):
 	pass
@@ -35,14 +30,14 @@ def next():
 	return op
 	
 def nop():
-	time.sleep(0.1)
+	time.sleep(1.0)
 	
 def hlt():
 	raise Halt()
 	
 def jmp():
 	global r
-	addr = r.bp + r.gp[next()]
+	addr = r.gp[next()]
 	r.ip = addr
 	
 def add():
@@ -60,17 +55,17 @@ def mrm():
 	global r
 	global memory	
 	v = r.gp[next()]
-	m = r.bp + r.gp[next()]
+	m = r.gp[next()]
 	memory[m:m+4] = struct.pack(">I", v)
 	
 def mmr():
 	global r
 	global memory	
-	a = r.bp + r.gp[next()]
+	a = r.gp[next()]
 	(v,) = struct.unpack(">I", memory[a:a+4])
 	r.gp[next()] = v
 	
-def int():
+def out():
 	global r
 	global pp	
 	w = r.gp[next()]
@@ -80,7 +75,7 @@ def int():
 def jne():
 	global r
 	val = r.gp[next()]
-	addr = r.bp + r.gp[next()]
+	addr = r.gp[next()]
 	if(val != 0):
 		r.ip = addr
 		
@@ -98,9 +93,11 @@ def cls():
 	global r	
 	r.ii = 1
 	
-def ldb():
+def ldr():
 	global r
-	r.bp = r.gp[next()]
+	a = r.ip - 4 # ldr instruction address
+	offset = signed_next()
+	r.gp[next()] = a + offset
 	
 def lds():
 	global r
@@ -130,6 +127,11 @@ def pop():
 	v = do_pop()
 	r.gp[next()] = v	
 	
+def int():
+	global r
+	w = r.gp[next()]
+	interrupt(0x00, w)
+	
 handlers = {
 	ops.nop  : nop,
 	ops.hlt  : hlt,
@@ -138,15 +140,16 @@ handlers = {
 	ops.ldc  : ldc,
 	ops.mrm  : mrm,
 	ops.mmr  : mmr,
-	ops.int  : int,
+	ops.out  : out,
 	ops.jne	 : jne,
 	ops.sub	 : sub,
 	ops.opn	 : opn,
 	ops.cls  : cls,
-	ops.ldb  : ldb,
+	ops.ldr  : ldr,
 	ops.lds  : lds,
 	ops.psh  : psh,
-	ops.pop  : pop
+	ops.pop  : pop,
+	ops.int  : int
 }
 
 # Line -> Device
@@ -170,12 +173,12 @@ def init_registers():
 	
 def init_memory():
 	global memory
-	memory = bytearray(conf.memory_size)
+	memory = bytearray(cf.memory_size)
 	
 def load_rom():
 	global memory
 	rom = open("rom", "rb").read()	
-	rb = conf.rom_base
+	rb = cf.rom_base
 	l = len(rom)	
 	memory[rb:rb+l] = rom		
 
@@ -201,10 +204,22 @@ def proc_int_queue():
 			interrupt(l, w)
 			break
 			
-def interrupt(line, word):
+def save_ctxt():
 	global r
 	cls()
-	r.ip = conf.int_vect_base + line*4
+	do_push(r.ip)	
+	for i in range(0,8,1):
+		do_push(r.gp[i])
+			
+def restore_ctxt():
+	global r
+	for i in range(7,-1,-1):
+		r.gp[i] = do_pop()	
+	r.ip = do_pop()
+			
+def interrupt(line, word):
+	save_ctxt()
+	r.ip = cf.int_vect_base + line*4
 	logging.debug("INT L:{0} D:{1} IP:{2:X}".format(line, word, r.ip))
 
 def run():
