@@ -21,13 +21,22 @@ class Regs():
 class Halt(Exception):
 	pass
 
-def next():
+def next_fmt():
 	global r
 	addr = r.ip	
 	buf = memory[addr:addr + 4]
-	(op,) = struct.unpack(">I", buf)
+	(op,) = struct.unpack(fmt, buf)
 	r.ip += 4
 	return op
+	
+def next_unsigned():
+	return next_fmt(">I")
+
+def next_signed():
+	return next_fmt(">i")
+	
+def next():
+	return next_unsigned()
 	
 def nop():
 	time.sleep(1.0)
