@@ -1,31 +1,20 @@
-
-hlt  = 0
-nop  = 1
-jmp  = 3  # goto R1
-add  = 4  # R1 + R2 -> R3
-ldc  = 5  # C1 -> R2
-mrm  = 6  # R1 -> M[R2]
-mmr  = 7  # M[R1] -> R2
-out  = 8  # R1 -> L[R2]
-jne  = 9  # if R1 ne 0 jmp R2
-sub  = 10 # R1 + R2 -> R3
-opn  = 11 # open interrupts
-cls  = 12 # close interrupts
-ldr  = 13 # IP + C1 -> R2
-lds  = 14 # R1 -> SP
-psh  = 15 # R1 -> [SP++]
-pop  = 16 # [SP--] -> R1
-int  = 17 # INT R1 -> L[0]
-
-
-reg0 = 0
-reg1 = 1
-reg2 = 2
-reg3 = 3
-reg4 = 4
-reg5 = 5
-reg6 = 6
-reg7 = 7
+hlt  = 0x00
+nop  = 0x01
+jmp  = 0x03  # goto R1
+add  = 0x04  # R1 + R2 -> R3
+ldc  = 0x05  # U1 -> R2
+mrm  = 0x06  # R1 -> M[R2]
+mmr  = 0x07  # M[R1] -> R2
+out  = 0x08  # R1 -> L[R2]
+jne  = 0x09  # if R1 ne 0 jmp R2
+sub  = 0x0A  # R1 + R2 -> R3
+opn  = 0x0B  # open interrupts
+cls  = 0x0C  # close interrupts
+ldr  = 0x0D  # IP + S1 -> R2
+lds  = 0x0E  # R1 -> SP
+psh  = 0x0F  # R1 -> [SP++]
+pop  = 0x10  # [SP--] -> R1
+int  = 0x11  # INT R1 -> L[0]
 
 intloop  = 0
 intser   = 1

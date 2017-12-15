@@ -19,16 +19,16 @@ def semu_compile(script):
 	return code
 	
 init_timer = [
-	ldc, 1, reg0,
-	ldc, inttime, reg1,
-	int, reg0, reg1
+	ldc, 1, 0,
+	ldc, inttime, 0,
+	int, 0, 1
 ]
 
 script = [	
-	ldc, cf.ram_base, reg0,	 # Stack address
-	lds, reg0,				 # Set stack pointer
-	ldc, 65, reg0,			 # Arbitary value
-	int, reg0,			     # Kernel interrupt
+	ldc, cf.ram_base, 0, # Stack address
+	lds, 0,				 # Set stack pointer
+	ldc, 65, 0,			 # Arbitary value
+	int, 0,			     # Kernel interrupt
 	hlt
 ]
 

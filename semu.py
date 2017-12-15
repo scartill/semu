@@ -1,6 +1,6 @@
 import struct
 import time
-import logging 
+import logging as lg
 
 import ops
 import peripheral
@@ -15,13 +15,13 @@ class Regs():
 		self.gp = [0] * cf.gp_regs 
 			
 	def debug_dump(self):
-		logging.debug("IP:{0:X} SP:{1:X} II:{2}".format(self.ip, self.sp, self.ii))
-		logging.debug(self.gp)
+		lg.debug("IP:{0:X} SP:{1:X} II:{2}".format(self.ip, self.sp, self.ii))
+		lg.debug(self.gp)
 	
 class Halt(Exception):
 	pass
 
-def next_fmt():
+def next_fmt(fmt):
 	global r
 	addr = r.ip	
 	buf = memory[addr:addr + 4]
@@ -229,7 +229,7 @@ def restore_ctxt():
 def interrupt(line, word):
 	save_ctxt()
 	r.ip = cf.int_vect_base + line*4
-	logging.debug("INT L:{0} D:{1} IP:{2:X}".format(line, word, r.ip))
+	lg.debug("INT L:{0} D:{1} IP:{2:X}".format(line, word, r.ip))
 
 def run():
 	global r
@@ -243,9 +243,10 @@ def run():
 			proc_int_queue()
 			r.debug_dump()
 	except Halt:
-		logging.info("Execution halted")
+		lg.info("Execution halted")
 	finally:
 		stop_pp()
 
-logging.basicConfig(level = logging.DEBUG)
+lg.basicConfig(level = lg.DEBUG)
+lg.info("SEMU")
 run()
