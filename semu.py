@@ -39,6 +39,7 @@ def next():
 	return next_unsigned()
 	
 def nop():
+	lg.debug("NOP")
 	time.sleep(1.0)
 	
 def hlt():
@@ -104,8 +105,8 @@ def cls():
 	
 def ldr():
 	global r
-	a = r.ip - 4 # ldr instruction address
-	offset = signed_next()
+	a = r.ip
+	offset = next_signed()
 	r.gp[next()] = a + offset
 	
 def lds():

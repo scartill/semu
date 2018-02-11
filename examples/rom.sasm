@@ -1,9 +1,11 @@
 // ROM image assembly file
 
-ldc 15 a
-ldc 1 b
-add a b c
-ldc 1000 d
-mrm c d
-mmr d a
-hlt
+nop
+ldr &start a
+
+jmp a
+DW
+
+start:
+nop
+hlp	

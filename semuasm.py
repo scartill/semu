@@ -5,46 +5,74 @@ import struct
 
 import ops
 
-fst_pass_list = None	# Global 1st pass results
+# Global first pass results
+class FstPassData:
+    def __init__(self):
+        self.cmd_list = list()
+        self.offset = 0
+        self.label_dict = dict()
+
+fst_pass = None        
 
 def issue_word(fmt, word):
-	global fst_pass_list
-	bytes = struct.pack(fmt, word)
-	fst_pass_list.append(('bytes', bytes))
+    global fst_pass
+    bytestr = struct.pack(fmt, word)
+    fst_pass.cmd_list.append(('bytes', bytestr))
+    fst_pass.offset += 4
 
 def issue_usigned(word):
-	issue_word(">I", word)
+    issue_word(">I", word)    
+
+def issue_signed(word):
+    lg.debug("Issuing signed {0}".format(word))
+    issue_word(">i", word)
 
 def issue_op(op):
-	lg.debug("Issuing command 0x{0:X}".format(op))
-	issue_usigned(op)
-	
-def on_label():
-	pass
-	
+    lg.debug("Issuing command 0x{0:X}".format(op))
+    issue_usigned(op)
+
+def on_label(labelname):
+    global fst_pass
+    lg.debug("New label {0} at {1:X}".format(labelname, fst_pass.offset))
+    fst_pass.label_dict[labelname] = fst_pass.offset
+
 def on_reg(val):
-	issue_usigned(val)
-	
+    issue_usigned(val)
+
 def g_cmd(literal, op):
-	return pp.Literal(literal).setParseAction(lambda _: issue_op(op))
-	
+    return pp.Literal(literal).setParseAction(lambda _: issue_op(op))
+
 def g_reg(reg_name, reg_num):
-	return pp.Literal(reg_name).setParseAction(lambda _: on_reg(reg_num))
-	
+    return pp.Literal(reg_name).setParseAction(lambda _: on_reg(reg_num))
+    
+def on_ref(labelname):    
+    global fst_pass
+    current_offset = fst_pass.offset
+    fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
+    fst_pass.offset += 4 # placeholder-bytes
+    lg.debug("ON REF {0}@{1}".format(labelname, current_offset))
+
 comment = pp.Literal("//") + pp.SkipTo("\n")
-label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(on_label)
+label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
 reg = pp.Or([
-	g_reg('a', 0),
-	g_reg('b', 1),
-	g_reg('c', 2),
-	g_reg('d', 3),
-	g_reg('e', 4),
-	g_reg('f', 5),
-	g_reg('g', 6),
-	g_reg('h', 7)
+    g_reg('a', 0),
+    g_reg('b', 1),
+    g_reg('c', 2),
+    g_reg('d', 3),
+    g_reg('e', 4),
+    g_reg('f', 5),
+    g_reg('g', 6),
+    g_reg('h', 7)
 ])
-us_dec_const = pp.Regex("[0-9]+").setParseAction(lambda r: issue_usigned(int(r[0])))
+
+us_dec_const = pp.Regex(
+    "[0-9]+").setParseAction(lambda r: issue_usigned(int(r[0])))
 us_const = us_dec_const
+s_const = pp.Regex(
+    "[\+\-]?[0-9]+").setParseAction(lambda r: issue_signed(int(r[0])))
+    
+ref = (pp.Suppress("&") + pp.Word(pp.alphas)).setParseAction(lambda r: on_ref(r[0]))
+    
 hlt_cmd = g_cmd("hlt", ops.hlt)
 nop_cmd = g_cmd("nop", ops.nop)
 jmp_cmd = g_cmd("jmp", ops.jmp) + reg
@@ -52,34 +80,64 @@ add_cmd = g_cmd("add", ops.add) + reg + reg + reg
 ldc_cmd = g_cmd("ldc", ops.ldc) + us_dec_const + reg
 mrm_cmd = g_cmd("mrm", ops.mrm) + reg + reg
 mmr_cmd = g_cmd("mmr", ops.mmr) + reg + reg
+out_cmd = g_cmd("out", ops.out) + reg + reg
+jne_cmd = g_cmd("jne", ops.jne) + reg + reg
+sub_cmd = g_cmd("sub", ops.sub) + reg + reg + reg
+opn_cmd = g_cmd("opn", ops.opn)
+cls_cmd = g_cmd("cls", ops.cls)
+ldr_cmd = g_cmd("ldr", ops.ldr) + ref + reg
+lds_cmd = g_cmd("lds", ops.lds) + reg
+psh_cmd = g_cmd("psh", ops.psh) + reg
+pop_cmd = g_cmd("pop", ops.pop) + reg
+int_cmd = g_cmd("int", ops.int) + reg
+
+pseudo_dw = pp.Literal("DW").setParseAction(lambda _: issue_signed(0x00000000))
+
 cmd = hlt_cmd \
-	^ nop_cmd \
-	^ jmp_cmd \
-	^ add_cmd \
-	^ ldc_cmd \
-	^ mrm_cmd \
-	^ mmr_cmd
+    ^ nop_cmd \
+    ^ jmp_cmd \
+    ^ add_cmd \
+    ^ ldc_cmd \
+    ^ mrm_cmd \
+    ^ mmr_cmd \
+    ^ out_cmd \
+    ^ jne_cmd \
+    ^ sub_cmd \
+    ^ opn_cmd \
+    ^ cls_cmd \
+    ^ ldr_cmd \
+    ^ lds_cmd \
+    ^ psh_cmd \
+    ^ pop_cmd \
+    ^ int_cmd \
+    ^ pseudo_dw
 statement = pp.Optional(label) + cmd
 program = pp.ZeroOrMore(statement ^ comment)
 
 def compile(in_filename, out_filename):
-	global fst_pass_list
-	
-	fst_pass_list = list()
-	program.parseFile(in_filename)
-	bytes = bytearray()
-	
-	for (t, d) in fst_pass_list:
-		if(t == 'bytes'):
-			bytes += d
-	
-	open(out_filename, "wb").write(bytes)
-	
-	 
-if(len(sys.argv) != 3):
+    global fst_pass
+
+    fst_pass = FstPassData()
+    program.parseFile(in_filename)
+    bytestr = bytearray()
+
+    for (t, d) in fst_pass.cmd_list:
+        if t == 'bytes':
+            bytestr += d
+                
+        if t == 'ref':
+            (ref_offset, labelname) = d
+            label_offset = fst_pass.label_dict[labelname]
+            offset = label_offset - ref_offset
+            bytestr += struct.pack(">i", offset)
+            lg.debug("Issuing offset {0} of reference to {1}".format(offset, labelname))
+
+    open(out_filename, "wb").write(bytestr)
+    
+if len(sys.argv) != 3:
     print("Usage: semuasm source.sasm binary")
     sys.exit(1)
-	
-lg.basicConfig(level = lg.DEBUG)
+
+lg.basicConfig(level=lg.DEBUG)
 lg.info("SEMU ASM")
 compile(sys.argv[1], sys.argv[2])
