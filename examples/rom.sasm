@@ -1,11 +1,44 @@
 // ROM image assembly file
 
-nop
-ldr &start a
+ldc 2048 a
+lds a
 
-jmp a
-DW
+ldr &handler a
+ldc 0 b
+mrm a b
 
-start:
+opn
+
+loop:
+ldc 66 a
+ldc 67 b
+ldc 68 c
+ldc 69 d
+ldc 70 e
+ldc 71 f
+ldc 72 g
+ldc 73 h
 nop
-hlp	
+int a
+nop
+ldr &loop c
+jmp c
+
+handler:
+opn
+pop a
+ldc 2 b
+out a b
+ldr &ret e
+jmp e
+
+ret:
+pop h
+pop g
+pop f
+pop e
+pop d
+pop c
+pop b
+pop a
+ret

@@ -1,0 +1,26 @@
+// ROM image assembly file
+
+ldr &start a
+jmp a
+
+print:
+pop e
+pop a
+ldc 2 b
+out a b
+psh e
+ret
+
+printb:
+ldc 66 a
+psh a
+ldr &print c
+cll c
+ret
+
+start:
+ldr &printb c
+cll c
+
+nop
+hlt

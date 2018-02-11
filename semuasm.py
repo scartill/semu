@@ -50,7 +50,6 @@ def on_ref(labelname):
     current_offset = fst_pass.offset
     fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
     fst_pass.offset += 4 # placeholder-bytes
-    lg.debug("ON REF {0}@{1}".format(labelname, current_offset))
 
 comment = pp.Literal("//") + pp.SkipTo("\n")
 label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
@@ -90,6 +89,8 @@ lds_cmd = g_cmd("lds", ops.lds) + reg
 psh_cmd = g_cmd("psh", ops.psh) + reg
 pop_cmd = g_cmd("pop", ops.pop) + reg
 int_cmd = g_cmd("int", ops.int) + reg
+cll_cmd = g_cmd("cll", ops.cll) + reg
+ret_cmd = g_cmd("ret", ops.ret)
 
 pseudo_dw = pp.Literal("DW").setParseAction(lambda _: issue_signed(0x00000000))
 
@@ -110,7 +111,10 @@ cmd = hlt_cmd \
     ^ psh_cmd \
     ^ pop_cmd \
     ^ int_cmd \
+    ^ cll_cmd \
+    ^ ret_cmd \
     ^ pseudo_dw
+    
 statement = pp.Optional(label) + cmd
 program = pp.ZeroOrMore(statement ^ comment)
 
