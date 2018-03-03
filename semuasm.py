@@ -50,6 +50,11 @@ def on_ref(labelname):
     current_offset = fst_pass.offset
     fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
     fst_pass.offset += 4 # placeholder-bytes
+    
+def on_fail(r):
+    print("Unknown command")
+    print(r)
+    sys.exit(1)
 
 comment = pp.Literal("//") + pp.SkipTo("\n")
 label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
@@ -85,14 +90,19 @@ sub_cmd = g_cmd("sub", ops.sub) + reg + reg + reg
 opn_cmd = g_cmd("opn", ops.opn)
 cls_cmd = g_cmd("cls", ops.cls)
 ldr_cmd = g_cmd("ldr", ops.ldr) + ref + reg
-lds_cmd = g_cmd("lds", ops.lds) + reg
+lsp_cmd = g_cmd("lsp", ops.lsp) + reg
 psh_cmd = g_cmd("psh", ops.psh) + reg
 pop_cmd = g_cmd("pop", ops.pop) + reg
 int_cmd = g_cmd("int", ops.int) + reg
 cll_cmd = g_cmd("cll", ops.cll) + reg
 ret_cmd = g_cmd("ret", ops.ret)
+irx_cmd = g_cmd("irx", ops.irx)
+bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
+ssp_cmd = g_cmd("ssp", ops.ssp) + reg
 
 pseudo_dw = pp.Literal("DW").setParseAction(lambda _: issue_signed(0x00000000))
+
+unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))
 
 cmd = hlt_cmd \
     ^ nop_cmd \
@@ -107,16 +117,19 @@ cmd = hlt_cmd \
     ^ opn_cmd \
     ^ cls_cmd \
     ^ ldr_cmd \
-    ^ lds_cmd \
+    ^ lsp_cmd \
     ^ psh_cmd \
     ^ pop_cmd \
     ^ int_cmd \
     ^ cll_cmd \
     ^ ret_cmd \
-    ^ pseudo_dw
+    ^ irx_cmd \
+    ^ bpt_cmd \
+    ^ ssp_cmd \
+    ^ pseudo_dw    
     
-statement = pp.Optional(label) + cmd
-program = pp.ZeroOrMore(statement ^ comment)
+statement = pp.Optional(label) + cmd + pp.Optional(comment)
+program = pp.ZeroOrMore(statement ^ comment ^ unknown)
 
 def compile(in_filename, out_filename):
     global fst_pass

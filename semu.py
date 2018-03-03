@@ -4,18 +4,22 @@ import logging as lg
 
 import ops
 import peripheral
-import semuconf as cf
+
+memory_size      = 0xFFFF
+int_vect_base    = 0x0000
+rom_base         = 0x0040
+
 
 class Regs():
     def __init__(self):
         self.ip = 0     # Set when ROM is loaded
-        self.sp = 0     # Set when lds is called
+        self.sp = 0     # Set when lsp is called
         self.ii = 0x01  # Interrupt inhibit
         
-        self.gp = [0] * cf.gp_regs 
+        self.gp = [0] * 8
     
     def debug_dump(self):
-        lg.debug("IP:{0:X} SP:{1:X} II:{2}, {3}".format(self.ip, self.sp, self.ii, self.gp))
+        lg.debug("IP:{0} SP:{1} II:{2}, {3}".format(self.ip, self.sp, self.ii, self.gp))
 
 class Halt(Exception):
     pass
@@ -38,7 +42,6 @@ def next():
     return next_unsigned()
 
 def nop():
-    lg.debug("NOP")
     time.sleep(1.0)
 
 def hlt():
@@ -108,7 +111,7 @@ def ldr():
     offset = next_signed()
     r.gp[next()] = a + offset
     
-def lds():
+def lsp():
     global r
     r.sp = r.gp[next()]
     
@@ -152,6 +155,22 @@ def ret():
     addr = do_pop()
     r.ip = addr
     
+def irx():
+    global r
+    for i in range(7, -1, -1):
+        r.gp[i] = do_pop()
+    ret()
+    opn()
+    
+def bpt():
+    val = next_unsigned()    
+    lg.debug("BREAKPOINT {0}".format(val))
+    r.debug_dump()
+    
+def ssp():
+    global r
+    r.gp[next()] = r.sp
+
 handlers = {
     ops.nop  : nop,
     ops.hlt  : hlt,
@@ -166,16 +185,20 @@ handlers = {
     ops.opn  : opn,
     ops.cls  : cls,
     ops.ldr  : ldr,
-    ops.lds  : lds,
+    ops.lsp  : lsp,
     ops.psh  : psh,
     ops.pop  : pop,
     ops.int  : int,
     ops.cll  : cll,
-    ops.ret  : ret
+    ops.ret  : ret,
+    ops.irx  : irx,
+    ops.bpt  : bpt,
+    ops.ssp  : ssp,
 }
 
 # Line -> Device
-pp = { 
+pp = {
+   #0 : loopback interrupt
     1 : peripheral.SysTimer(),
     2 : peripheral.Serial()
 }
@@ -195,16 +218,16 @@ def init_registers():
     
 def init_memory():
     global memory
-    memory = bytearray(cf.memory_size)
+    memory = bytearray(memory_size)
     
 def load_rom():
     global r
     global memory
     rom = open("rom", "rb").read()  
-    rb = cf.rom_base
+    rb = rom_base
     l = len(rom)    
     memory[rb:rb+l] = rom
-    r.ip = cf.rom_base
+    r.ip = rom_base
     
 
 def reset():
@@ -235,13 +258,12 @@ def interrupt(line, word):
     
     cls()
     do_push(r.ip)
-    for i in range(0, cf.gp_regs, 1):
-        do_push(r.gp[i])    
+    for i in range(0, 8, 1):
+        do_push(r.gp[i])   
     do_push(word)
-    h_addr_inx = cf.int_vect_base + line*4    # Interrupt handler address location
+    h_addr_inx = int_vect_base + line*4    # Interrupt handler address location
     (handler_addr,) = struct.unpack(">I", memory[h_addr_inx:h_addr_inx+4])
     r.ip = handler_addr
-    lg.debug("INT L:{0} D:{1}, IP:{2:X}".format(line, word, r.ip))
 
 def run():
     global r
@@ -253,7 +275,6 @@ def run():
         while(True):    
             exec_next()
             proc_int_queue()
-            r.debug_dump()
     except Halt:
         lg.info("Execution halted")
     finally:

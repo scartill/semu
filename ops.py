@@ -11,11 +11,14 @@ sub  = 0x0A  # R1 + R2 -> R3
 opn  = 0x0B  # open interrupts
 cls  = 0x0C  # close interrupts
 ldr  = 0x0D  # IP + S1 -> R2
-lds  = 0x0E  # R1 -> SP
+lsp  = 0x0E  # R1 -> SP
 psh  = 0x0F  # R1 -> [SP++]
 pop  = 0x10  # [SP--] -> R1
 int  = 0x11  # INT R1 -> L[0]
 cll  = 0x12  # PSH IP + 4; JMP R1
 ret  = 0x13  # JMP [SP--]
+irx  = 0x14  # POP h-a; ret; opn
+bpt  = 0x15  # U1 -> external breakpoint 
+ssp  = 0x16  # SP -> R1
 
 intloop  = 0
