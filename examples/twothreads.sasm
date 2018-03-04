@@ -9,11 +9,8 @@ mainnext: DW
 secsp: DW
 secnext: DW
 
-
+// Start - setup user interrupt handler
 start:
-nop
-
-// Setup user interrupt handler
 ldr &loopback a
 ldc 0 b     // int 0 handler address
 mrm a b     // Handler = loopback
@@ -77,33 +74,29 @@ irx
 
 // Main thread
 main:
-nop
+ldr &mainloop b
+cll b
+
+// Secondary thread
+second:
+ldr &mainloop b
+cll b
+
+// Generic loop
 mainloop:
-int a // 'A' symbol
+int a // 'A' or 'B' symbol
 nop
 ldr &mainloop c
 jmp c
 
-// Secondary thread
-second:
-nop
-secondloop:
-int a // 'B' symbol
-nop
-ldr &secondloop c
-jmp c
-
 // User interrupt handler - send 'word' to serial
 loopback:
-pop a
 ldc 2 b
 out a b
 irx
 
 // Timer tick handler - schedule the next thread
 timer:
-pop a   // Tick
-
 ldr &runpt a
 mmr a b         // b = *runpt
 
