@@ -74,13 +74,11 @@ irx
 
 // Main thread
 main:
-ldr &mainloop b
-cll b
+CALL mainloop
 
 // Secondary thread
 second:
-ldr &mainloop b
-cll b
+CALL mainloop
 
 // Generic loop
 mainloop:

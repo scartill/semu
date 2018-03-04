@@ -14,6 +14,7 @@ class FstPassData:
 
 fst_pass = None        
 
+# Handlers
 def issue_word(fmt, word):
     global fst_pass
     bytestr = struct.pack(fmt, word)
@@ -39,6 +40,23 @@ def on_label(labelname):
 def on_reg(val):
     issue_usigned(val)
 
+def on_fail(r):
+    print("Unknown command")
+    print(r)
+    sys.exit(1)
+    
+# Macros
+def issue_macro_dw():
+    issue_signed(0x00000000)
+    
+def issue_macro_call(labelname):
+    issue_op(ops.ldr)
+    on_ref(labelname)
+    on_reg(7)               # Using the last for routine address
+    issue_op(ops.cll)
+    on_reg(7)
+    
+# Grammar
 def g_cmd(literal, op):
     return pp.Literal(literal).setParseAction(lambda _: issue_op(op))
 
@@ -50,11 +68,6 @@ def on_ref(labelname):
     current_offset = fst_pass.offset
     fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
     fst_pass.offset += 4 # placeholder-bytes
-    
-def on_fail(r):
-    print("Unknown command")
-    print(r)
-    sys.exit(1)
 
 comment = pp.Literal("//") + pp.SkipTo("\n")
 label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
@@ -100,7 +113,8 @@ irx_cmd = g_cmd("irx", ops.irx)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 ssp_cmd = g_cmd("ssp", ops.ssp) + reg
 
-pseudo_dw = pp.Literal("DW").setParseAction(lambda _: issue_signed(0x00000000))
+macro_dw = pp.Literal("DW").setParseAction(lambda _: issue_macro_dw())
+macro_call = (pp.Suppress("CALL") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_call(r[0]))
 
 unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))
 
@@ -126,7 +140,8 @@ cmd = hlt_cmd \
     ^ irx_cmd \
     ^ bpt_cmd \
     ^ ssp_cmd \
-    ^ pseudo_dw    
+    ^ macro_dw \
+    ^ macro_call
     
 statement = pp.Optional(label) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
