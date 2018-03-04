@@ -46,7 +46,8 @@ def on_fail(r):
     sys.exit(1)
     
 # Macros
-def issue_macro_dw():
+def issue_macro_dw(varname):
+    on_label(varname)
     issue_signed(0x00000000)
     
 def issue_macro_call(labelname):
@@ -113,7 +114,7 @@ irx_cmd = g_cmd("irx", ops.irx)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 ssp_cmd = g_cmd("ssp", ops.ssp) + reg
 
-macro_dw = pp.Literal("DW").setParseAction(lambda _: issue_macro_dw())
+macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_dw(r[0]))
 macro_call = (pp.Suppress("CALL") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_call(r[0]))
 
 unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))

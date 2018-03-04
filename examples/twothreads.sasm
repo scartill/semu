@@ -3,11 +3,11 @@
 ldr &start a
 jmp a
 
-runpt: DW
-mainsp: DW
-mainnext: DW
-secsp: DW
-secnext: DW
+DW runpt
+DW mainsp
+DW mainnext
+DW secsp
+DW secnext
 
 // Start - setup user interrupt handler
 start:
