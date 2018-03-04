@@ -82,7 +82,8 @@ CALL mainloop
 
 // Generic loop
 mainloop:
-int a // 'A' or 'B' symbol
+ // 'A' or 'B' symbol
+int a
 nop
 ldr &mainloop c
 jmp c

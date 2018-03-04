@@ -143,7 +143,7 @@ cmd = hlt_cmd \
     ^ macro_dw \
     ^ macro_call
     
-statement = pp.Optional(label) + cmd + pp.Optional(comment)
+statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
 
 def compile(in_filename, out_filename):
