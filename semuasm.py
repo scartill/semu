@@ -57,6 +57,9 @@ def issue_macro_call(labelname):
     issue_op(ops.cll)
     on_reg(7)
     
+def issue_macro_func(labelname):
+    on_label(labelname)     # Does nothing fancy really
+    
 # Grammar
 def g_cmd(literal, op):
     return pp.Literal(literal).setParseAction(lambda _: issue_op(op))
@@ -116,6 +119,7 @@ ssp_cmd = g_cmd("ssp", ops.ssp) + reg
 
 macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_dw(r[0]))
 macro_call = (pp.Suppress("CALL") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_call(r[0]))
+macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_func(r[0]))
 
 unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))
 
@@ -142,7 +146,8 @@ cmd = hlt_cmd \
     ^ bpt_cmd \
     ^ ssp_cmd \
     ^ macro_dw \
-    ^ macro_call
+    ^ macro_call \
+    ^ macro_func
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)

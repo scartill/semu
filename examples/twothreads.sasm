@@ -11,6 +11,11 @@ DW secnext
 
 // Start - setup user interrupt handler
 start:
+// Start-up stack
+ldc 2000 a
+lsp a
+
+// Loopback handler
 ldr &loopback a
 ldc 0 b     // int 0 handler address
 mrm a b     // Handler = loopback
@@ -23,45 +28,30 @@ ldc 1 a     // enable == 1
 ldc 1 b     // serial on line 1
 out a b     // Enable timer
 
-// Setup main TCB
+// Setup main thread stack
 ldc 2048 a
-lsp a           // main SP = 2048
-ldr &main h
-psh h           // Thread start = main
-ldc 65 h
-psh h               // a
-psh h               // b
-psh h               // c
-psh h               // d
-psh h               // e
-psh h               // f
-psh h               // g
-psh h               // h
-ssp a               // Updated SP
+ldr &main b
+ldc 65 c
+CALL initstack      // a <- new SP
+
+// Fill main TCP
 ldr &mainsp b
 mrm a b             // mainsp = 2048 + bootstrap
 ldr &secsp c
 ldr &mainnext d
 mrm c d             // mainnext = &secsp
 
-// Setup second TCB
-ldc 3092 e  
-lsp e
-ldr &second h
-psh h               // Thread start = second
-ldc 66 h
-psh h               // a
-psh h               // b
-psh h               // c
-psh h               // d
-psh h               // e
-psh h               // f
-psh h               // g
-psh h               // h
-ssp e
-ldr &secsp f
-mrm e f             // secsp = 3092 + bootstrap
+// Setup second thread stack
+ldc 3092 a
+ldr &second b
+ldc 66 c
+CALL initstack      // a <- new SP
+
+// Fill second TCP
+ldr &secsp b
+mrm a b             // secsp = 3092 + bootstrap
 ldr &secnext g
+ldr &mainsp b
 mrm b g             // secnext = &mainsp
 
 // Set running TCP
@@ -69,19 +59,41 @@ ldr &runpt h
 mrm b h             // runpt = &mainsp
 
 // Running main thread
+mmr b a
 lsp a
 irx
 
+// Init stack for a new thread
+// a = <stack>
+// b = <func>
+// c = <init values>
+// ret: a <- new thread stack head
+FUNC initstack
+ssp d               // Save start-up stack
+lsp a               // Main SP = 2048
+psh b               // Thread start = main
+psh c               // a
+psh c               // b
+psh c               // c
+psh c               // d
+psh c               // e
+psh c               // f
+psh c               // g
+psh c               // h
+ssp a               // Updated SP
+lsp d               // Restore start-up stack
+ret
+
 // Main thread
-main:
+FUNC main
 CALL mainloop
 
 // Secondary thread
-second:
+FUNC second
 CALL mainloop
 
 // Generic loop
-mainloop:
+FUNC mainloop
  // 'A' or 'B' symbol
 int a
 nop
@@ -89,13 +101,13 @@ ldr &mainloop c
 jmp c
 
 // User interrupt handler - send 'word' to serial
-loopback:
+FUNC loopback
 ldc 2 b
 out a b
 irx
 
 // Timer tick handler - schedule the next thread
-timer:
+FUNC timer
 ldr &runpt a
 mmr a b         // b = *runpt
 
