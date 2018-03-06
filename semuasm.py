@@ -99,13 +99,13 @@ ref = (pp.Suppress("&") + pp.Word(pp.alphas)).setParseAction(lambda r: on_ref(r[
 hlt_cmd = g_cmd("hlt", ops.hlt)
 nop_cmd = g_cmd("nop", ops.nop)
 jmp_cmd = g_cmd("jmp", ops.jmp) + reg
-add_cmd = g_cmd("add", ops.add) + reg + reg + reg
+add_cmd = g_cmd("add", ops.add) + reg + reg
 ldc_cmd = g_cmd("ldc", ops.ldc) + us_dec_const + reg
 mrm_cmd = g_cmd("mrm", ops.mrm) + reg + reg
 mmr_cmd = g_cmd("mmr", ops.mmr) + reg + reg
 out_cmd = g_cmd("out", ops.out) + reg + reg
-jne_cmd = g_cmd("jne", ops.jne) + reg + reg
-sub_cmd = g_cmd("sub", ops.sub) + reg + reg + reg
+jgt_cmd = g_cmd("jgt", ops.jgt) + reg + reg
+sub_cmd = g_cmd("sub", ops.sub) + reg + reg
 opn_cmd = g_cmd("opn", ops.opn)
 cls_cmd = g_cmd("cls", ops.cls)
 ldr_cmd = g_cmd("ldr", ops.ldr) + ref + reg
@@ -133,7 +133,7 @@ cmd = hlt_cmd \
     ^ mrm_cmd \
     ^ mmr_cmd \
     ^ out_cmd \
-    ^ jne_cmd \
+    ^ jgt_cmd \
     ^ sub_cmd \
     ^ opn_cmd \
     ^ cls_cmd \

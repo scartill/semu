@@ -1,13 +1,13 @@
 hlt  = 0x00
 nop  = 0x01
 jmp  = 0x03  # goto R1
-add  = 0x04  # R1 + R2 -> R3
+add  = 0x04  # R1 + R2 -> R1
 ldc  = 0x05  # U1 -> R2
 mrm  = 0x06  # R1 -> M[R2]
 mmr  = 0x07  # M[R1] -> R2
 out  = 0x08  # R1 -> L[R2]
-jne  = 0x09  # if R1 ne 0 jmp R2
-sub  = 0x0A  # R1 + R2 -> R3
+jgt  = 0x09  # if R1 .gt 0 jmp R2
+sub  = 0x0A  # R1 + R2 -> R1
 opn  = 0x0B  # open interrupts
 cls  = 0x0C  # close interrupts
 ldr  = 0x0D  # IP + S1 -> R2
