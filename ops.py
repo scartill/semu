@@ -21,4 +21,3 @@ irx  = 0x14  # POP h-a; ret; opn
 bpt  = 0x15  # U1 -> external breakpoint 
 ssp  = 0x16  # SP -> R1
 
-intloop  = 0
