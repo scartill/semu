@@ -20,8 +20,17 @@ irx  = 0x12  # POP h-a; ret; opn
 ssp  = 0x13  # SP -> R1
 
 # Arithmetic
-add  = 0x20  # R1 + R2 -> R3
-sub  = 0x21  # R1 + R2 -> R3
+inv  = 0x20  # ~R1 -> R2
+add  = 0x21  # R1 +  R2 -> R3
+sub  = 0x22  # R1 -  R2 -> R3
+mul  = 0x23  # R1 *  R2 -> R3
+div  = 0x24  # R1 // R2 -> R3
+mod  = 0x25  # R1 %  R2 -> R3
+rsh  = 0x26  # R1 >> R2 -> R3
+lsh  = 0x27  # R1 << R2 -> R3
+bor  = 0x28  # R1 | R2 -> R3
+xor  = 0x28  # R1 ^ R2 -> R3
+band = 0x29  # R1 & R2 -> R3
 
 # Emulated
 bpt  = 0xF0  # U1 -> external breakpoint 

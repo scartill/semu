@@ -25,9 +25,12 @@ class Regs():
 
 class Halt(Exception):
     pass
+    
+### Helpers ###
 
 def next_fmt(fmt):
     global r
+    global memory
     addr = r.ip 
     buf = memory[addr:addr + 4]
     (op,) = struct.unpack(fmt, buf)
@@ -42,6 +45,27 @@ def next_signed():
     
 def next():
     return next_unsigned()
+    
+def arithm_pair(op):
+    global r
+    a = r.gp[next()]
+    b = r.gp[next()]
+    r.gp[next()] = op(a, b)
+        
+def do_push(val):
+    global r
+    global memory
+    m = r.sp
+    memory[m:m+4] = struct.pack(">I", val)
+    r.sp += 4
+    
+def do_pop():
+    r.sp -= 4
+    m = r.sp
+    (v,) = struct.unpack(">I", memory[m:m+4])
+    return v
+    
+### Operations ###
 
 def nop():
     time.sleep(1.0)
@@ -145,17 +169,21 @@ def ssp():
 
 ### Arithmetic ###
 
-def add():
+def inv():
     global r
     a = r.gp[next()]
-    b = r.gp[next()]
-    r.gp[next()] = a + b
-    
-def sub():
-    global r
-    v1 = r.gp[next()]
-    v2 = r.gp[next()]
-    r.gp[next()] = v1 - v2
+    r.gp[next()] = ~a
+
+def add(): arithm_pair(lambda a, b: a + b)
+def sub(): arithm_pair(lambda a, b: a - b)
+def mul(): arithm_pair(lambda a, b: a * b)
+def div(): arithm_pair(lambda a, b: a // b)
+def mod(): arithm_pair(lambda a, b: a % b)
+def rsh(): arithm_pair(lambda a, b: a >> b)
+def lsh(): arithm_pair(lambda a, b: a << b)
+def bor(): arithm_pair(lambda a, b: a | b)
+def xor(): arithm_pair(lambda a, b: a ^ b)
+def band(): arithm_pair(lambda a, b: a % b)
     
 ### Emulated ###
 
@@ -169,14 +197,12 @@ def bpt():
 handlers = {
     ops.nop  : nop,
     ops.hlt  : hlt,
-    ops.jmp  : jmp,
-    ops.add  : add,
+    ops.jmp  : jmp,    
     ops.ldc  : ldc,
     ops.mrm  : mrm,
     ops.mmr  : mmr,
     ops.out  : out,
-    ops.jgt  : jgt,
-    ops.sub  : sub,
+    ops.jgt  : jgt,    
     ops.opn  : opn,
     ops.cls  : cls,
     ops.ldr  : ldr,
@@ -186,9 +212,22 @@ handlers = {
     ops.int  : int,
     ops.cll  : cll,
     ops.ret  : ret,
-    ops.irx  : irx,
-    ops.bpt  : bpt,
+    ops.irx  : irx,    
     ops.ssp  : ssp,
+    
+    ops.inv  : inv,
+    ops.add  : add,
+    ops.sub  : sub,
+    ops.mul  : mul,
+    ops.div  : div,
+    ops.mod  : mod,
+    ops.rsh  : rsh,
+    ops.lsh  : lsh,
+    ops.bor  : bor,
+    ops.xor  : xor,
+    ops.band : band,
+
+    ops.bpt  : bpt
 }
 
 # Line -> Device
@@ -197,20 +236,7 @@ pp = {
     1 : peripheral.SysTimer(),
     2 : peripheral.Serial()
 }
-
-def do_push(val):
-    global r
-    global memory
-    m = r.sp
-    memory[m:m+4] = struct.pack(">I", val)
-    r.sp += 4
     
-def do_pop():
-    r.sp -= 4
-    m = r.sp
-    (v,) = struct.unpack(">I", memory[m:m+4])
-    return v   
-
 def start_pp():
     for l, p in pp.items():
         p.start()
