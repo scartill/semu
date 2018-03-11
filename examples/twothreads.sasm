@@ -21,9 +21,9 @@ ldc 0 b     // int 0 handler address
 mrm a b     // Handler = loopback
 
 // Setup timer
-ldr &timer a
+ldr &scheduler a
 ldc 4 b     // int 1 handler address
-mrm a b     // Handler = timer
+mrm a b     // Handler = scheduler
 ldc 1 a     // enable == 1
 ldc 1 b     // serial on line 1
 out a b     // Enable timer
@@ -107,7 +107,7 @@ out a b
 irx
 
 // Timer tick handler - schedule the next thread
-FUNC timer
+FUNC scheduler
 ldr &runpt a
 mmr a b         // b = *runpt
 
