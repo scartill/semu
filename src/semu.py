@@ -12,6 +12,9 @@ memory_size      = 0xFFFF
 int_vect_base    = 0x0000
 rom_base         = 0x0040
 
+class Halt(Exception):
+    pass
+
 class Regs():
     def __init__(self):
         self.ip = 0     # Set when ROM is loaded
@@ -22,9 +25,6 @@ class Regs():
     
     def debug_dump(self):
         lg.debug("IP:{0} SP:{1} II:{2}, {3}".format(self.ip, self.sp, self.ii, self.gp))
-
-class Halt(Exception):
-    pass
     
 ### Helpers ###
 
@@ -68,7 +68,7 @@ def do_pop():
 ### Operations ###
 
 def nop():
-    time.sleep(1.0)
+    time.sleep(0.1)
 
 def hlt():
     raise Halt()

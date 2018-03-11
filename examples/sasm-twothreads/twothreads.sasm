@@ -18,43 +18,59 @@ DW secnext
 FUNC initstack
     ssp d               // Save start-up stack
     lsp a               // Main SP = 2048
-    psh b               // Thread start = main
-    psh c               // a
-    psh c               // b
-    psh c               // c
-    psh c               // d
-    psh c               // e
-    psh c               // f
-    psh c               // g
-    psh c               // h
+    push b               // Thread start = main
+    push c               // a
+    push c               // b
+    push c               // c
+    push c               // d
+    push c               // e
+    push c               // f
+    push c               // g
+    push c               // h
     ssp a               // Updated SP
     lsp d               // Restore start-up stack
     ret
 
 // Main thread
+// input: a - 'A' or 'B' symbol
 FUNC main
-    CALL mainloop
+    int a
+    nop
+    ldr &main c
+    jmp c
 
 // Secondary thread
 FUNC second
-    CALL mainloop
-
-// Generic loop
-FUNC mainloop
-     // 'A' or 'B' symbol
     int a
+    push a
+    CALL ASuspend
+    pop a
     nop
-    ldr &mainloop c
+    ldr &second c
     jmp c
 
-    // User interrupt handler - send 'word' to serial
-    FUNC loopback
+// API Suspend
+FUNC ASuspend
+    ldc 0 a
+    int a
+    ret
+
+// User interrupt handler - send 'word' to serial
+// input: a - symbol to 'out'. 0 for force timer to suspend
+FUNC KLoopback
+  suspend:
+    ldr &serial b
+    jgt a b
+    ldr &KScheduler b       // NB: no 'cll' instruction
+    jmp b                   // - saving the stack intact
+    
+  serial:
     ldc 2 b
     out a b
     irx
 
-    // Timer tick handler - schedule the next thread
-    FUNC scheduler
+// Timer tick handler - schedule the next thread
+FUNC KScheduler
     ldr &runpt a
     mmr a b         // b = *runpt
 
@@ -84,12 +100,12 @@ ldc 2000 a
 lsp a
 
 // Loopback handler
-ldr &loopback a
+ldr &KLoopback a
 ldc 0 b     // int 0 handler address
 mrm a b     // Handler = loopback
 
 // Setup timer
-ldr &scheduler a
+ldr &KScheduler a
 ldc 4 b     // int 1 handler address
 mrm a b     // Handler = scheduler
 ldc 1 a     // enable == 1

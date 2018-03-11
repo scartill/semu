@@ -51,7 +51,7 @@ class SysTimer(Peripheral):
         self.gen_signal = 0      # Starts disactivated
         
     def restart_timer(self):
-        self.timer = th.Timer(5.0, self.on_timer)
+        self.timer = th.Timer(1.0, self.on_timer)
         self.timer.start()
         
     def on_timer(self):
