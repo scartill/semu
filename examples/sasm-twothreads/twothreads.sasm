@@ -116,7 +116,7 @@ ssp c
 mrm c b         // runpt->sp = sp
 
 ldc 4 d
-add b d b
+add b d
 mmr b e         // e = runpt->next
 
 // Update running TCB

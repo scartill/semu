@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import struct
 import time
 import logging as lg
@@ -54,9 +56,10 @@ def jmp():
 
 def add():
     global r
-    a = r.gp[next()]
+    r_inx = next()
+    a = r.gp[r_inx]
     b = r.gp[next()]
-    r.gp[next()] = a + b
+    r.gp[r_inx] = a + b # a := a + b
 
 def ldc():
     global r
@@ -84,18 +87,19 @@ def out():
     l = r.gp[next()]
     pp[l].send_word(w)
     
-def jne():
+def jgt():
     global r
     val = r.gp[next()]
     addr = r.gp[next()]
-    if(val != 0):
+    if(val > 0):
         r.ip = addr
         
 def sub():
     global r
-    v1 = r.gp[next()]
+    r_inx = next()
+    v1 = r.gp[r_inx]
     v2 = r.gp[next()]
-    r.gp[next()] = v1 - v2
+    r.gp[r_inx] = v1 - v2
     
 def opn():
     global r
@@ -180,7 +184,7 @@ handlers = {
     ops.mrm  : mrm,
     ops.mmr  : mmr,
     ops.out  : out,
-    ops.jne  : jne,
+    ops.jgt  : jgt,
     ops.sub  : sub,
     ops.opn  : opn,
     ops.cls  : cls,
