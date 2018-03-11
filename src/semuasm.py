@@ -14,7 +14,7 @@ class FstPassData:
         self.offset = 0
         self.label_dict = dict()
 
-fst_pass = None        
+fst_pass = None
 
 # Handlers
 def issue_word(fmt, word):
@@ -27,7 +27,7 @@ def issue_usigned(word):
     issue_word(">I", word)    
 
 def issue_signed(word):
-    lg.debug("Issuing signed {0}".format(word))
+    lg.debug("Issuing signed word {0}".format(word))
     issue_word(">i", word)
 
 def issue_op(op):
@@ -36,7 +36,8 @@ def issue_op(op):
 
 def on_label(labelname):
     global fst_pass
-    lg.debug("New label {0} at {1:X}".format(labelname, fst_pass.offset))
+#   Uncomment in case of emergency
+#   lg.debug("New label {0} at {1:X}".format(labelname, fst_pass.offset))
     fst_pass.label_dict[labelname] = fst_pass.offset
 
 def on_reg(val):
@@ -95,17 +96,16 @@ s_const = pp.Regex(
     "[\+\-]?[0-9]+").setParseAction(lambda r: issue_signed(int(r[0])))
     
 ref = (pp.Suppress("&") + pp.Word(pp.alphas)).setParseAction(lambda r: on_ref(r[0]))
-    
+
+# Basic instructions
 hlt_cmd = g_cmd("hlt", ops.hlt)
 nop_cmd = g_cmd("nop", ops.nop)
 jmp_cmd = g_cmd("jmp", ops.jmp) + reg
-add_cmd = g_cmd("add", ops.add) + reg + reg
 ldc_cmd = g_cmd("ldc", ops.ldc) + us_dec_const + reg
 mrm_cmd = g_cmd("mrm", ops.mrm) + reg + reg
 mmr_cmd = g_cmd("mmr", ops.mmr) + reg + reg
 out_cmd = g_cmd("out", ops.out) + reg + reg
 jgt_cmd = g_cmd("jgt", ops.jgt) + reg + reg
-sub_cmd = g_cmd("sub", ops.sub) + reg + reg
 opn_cmd = g_cmd("opn", ops.opn)
 cls_cmd = g_cmd("cls", ops.cls)
 ldr_cmd = g_cmd("ldr", ops.ldr) + ref + reg
@@ -116,8 +116,14 @@ int_cmd = g_cmd("int", ops.int) + reg
 cll_cmd = g_cmd("cll", ops.cll) + reg
 ret_cmd = g_cmd("ret", ops.ret)
 irx_cmd = g_cmd("irx", ops.irx)
-bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 ssp_cmd = g_cmd("ssp", ops.ssp) + reg
+
+# Arithmetic
+add_cmd = g_cmd("add", ops.add) + reg + reg + reg
+sub_cmd = g_cmd("sub", ops.sub) + reg + reg + reg
+
+# Emulated
+bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_dw(r[0]))
 macro_call = (pp.Suppress("CALL") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_call(r[0]))
@@ -170,7 +176,9 @@ def compile(in_filename, out_filename):
             label_offset = fst_pass.label_dict[labelname]
             offset = label_offset - ref_offset
             bytestr += struct.pack(">i", offset)
-            lg.debug("Issuing offset {0} of reference to {1}".format(offset, labelname))
+            
+#           Uncomment in case of emergency
+#           lg.debug("Issuing offset {0} of reference to {1}".format(offset, labelname))
 
     open(out_filename, "wb").write(bytestr)
     

@@ -12,7 +12,6 @@ memory_size      = 0xFFFF
 int_vect_base    = 0x0000
 rom_base         = 0x0040
 
-
 class Regs():
     def __init__(self):
         self.ip = 0     # Set when ROM is loaded
@@ -55,13 +54,6 @@ def jmp():
     addr = r.gp[next()]
     r.ip = addr
 
-def add():
-    global r
-    r_inx = next()
-    a = r.gp[r_inx]
-    b = r.gp[next()]
-    r.gp[r_inx] = a + b # a := a + b
-
 def ldc():
     global r
     a = next()
@@ -94,13 +86,6 @@ def jgt():
     addr = r.gp[next()]
     if(val > 0):
         r.ip = addr
-        
-def sub():
-    global r
-    r_inx = next()
-    v1 = r.gp[r_inx]
-    v2 = r.gp[next()]
-    r.gp[r_inx] = v1 - v2
     
 def opn():
     global r
@@ -120,23 +105,10 @@ def lsp():
     global r
     r.sp = r.gp[next()]
     
-def do_push(val):
-    global r
-    global memory
-    m = r.sp
-    memory[m:m+4] = struct.pack(">I", val)
-    r.sp += 4
-    
 def psh():
     global r    
     val = r.gp[next()]
     do_push(val)
-    
-def do_pop():
-    r.sp -= 4
-    m = r.sp
-    (v,) = struct.unpack(">I", memory[m:m+4])
-    return v
 
 def pop():
     global r
@@ -167,14 +139,32 @@ def irx():
     ret()
     opn()
     
+def ssp():
+    global r
+    r.gp[next()] = r.sp
+
+### Arithmetic ###
+
+def add():
+    global r
+    a = r.gp[next()]
+    b = r.gp[next()]
+    r.gp[next()] = a + b
+    
+def sub():
+    global r
+    v1 = r.gp[next()]
+    v2 = r.gp[next()]
+    r.gp[next()] = v1 - v2
+    
+### Emulated ###
+
 def bpt():
     val = next_unsigned()    
     lg.debug("BREAKPOINT {0}".format(val))
     r.debug_dump()
     
-def ssp():
-    global r
-    r.gp[next()] = r.sp
+### Implementation ###
 
 handlers = {
     ops.nop  : nop,
@@ -208,6 +198,19 @@ pp = {
     2 : peripheral.Serial()
 }
 
+def do_push(val):
+    global r
+    global memory
+    m = r.sp
+    memory[m:m+4] = struct.pack(">I", val)
+    r.sp += 4
+    
+def do_pop():
+    r.sp -= 4
+    m = r.sp
+    (v,) = struct.unpack(">I", memory[m:m+4])
+    return v   
+
 def start_pp():
     for l, p in pp.items():
         p.start()
@@ -219,12 +222,12 @@ def stop_pp():
 
 def init_registers():
     global r
-    r = Regs()  
+    r = Regs()
     
 def init_memory():
     global memory
     memory = bytearray(memory_size)
-    
+
 def load_rom():
     global r
     global memory
@@ -233,7 +236,6 @@ def load_rom():
     l = len(rom)    
     memory[rb:rb+l] = rom
     r.ip = rom_base
-    
 
 def reset():
     init_registers()
