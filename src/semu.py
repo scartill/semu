@@ -2,6 +2,7 @@
 
 import struct
 import time
+import sys
 import logging as lg
 
 import ops
@@ -227,7 +228,7 @@ def init_memory():
 def load_rom():
     global r
     global memory
-    rom = open("rom", "rb").read()  
+    rom = open(sys.argv[1], "rb").read()  
     rb = rom_base
     l = len(rom)    
     memory[rb:rb+l] = rom
@@ -283,6 +284,10 @@ def run():
         lg.info("Execution halted")
     finally:
         stop_pp()
+
+if len(sys.argv) != 2:
+    print("Usage: semu rom-binary")
+    sys.exit(1)
 
 lg.basicConfig(level = lg.DEBUG)
 lg.info("SEMU")
