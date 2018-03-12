@@ -12,7 +12,7 @@ FUNC main
 FUNC second
     int a
     push a
-    CALL ASuspend
+    CALL api.ASuspend
     pop a
     nop
     ldr &second c

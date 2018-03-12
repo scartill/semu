@@ -2,6 +2,7 @@
 
 import pyparsing as pp
 import sys
+import os
 import logging as lg
 import struct
 
@@ -27,7 +28,6 @@ def issue_usigned(word):
     issue_word(">I", word)    
 
 def issue_signed(word):
-    lg.debug("Issuing signed word {0}".format(word))
     issue_word(">i", word)
 
 def issue_op(op):
@@ -36,16 +36,15 @@ def issue_op(op):
 
 def on_label(labelname):
     global fst_pass
-#   Uncomment in case of emergency
-#   lg.debug("New label {0} at {1:X}".format(labelname, fst_pass.offset))
-    fst_pass.label_dict[labelname] = fst_pass.offset
+    qualified_labelname = fst_pass.filename + "." + labelname
+    lg.debug("Label {0} @ {1}".format(qualified_labelname, fst_pass.offset))
+    fst_pass.label_dict[qualified_labelname] = fst_pass.offset
 
 def on_reg(val):
     issue_usigned(val)
 
 def on_fail(r):
-    print("Unknown command")
-    print(r)
+    print("Unknown command {0}".format(r))    
     sys.exit(1)
     
 # Macros
@@ -53,9 +52,9 @@ def issue_macro_dw(varname):
     on_label(varname)
     issue_signed(0x00000000)
     
-def issue_macro_call(labelname):
+def issue_macro_call(refmatch):
     issue_op(ops.ldr)
-    on_ref(labelname)
+    on_ref(refmatch)    
     on_reg(7)               # Using the last for routine address
     issue_op(ops.cll)
     on_reg(7)
@@ -70,14 +69,26 @@ def g_cmd(literal, op):
 def g_reg(reg_name, reg_num):
     return pp.Literal(reg_name).setParseAction(lambda _: on_reg(reg_num))
     
-def on_ref(labelname):    
+def on_ref(match):
     global fst_pass
+    
+    if(len(match) == 1):
+        # Unqualified
+        labelname = fst_pass.filename + "." + match[0]
+    else:
+        # Qualified
+        labelname = match[0] + "." + match[1]
+    
+    lg.debug("Ref {0}".format(labelname))
+    
     current_offset = fst_pass.offset
     fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
     fst_pass.offset += 4 # placeholder-bytes
 
 comment = pp.Literal("//") + pp.SkipTo("\n")
+
 label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
+
 reg = pp.Or([
     g_reg('a', 0),
     g_reg('b', 1),
@@ -100,11 +111,14 @@ def g_cmd_3(literal, op):
 
 us_dec_const = pp.Regex(
     "[0-9]+").setParseAction(lambda r: issue_usigned(int(r[0])))
+    
 us_const = us_dec_const
+
 s_const = pp.Regex(
     "[\+\-]?[0-9]+").setParseAction(lambda r: issue_signed(int(r[0])))
     
-ref = (pp.Suppress("&") + pp.Word(pp.alphas)).setParseAction(lambda r: on_ref(r[0]))
+refname = pp.Optional(pp.Word(pp.alphas) + pp.Suppress(".")) + pp.Word(pp.alphas)
+ref = (pp.Suppress("&") + refname).setParseAction(lambda r: on_ref(r))
 
 # Basic instructions
 hlt_cmd = g_cmd("hlt", ops.hlt)
@@ -143,10 +157,12 @@ band_cmd = g_cmd_3("and", ops.band)
 # Emulated
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
-macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_dw(r[0]))
-macro_call = (pp.Suppress("CALL") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_call(r[0]))
+# Macros
+macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : issue_macro_dw(r[0]))
+macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r : issue_macro_call(r))
 macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_func(r[0]))
 
+# Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))
 
 cmd = hlt_cmd \
@@ -193,6 +209,9 @@ def compile(in_filenames, out_filename):
     fst_pass = FstPassData()
     
     for in_filename in in_filenames:
+        lg.info("Processing {0}".format(in_filename))
+        filename, _ = os.path.splitext(in_filename)
+        fst_pass.filename = filename
         program.parseFile(in_filename)
         
     bytestr = bytearray()
@@ -205,9 +224,6 @@ def compile(in_filenames, out_filename):
             label_offset = fst_pass.label_dict[labelname]
             offset = label_offset - ref_offset
             bytestr += struct.pack(">i", offset)
-            
-#           Uncomment in case of emergency
-#           lg.debug("Issuing offset {0} of reference to {1}".format(offset, labelname))
 
     open(out_filename, "wb").write(bytestr)
    
