@@ -1,0 +1,81 @@
+/// Kernel functions
+
+// Global vars
+DW runpt
+
+// Setup interrupt handlers
+FUNC KSetupHandlers
+    // Loopback handler
+    ldr &HLoopback a
+    ldc 0 b     // int 0 handler address
+    mrm a b     // Handler = loopback
+
+    // Setup timer
+    ldr &HScheduler a
+    ldc 4 b     // int 1 handler address
+    mrm a b     // Handler = scheduler
+    ldc 1 a     // enable == 1
+    ldc 1 b     // serial on line 1
+    out a b     // Enable timer
+    
+    ret
+
+// Init stack for a new thread
+// a = <stack top>
+// b = <func>
+// c = <init value>
+// ret: a <- new thread stack head
+FUNC KInitstack
+    ssp d               // Save start-up stack
+    lsp a               // Main SP = <stack top>
+    push b               // Thread start = <func>
+    push c               // a := <init value>
+    push c               // b := <init value>
+    push c               // c := <init value>
+    push c               // d := <init value>
+    push c               // e := <init value>
+    push c               // f := <init value>
+    push c               // g := <init value>
+    push c               // h := <init value>
+    ssp a               // Updated SP
+    lsp d               // Restore start-up stack
+    ret
+
+// User interrupt handler - send 'word' to serial
+// input: a - symbol to 'out'. 0 for force timer to suspend
+FUNC HLoopback
+  suspend:
+    ldr &serial b
+    jgt a b
+    ldr &HScheduler b       // NB: no 'cll' instruction
+    jmp b                   // - saving the stack intact
+    
+  serial:
+    ldc 2 b
+    out a b
+    irx
+
+// Timer tick handler - schedule the next thread
+FUNC HScheduler
+    ldr &runpt a
+    mmr a b         // b = *runpt
+
+    // Save stack pointer
+    ssp c
+    mrm c b         // runpt->sp = sp
+
+    ldc 4 d
+    add b d b
+    mmr b e         // e = runpt->next
+
+    // Update running TCB
+    mrm e a
+
+    // Fetch new stack pointer
+    mmr e g
+    lsp g
+
+    // Resume that thread
+    irx    
+
+

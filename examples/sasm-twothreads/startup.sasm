@@ -1,0 +1,54 @@
+// ROM startup code assembly file
+
+ldr &start a
+jmp a
+
+DW mainsp
+DW mainnext
+DW secsp
+DW secnext
+
+start:
+bpt 0
+// Start-up stack
+ldc 2000 a
+lsp a
+
+// Setup interrupt handlers
+CALL KSetupHandlers
+
+// Setup main thread stack
+ldc 2048 a
+ldr &main b
+ldc 65 c
+CALL KInitstack      // a <- new SP
+
+// Fill main TCP
+ldr &mainsp b
+mrm a b             // mainsp = 2048 + bootstrap
+ldr &secsp c
+ldr &mainnext d
+mrm c d             // mainnext = &secsp
+
+// Setup second thread stack
+ldc 3092 a
+ldr &second b
+ldc 66 c
+CALL KInitstack      // a <- new SP
+
+// Fill second TCP
+ldr &secsp b
+mrm a b             // secsp = 3092 + bootstrap
+ldr &secnext g
+ldr &mainsp b
+mrm b g             // secnext = &mainsp
+
+// Set running TCP
+ldr &runpt h
+mrm b h             // runpt = &mainsp
+
+// Running main thread
+mmr b a
+lsp a
+irx
+

@@ -1,0 +1,7 @@
+/// Kernel API functions
+
+// API Suspend
+FUNC ASuspend
+    ldc 0 a
+    int a
+    ret

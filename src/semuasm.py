@@ -187,13 +187,15 @@ cmd = hlt_cmd \
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
 
-def compile(in_filename, out_filename):
+def compile(in_filenames, out_filename):
     global fst_pass
 
     fst_pass = FstPassData()
-    program.parseFile(in_filename)
+    
+    for in_filename in in_filenames:
+        program.parseFile(in_filename)
+        
     bytestr = bytearray()
-
     for (t, d) in fst_pass.cmd_list:
         if t == 'bytes':
             bytestr += d
@@ -208,11 +210,12 @@ def compile(in_filename, out_filename):
 #           lg.debug("Issuing offset {0} of reference to {1}".format(offset, labelname))
 
     open(out_filename, "wb").write(bytestr)
-    
-if len(sys.argv) != 3:
-    print("Usage: semuasm source.sasm binary")
+   
+argc = len(sys.argv)   
+if argc < 3:
+    print("Usage: semuasm <sources> binary")
     sys.exit(1)
 
 lg.basicConfig(level=lg.DEBUG)
 lg.info("SEMU ASM")
-compile(sys.argv[1], sys.argv[2])
+compile(sys.argv[1:(argc - 1)], sys.argv[argc - 1])
