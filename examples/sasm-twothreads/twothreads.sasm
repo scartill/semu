@@ -11,22 +11,22 @@ DW secsp
 DW secnext
 
 // Init stack for a new thread
-// a = <stack>
+// a = <stack top>
 // b = <func>
-// c = <init values>
+// c = <init value>
 // ret: a <- new thread stack head
 FUNC initstack
     ssp d               // Save start-up stack
-    lsp a               // Main SP = 2048
-    push b               // Thread start = main
-    push c               // a
-    push c               // b
-    push c               // c
-    push c               // d
-    push c               // e
-    push c               // f
-    push c               // g
-    push c               // h
+    lsp a               // Main SP = <stack top>
+    push b               // Thread start = <func>
+    push c               // a := <init value>
+    push c               // b := <init value>
+    push c               // c := <init value>
+    push c               // d := <init value>
+    push c               // e := <init value>
+    push c               // f := <init value>
+    push c               // g := <init value>
+    push c               // h := <init value>
     ssp a               // Updated SP
     lsp d               // Restore start-up stack
     ret
