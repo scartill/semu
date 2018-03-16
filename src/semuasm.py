@@ -8,86 +8,81 @@ import struct
 
 import ops
 
-# Global first pass results
-class FstPassData:
+# First pass data
+class FPD:
     def __init__(self):
         self.cmd_list = list()
         self.offset = 0
         self.label_dict = dict()
 
-fst_pass = None
+    # Handlers
+    def issue_word(self, fmt, word):
+        bytestr = struct.pack(fmt, word)
+        self.cmd_list.append(('bytes', bytestr))
+        self.offset += 4
 
-# Handlers
-def issue_word(fmt, word):
-    global fst_pass
-    bytestr = struct.pack(fmt, word)
-    fst_pass.cmd_list.append(('bytes', bytestr))
-    fst_pass.offset += 4
+    def issue_usigned(self, word):
+        self.issue_word(">I", word)
 
-def issue_usigned(word):
-    issue_word(">I", word)    
+    def issue_signed(self, word):
+        self.issue_word(">i", word)
 
-def issue_signed(word):
-    issue_word(">i", word)
+    def issue_op(self, op):
+        lg.debug("Issuing command 0x{0:X}".format(op))
+        self.issue_usigned(op)
 
-def issue_op(op):
-    lg.debug("Issuing command 0x{0:X}".format(op))
-    issue_usigned(op)
+    def on_label(self, labelname):
+        qualified_labelname = self.filename + "." + labelname
+        self.label_dict[qualified_labelname] = self.offset
+        lg.debug("Label {0} @ {1}".format(qualified_labelname, self.offset))
 
-def on_label(labelname):
-    global fst_pass
-    qualified_labelname = fst_pass.filename + "." + labelname
-    lg.debug("Label {0} @ {1}".format(qualified_labelname, fst_pass.offset))
-    fst_pass.label_dict[qualified_labelname] = fst_pass.offset
+    def on_reg(self, val):
+        self.issue_usigned(val)
 
-def on_reg(val):
-    issue_usigned(val)
-
-def on_fail(r):
-    print("Unknown command {0}".format(r))    
-    sys.exit(1)
+    def on_fail(self, r):
+        print("Unknown command {0}".format(r))    
+        sys.exit(1)
     
-# Macros
-def issue_macro_dw(varname):
-    on_label(varname)
-    issue_signed(0x00000000)
+    # Macros
+    def issue_macro_dw(self, varname):
+        self.on_label(varname)
+        self.issue_signed(0x00000000)
+        
+    def issue_macro_call(self, refmatch):
+        self.issue_op(ops.ldr)
+        self.on_ref(refmatch)    
+        self.on_reg(7)               # Using the last for routine address
+        self.issue_op(ops.cll)
+        self.on_reg(7)
     
-def issue_macro_call(refmatch):
-    issue_op(ops.ldr)
-    on_ref(refmatch)    
-    on_reg(7)               # Using the last for routine address
-    issue_op(ops.cll)
-    on_reg(7)
-    
-def issue_macro_func(labelname):
-    on_label(labelname)     # Does nothing fancy really
+    def issue_macro_func(self, labelname):
+        self.on_label(labelname)     # Does nothing fancy really
+        
+    def on_ref(self, match):
+        if(len(match) == 1):
+            # Unqualified
+            labelname = self.filename + "." + match[0]
+        else:
+            # Qualified
+            labelname = match[0] + "." + match[1]
+        
+        lg.debug("Ref {0}".format(labelname))
+        
+        current_offset = self.offset
+        self.cmd_list.append(('ref', (current_offset, labelname)))
+        self.offset += 4 # placeholder-bytes
     
 # Grammar
 def g_cmd(literal, op):
-    return pp.Literal(literal).setParseAction(lambda _: issue_op(op))
+    return pp.Literal(literal).setParseAction(lambda _: (FPD.issue_op, op))
 
 def g_reg(reg_name, reg_num):
-    return pp.Literal(reg_name).setParseAction(lambda _: on_reg(reg_num))
-    
-def on_ref(match):
-    global fst_pass
-    
-    if(len(match) == 1):
-        # Unqualified
-        labelname = fst_pass.filename + "." + match[0]
-    else:
-        # Qualified
-        labelname = match[0] + "." + match[1]
-    
-    lg.debug("Ref {0}".format(labelname))
-    
-    current_offset = fst_pass.offset
-    fst_pass.cmd_list.append(('ref', (current_offset, labelname)))
-    fst_pass.offset += 4 # placeholder-bytes
+    return pp.Literal(reg_name).setParseAction(lambda _: (FPD.on_reg, reg_num))
 
-comment = pp.Literal("//") + pp.SkipTo("\n")
 
-label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: on_label(r[0]))
+comment = pp.Suppress(pp.Literal("//") + pp.SkipTo("\n"))
+
+label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: (FPD.on_label, r[0]))
 
 reg = pp.Or([
     g_reg('a', 0),
@@ -110,15 +105,15 @@ def g_cmd_3(literal, op):
     return g_cmd(literal, op) + reg + reg + reg
 
 us_dec_const = pp.Regex(
-    "[0-9]+").setParseAction(lambda r: issue_usigned(int(r[0])))
+    "[0-9]+").setParseAction(lambda r: (FPD.issue_usigned, int(r[0])))
     
 us_const = us_dec_const
 
 s_const = pp.Regex(
-    "[\+\-]?[0-9]+").setParseAction(lambda r: issue_signed(int(r[0])))
+    "[\+\-]?[0-9]+").setParseAction(lambda r: (FPD.issue_signed, int(r[0])))
     
 refname = pp.Optional(pp.Word(pp.alphas) + pp.Suppress(".")) + pp.Word(pp.alphas)
-ref = (pp.Suppress("&") + refname).setParseAction(lambda r: on_ref(r))
+ref = (pp.Suppress("&") + refname).setParseAction(lambda r: (FPD.on_ref, r))
 
 # Basic instructions
 hlt_cmd = g_cmd("hlt", ops.hlt)
@@ -158,12 +153,12 @@ band_cmd = g_cmd_3("and", ops.band)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 # Macros
-macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : issue_macro_dw(r[0]))
-macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r : issue_macro_call(r))
-macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : issue_macro_func(r[0]))
+macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : (FPD.issue_macro_dw, r[0]))
+macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r : (FPD.issue_macro_call, r))
+macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.issue_macro_func, r[0]))
 
 # Fail on unknown command
-unknown = pp.Regex(".+").setParseAction(lambda r: on_fail(r))
+unknown = pp.Regex(".+").setParseAction(lambda r: (FPD.on_fail, r))
 
 cmd = hlt_cmd \
     ^ nop_cmd \
@@ -203,28 +198,30 @@ cmd = hlt_cmd \
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
 
-def compile(in_filenames, out_filename):
-    global fst_pass
-
-    fst_pass = FstPassData()
-    
+def compile(in_filenames, out_filename):    
+    # First pass
+    first_pass = FPD()        
     for in_filename in in_filenames:
         lg.info("Processing {0}".format(in_filename))
-        filename, _ = os.path.splitext(in_filename)
-        fst_pass.filename = filename
-        program.parseFile(in_filename)
-        
+        sfilename, _ = os.path.splitext(in_filename)
+        first_pass.filename = sfilename
+        actions = program.parseFile(in_filename)
+        for (func, arg) in actions:
+            func(first_pass, arg)
+    
+    # Second pass    
     bytestr = bytearray()
-    for (t, d) in fst_pass.cmd_list:
+    for (t, d) in first_pass.cmd_list:
         if t == 'bytes':
             bytestr += d
                 
         if t == 'ref':
             (ref_offset, labelname) = d
-            label_offset = fst_pass.label_dict[labelname]
+            label_offset = first_pass.label_dict[labelname]
             offset = label_offset - ref_offset
             bytestr += struct.pack(">i", offset)
 
+    # Dumping results
     open(out_filename, "wb").write(bytestr)
    
 argc = len(sys.argv)   
