@@ -13,6 +13,9 @@ STRUCT TCP
     DW next
 END
 
+DS TCP main
+DS TCP sec
+
 start:
 bpt 0
 // Start-up stack
@@ -44,8 +47,8 @@ CALL kernel::KInitstack      // a <- new SP
 // Fill second TCP
 ldr &secsp b
 mrm a b             // secsp = 3092 + bootstrap
-ldr &secnext g
 ldr &mainsp b
+ldr &secnext g
 mrm b g             // secnext = &mainsp
 
 // Set running TCP

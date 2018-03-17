@@ -13,15 +13,15 @@ class Struct:
     def __init__(self, name):
         self.name = name
         self.fields = dict()
-        self.offset = 0
+        self.size = 0           # size in 4-byte words
         
     def add_field(self, name, width):
-        lg.debug("Field {0}:{1}:{2}".format(name, width, self.offset))
-        self.fields[name] = self.offset        
-        self.offset += width        
+        lg.debug("Field {0}:{1}:{2}".format(name, width, self.size))
+        self.fields[name] = self.size
+        self.size += width
         
     def get_offset(self, fieldname):
-        return self.fields[fieldname]
+        return self.fields[fieldname] * 4   # offset in bytes
 
 # First pass data
 class FPD:
@@ -44,7 +44,7 @@ class FPD:
         self.cmd_list.append(('bytes', bytestr))
         self.offset += 4
 
-    def issue_usigned(self, word):
+    def issue_usigned(self, word):        
         self.issue_word(">I", word)
 
     def issue_signed(self, word):
@@ -91,7 +91,7 @@ class FPD:
     # Macros
     def issue_macro_dw(self, tokens):
         self.on_label(tokens)
-        self.issue_signed(0x00000000)
+        self.issue_usigned(0x00000000)
         
     def issue_macro_call(self, tokens):
         self.issue_op(ops.ldr)
@@ -117,27 +117,42 @@ class FPD:
         fname = tokens[1]
         
         if(type == "DW"):
-            width = 4
+            width = 1
         else:
             raise Exception("Bad type {0}".format(type))
         
-        struct = self.context
+        s = self.context
         if(self.context == None):
             raise Exception("Bad context")
             
-        struct.add_field(fname, width)        
+        s.add_field(fname, width)        
         
     def macro_struct_end(self, tokens):    
-        struct = self.context
+        s = self.context
         if(self.context == None):
             raise Exception("Bad context")
             
-        self.structs[struct.name] = struct
+        self.structs[s.name] = s
         self.context = None
-        lg.debug("Struct {0}".format(struct.name))
+        lg.debug("Struct {0}".format(s.name))
         
-    #def macro
-        
+    def issue_macro_ds(self, tokens):
+        if(len(tokens) == 3):
+            namespace = tokens[0]
+            sname = tokens[1]
+            name = tokens[2]
+        else:
+            namespace = None
+            sname = tokens[0]
+            name = tokens[1]
+            
+        qsname = self.get_qualified_name(sname, namespace)
+        s = self.structs[qsname]
+        words = s.size
+        self.on_label([name])
+        # Issue placeholder-bytes
+        for _ in range(words):
+            self.issue_usigned(0x00000000)
     
 # Grammar
 def g_cmd(literal, op):
@@ -216,16 +231,18 @@ band_cmd = g_cmd_3("and", ops.band)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 # Macros
-macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : (FPD.issue_macro_dw, r))
-macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r : (FPD.issue_macro_call, r))
-macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.issue_macro_func, r))
+macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r: (FPD.issue_macro_dw, r))
+macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (FPD.issue_macro_call, r))
+macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_func, r))
 
 # Macro-struct
-struct_begin = (pp.Suppress("STRUCT") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.macro_begin_struct, r))
+struct_begin = (pp.Suppress("STRUCT") + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.macro_begin_struct, r))
 field_type = pp.Or(pp.Literal("DW"))
-struct_field = (field_type + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.macro_struct_field, r))
-struct_end = pp.Suppress("END").setParseAction(lambda r : (FPD.macro_struct_end, r))
-macro_struct_def = struct_begin + pp.OneOrMore(struct_field) + struct_end
+struct_field = (field_type + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.macro_struct_field, r))
+struct_end = pp.Suppress("END").setParseAction(lambda r: (FPD.macro_struct_end, r))
+macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
+
+macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_ds, r))
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPD.on_fail, r))
@@ -264,7 +281,8 @@ cmd = hlt_cmd \
     ^ macro_dw \
     ^ macro_call \
     ^ macro_func \
-    ^ macro_struct_def
+    ^ macro_struct \
+    ^ macro_ds
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
