@@ -3,11 +3,6 @@
 ldr &start a
 jmp a
 
-DW mainsp
-DW mainnext
-DW secsp
-DW secnext
-
 STRUCT TCP
     DW sp
     DW next
@@ -32,11 +27,11 @@ ldc 65 c
 CALL kernel::KInitstack      // a <- new SP
 
 // Fill main TCP
-ldr &mainsp b
-mrm a b             // mainsp = 2048 + bootstrap
-ldr &secsp c
-ldr &mainnext d
-mrm c d             // mainnext = &secsp
+FPTR &main sp#TCP b
+mrm a b             // main->sp = 2048 + bootstrap
+ldr &sec c
+FPTR &main next#TCP b
+mrm c b             // main->next = &sec
 
 // Setup second thread stack
 ldc 3092 a
@@ -45,15 +40,15 @@ ldc 66 c
 CALL kernel::KInitstack      // a <- new SP
 
 // Fill second TCP
-ldr &secsp b
-mrm a b             // secsp = 3092 + bootstrap
-ldr &mainsp b
-ldr &secnext g
-mrm b g             // secnext = &mainsp
+FPTR &sec sp#TCP b
+mrm a b                     // sec->sp = 3092 + bootstrap
+ldr &main b
+FPTR &sec next#TCP g
+mrm b g                     // sec->next = &main
 
 // Set running TCP
 ldr &kernel::runpt h
-mrm b h             // runpt = &mainsp
+mrm b h             // runpt = &main
 
 // Running main thread
 mmr b a
