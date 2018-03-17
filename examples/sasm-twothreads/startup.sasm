@@ -8,6 +8,11 @@ DW mainnext
 DW secsp
 DW secnext
 
+STRUCT TCP
+    DW sp
+    DW next
+END
+
 start:
 bpt 0
 // Start-up stack
@@ -15,13 +20,13 @@ ldc 2000 a
 lsp a
 
 // Setup interrupt handlers
-CALL kernel.KSetupHandlers
+CALL kernel::KSetupHandlers
 
 // Setup main thread stack
 ldc 2048 a
-ldr &twothreads.main b
+ldr &twothreads::main b
 ldc 65 c
-CALL kernel.KInitstack      // a <- new SP
+CALL kernel::KInitstack      // a <- new SP
 
 // Fill main TCP
 ldr &mainsp b
@@ -32,9 +37,9 @@ mrm c d             // mainnext = &secsp
 
 // Setup second thread stack
 ldc 3092 a
-ldr &twothreads.second b
+ldr &twothreads::second b
 ldc 66 c
-CALL kernel.KInitstack      // a <- new SP
+CALL kernel::KInitstack      // a <- new SP
 
 // Fill second TCP
 ldr &secsp b
@@ -44,7 +49,7 @@ ldr &mainsp b
 mrm b g             // secnext = &mainsp
 
 // Set running TCP
-ldr &kernel.runpt h
+ldr &kernel::runpt h
 mrm b h             // runpt = &mainsp
 
 // Running main thread

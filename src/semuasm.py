@@ -8,12 +8,35 @@ import struct
 
 import ops
 
+# Struct definition
+class Struct:
+    def __init__(self, name):
+        self.name = name
+        self.fields = dict()
+        self.offset = 0
+        
+    def add_field(self, name, width):
+        lg.debug("Field {0}:{1}:{2}".format(name, width, self.offset))
+        self.fields[name] = self.offset        
+        self.offset += width        
+        
+    def get_offset(self, fieldname):
+        return self.fields[fieldname]
+
 # First pass data
 class FPD:
-    def __init__(self):
+    def __init__(self):      
         self.cmd_list = list()
         self.offset = 0
+        self.namespace = "<global>"
         self.label_dict = dict()
+        self.context = None
+        self.structs = dict()
+        
+    def get_qualified_name(self, name, namespace = None):    
+        if(namespace == None):
+            namespace = self.namespace    
+        return namespace + "::" + name
 
     # Handlers
     def issue_word(self, fmt, word):
@@ -30,47 +53,91 @@ class FPD:
     def issue_op(self, op):
         lg.debug("Issuing command 0x{0:X}".format(op))
         self.issue_usigned(op)
+        
+    def on_uconst(self, tokens):
+        word = int(tokens[0])
+        self.issue_usigned(word)
+        
+    def on_sconst(self, tokens):
+        word = int(tokens[0])
+        self.issue_signed(word)        
 
-    def on_label(self, labelname):
-        qualified_labelname = self.filename + "." + labelname
-        self.label_dict[qualified_labelname] = self.offset
-        lg.debug("Label {0} @ {1}".format(qualified_labelname, self.offset))
+    def on_label(self, tokens):
+        labelname = tokens[0]
+        qlabelname = self.get_qualified_name(labelname)
+        self.label_dict[qlabelname] = self.offset
+        lg.debug("Label {0} @ {1}".format(qlabelname, self.offset))
 
     def on_reg(self, val):
         self.issue_usigned(val)
-
-    def on_fail(self, r):
-        print("Unknown command {0}".format(r))    
-        sys.exit(1)
     
-    # Macros
-    def issue_macro_dw(self, varname):
-        self.on_label(varname)
-        self.issue_signed(0x00000000)
-        
-    def issue_macro_call(self, refmatch):
-        self.issue_op(ops.ldr)
-        self.on_ref(refmatch)    
-        self.on_reg(7)               # Using the last for routine address
-        self.issue_op(ops.cll)
-        self.on_reg(7)
-    
-    def issue_macro_func(self, labelname):
-        self.on_label(labelname)     # Does nothing fancy really
-        
-    def on_ref(self, match):
-        if(len(match) == 1):
+    def on_ref(self, tokens):
+        if(len(tokens) == 1):
             # Unqualified
-            labelname = self.filename + "." + match[0]
+            labelname = self.get_qualified_name(tokens[0])
         else:
             # Qualified
-            labelname = match[0] + "." + match[1]
+            labelname = self.get_qualified_name(tokens[1], tokens[0]) # name, namespace
         
         lg.debug("Ref {0}".format(labelname))
         
         current_offset = self.offset
         self.cmd_list.append(('ref', (current_offset, labelname)))
-        self.offset += 4 # placeholder-bytes
+        self.offset += 4 # placeholder-bytes        
+
+    def on_fail(self, r):
+        raise Exception("Unknown command {0}".format(r))
+    
+    # Macros
+    def issue_macro_dw(self, tokens):
+        self.on_label(tokens)
+        self.issue_signed(0x00000000)
+        
+    def issue_macro_call(self, tokens):
+        self.issue_op(ops.ldr)
+        self.on_ref(tokens)
+        self.on_reg(7)               # Using the last for routine address
+        self.issue_op(ops.cll)
+        self.on_reg(7)
+    
+    def issue_macro_func(self, tokens):
+        self.on_label(tokens)     # Does nothing fancy really
+        
+    def macro_begin_struct(self, tokens):
+    
+        name = tokens[0]
+        qname = self.get_qualified_name(name)
+        
+        if(self.context != None):
+            raise Exception("Bad context")
+        self.context = Struct(qname)
+        
+    def macro_struct_field(self, tokens):
+        type = tokens[0]
+        fname = tokens[1]
+        
+        if(type == "DW"):
+            width = 4
+        else:
+            raise Exception("Bad type {0}".format(type))
+        
+        struct = self.context
+        if(self.context == None):
+            raise Exception("Bad context")
+            
+        struct.add_field(fname, width)        
+        
+    def macro_struct_end(self, tokens):    
+        struct = self.context
+        if(self.context == None):
+            raise Exception("Bad context")
+            
+        self.structs[struct.name] = struct
+        self.context = None
+        lg.debug("Struct {0}".format(struct.name))
+        
+    #def macro
+        
     
 # Grammar
 def g_cmd(literal, op):
@@ -82,7 +149,7 @@ def g_reg(reg_name, reg_num):
 
 comment = pp.Suppress(pp.Literal("//") + pp.SkipTo("\n"))
 
-label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: (FPD.on_label, r[0]))
+label = (pp.Word(pp.alphas) + pp.Suppress(':')).setParseAction(lambda r: (FPD.on_label, r))
 
 reg = pp.Or([
     g_reg('a', 0),
@@ -104,15 +171,11 @@ def g_cmd_2(literal, op):
 def g_cmd_3(literal, op):
     return g_cmd(literal, op) + reg + reg + reg
 
-us_dec_const = pp.Regex(
-    "[0-9]+").setParseAction(lambda r: (FPD.issue_usigned, int(r[0])))
-    
+us_dec_const = pp.Regex("[0-9]+").setParseAction(lambda r: (FPD.on_uconst, r))    
 us_const = us_dec_const
-
-s_const = pp.Regex(
-    "[\+\-]?[0-9]+").setParseAction(lambda r: (FPD.issue_signed, int(r[0])))
+s_const = pp.Regex("[\+\-]?[0-9]+").setParseAction(lambda r: (FPD.on_sconst, r))
     
-refname = pp.Optional(pp.Word(pp.alphas) + pp.Suppress(".")) + pp.Word(pp.alphas)
+refname = pp.Optional(pp.Word(pp.alphas) + pp.Suppress("::")) + pp.Word(pp.alphas)
 ref = (pp.Suppress("&") + refname).setParseAction(lambda r: (FPD.on_ref, r))
 
 # Basic instructions
@@ -153,9 +216,16 @@ band_cmd = g_cmd_3("and", ops.band)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 # Macros
-macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : (FPD.issue_macro_dw, r[0]))
+macro_dw = (pp.Suppress("DW") + refname).setParseAction(lambda r : (FPD.issue_macro_dw, r))
 macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r : (FPD.issue_macro_call, r))
-macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.issue_macro_func, r[0]))
+macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.issue_macro_func, r))
+
+# Macro-struct
+struct_begin = (pp.Suppress("STRUCT") + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.macro_begin_struct, r))
+field_type = pp.Or(pp.Literal("DW"))
+struct_field = (field_type + pp.Word(pp.alphas)).setParseAction(lambda r : (FPD.macro_struct_field, r))
+struct_end = pp.Suppress("END").setParseAction(lambda r : (FPD.macro_struct_end, r))
+macro_struct_def = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPD.on_fail, r))
@@ -193,7 +263,8 @@ cmd = hlt_cmd \
     ^ band_cmd \
     ^ macro_dw \
     ^ macro_call \
-    ^ macro_func
+    ^ macro_func \
+    ^ macro_struct_def
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
@@ -204,7 +275,7 @@ def compile(in_filenames, out_filename):
     for in_filename in in_filenames:
         lg.info("Processing {0}".format(in_filename))
         sfilename, _ = os.path.splitext(in_filename)
-        first_pass.filename = sfilename
+        first_pass.namespace = sfilename
         actions = program.parseFile(in_filename)
         for (func, arg) in actions:
             func(first_pass, arg)
@@ -224,7 +295,7 @@ def compile(in_filenames, out_filename):
     # Dumping results
     open(out_filename, "wb").write(bytestr)
    
-argc = len(sys.argv)   
+argc = len(sys.argv)
 if argc < 3:
     print("Usage: semuasm <sources> binary")
     sys.exit(1)
