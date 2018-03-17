@@ -28,10 +28,10 @@ CALL kernel::KInitstack      // a <- new SP
 
 // Fill main TCP
 FPTR &main sp#TCP b
-mrm a b             // main->sp = 2048 + bootstrap
+mrm a b                      // main.sp = 2048 + bootstrap
 ldr &sec c
 FPTR &main next#TCP b
-mrm c b             // main->next = &sec
+mrm c b                      // main.next = &sec
 
 // Setup second thread stack
 ldc 3092 a
@@ -41,10 +41,10 @@ CALL kernel::KInitstack      // a <- new SP
 
 // Fill second TCP
 FPTR &sec sp#TCP b
-mrm a b                     // sec->sp = 3092 + bootstrap
+mrm a b                     // sec.sp = 3092 + bootstrap
 ldr &main b
 FPTR &sec next#TCP g
-mrm b g                     // sec->next = &main
+mrm b g                     // sec.next = &main
 
 // Set running TCP
 ldr &kernel::runpt h

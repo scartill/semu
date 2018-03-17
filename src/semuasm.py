@@ -13,7 +13,7 @@ class Struct:
     def __init__(self, name):
         self.name = name
         self.fields = dict()
-        self.size = 0           # size in 4-byte words
+        self.size = 0                       # size in 4-byte words
         
     def add_field(self, name, width):
         lg.debug("Field {0}:{1}:{2}".format(name, width, self.size))
@@ -101,7 +101,7 @@ class FPD:
         self.on_reg(7)
     
     def issue_macro_func(self, tokens):
-        self.on_label(tokens)     # Does nothing fancy really
+        self.on_label(tokens)        # Does nothing fancy really
         
     def macro_begin_struct(self, tokens):
     
@@ -153,13 +153,17 @@ class FPD:
         # Issue placeholder-bytes
         for _ in range(words):
             self.issue_usigned(0x00000000)
-            
-    # FPTR startup::main sp#startup::TCP
+    
     def issue_macro_fptr_head(self, tokens):
         self.issue_op(ops.ldr)
+        
+    def issue_macro_rptr_head(self, tokens):
+        self.issue_op(ops.mmr) 
     
-    def issue_macro_fptr_tail(self, tokens):
-        # before: ldr &ref
+    def issue_macro_ptr_tail(self, tokens):
+        # before: command to to load struct address to reg
+        # for FPTR: ldr &ref
+        # for RPTR: mrm source-reg
         if(len(tokens) == 3):
             fname = tokens[0]
             namespace = tokens[1]
@@ -173,7 +177,7 @@ class FPD:
         s = self.structs[qsname]
         offset = s.get_offset(fname)        
             
-        self.on_reg(7)               # Using the last ('h') for ptr address
+        self.on_reg(7)               # Using the last ('h') for struct address
         self.issue_op(ops.ldc)       # Loading the offset
         self.issue_usigned(offset)
         self.on_reg(6)               # Using 'g' for field offset
@@ -272,9 +276,11 @@ macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
 macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_ds, r))
 
+ptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lambda r: (FPD.issue_macro_ptr_tail, r))
 fptr_head = pp.Literal("FPTR").setParseAction(lambda r: (FPD.issue_macro_fptr_head, r))
-fptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lambda r: (FPD.issue_macro_fptr_tail, r))
-macro_fptr = fptr_head + ref + fptr_tail + reg
+rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPD.issue_macro_rptr_head, r))
+macro_fptr = fptr_head + ref + ptr_tail + reg
+macro_rptr = rptr_head + reg + ptr_tail + reg
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPD.on_fail, r))
@@ -315,7 +321,8 @@ cmd = hlt_cmd \
     ^ macro_func \
     ^ macro_struct \
     ^ macro_ds \
-    ^ macro_fptr
+    ^ macro_fptr \
+    ^ macro_rptr
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)

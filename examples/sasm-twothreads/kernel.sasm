@@ -58,22 +58,22 @@ FUNC HLoopback
 // Timer tick handler - schedule the next thread
 FUNC HScheduler
     ldr &runpt a
-    mmr a b         // b = *runpt
-
+    
     // Save stack pointer
+    RPTR a sp#startup::TCP b
     ssp c
     mrm c b         // runpt->sp = sp
 
-    ldc 4 d
-    add b d b
+    RPTR a next#startup::TCP b
     mmr b e         // e = runpt->next
 
     // Update running TCB
     mrm e a
 
-    // Fetch new stack pointer
-    mmr e g
-    lsp g
+    // Fetch new stack pointer    
+    RPTR a sp#startup::TCP b
+    mmr b c
+    lsp c
 
     // Resume that thread
     irx    
