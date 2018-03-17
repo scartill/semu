@@ -1,0 +1,11 @@
+// ROM startup code assembly file
+bpt 0
+// Start-up stack
+ldc 2000 a
+lsp a
+
+CALL kernel::KStartup
+
+lsp a
+irx
+

@@ -332,8 +332,9 @@ def compile(in_filenames, out_filename):
     first_pass = FPD()        
     for in_filename in in_filenames:
         lg.info("Processing {0}".format(in_filename))
-        sfilename, _ = os.path.splitext(in_filename)
-        first_pass.namespace = sfilename
+        basename = os.path.basename(in_filename)
+        sname, _ = os.path.splitext(basename)
+        first_pass.namespace = sname
         actions = program.parseFile(in_filename)
         for (func, arg) in actions:
             func(first_pass, arg)

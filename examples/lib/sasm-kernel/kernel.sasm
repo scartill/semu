@@ -1,7 +1,53 @@
 /// Kernel functions
 
+STRUCT TCP
+    DW sp
+    DW next
+END
+
 // Global vars
 DW runpt
+DS TCP main
+DS TCP sec
+
+FUNC KStartup
+    // Setup interrupt handlers
+    CALL KSetupHandlers
+
+    // Setup main thread stack
+    ldc 2048 a
+    ldr &twothreads::main b
+    ldc 65 c
+    CALL KInitstack      // a <- new SP
+
+    // Fill main TCP
+    FPTR &main sp#TCP b
+    mrm a b                      // main.sp = 2048 + bootstrap
+    ldr &sec c
+    FPTR &main next#TCP b
+    mrm c b                      // main.next = &sec
+
+    // Setup second thread stack
+    ldc 3092 a
+    ldr &twothreads::second b
+    ldc 66 c
+    CALL KInitstack      // a <- new SP
+
+    // Fill second TCP
+    FPTR &sec sp#TCP b
+    mrm a b                     // sec.sp = 3092 + bootstrap
+    ldr &main b
+    FPTR &sec next#TCP g
+    mrm b g                     // sec.next = &main
+
+    // Set running TCP
+    ldr &runpt h
+    mrm b h             // runpt = &main
+
+    // Return main thread stack pointer    
+    FPTR &main sp#TCP b
+    mmr b a
+    ret
 
 // Setup interrupt handlers
 FUNC KSetupHandlers
@@ -28,15 +74,15 @@ FUNC KSetupHandlers
 FUNC KInitstack
     ssp d               // Save start-up stack
     lsp a               // Main SP = <stack top>
-    push b               // Thread start = <func>
-    push c               // a := <init value>
-    push c               // b := <init value>
-    push c               // c := <init value>
-    push c               // d := <init value>
-    push c               // e := <init value>
-    push c               // f := <init value>
-    push c               // g := <init value>
-    push c               // h := <init value>
+    push b              // Thread start = <func>
+    push c              // a := <init value>
+    push c              // b := <init value>
+    push c              // c := <init value>
+    push c              // d := <init value>
+    push c              // e := <init value>
+    push c              // f := <init value>
+    push c              // g := <init value>
+    push c              // h := <init value>
     ssp a               // Updated SP
     lsp d               // Restore start-up stack
     ret
@@ -60,18 +106,18 @@ FUNC HScheduler
     ldr &runpt a
     
     // Save stack pointer
-    RPTR a sp#startup::TCP b
+    RPTR a sp#TCP b
     ssp c
     mrm c b         // runpt->sp = sp
 
-    RPTR a next#startup::TCP b
+    RPTR a next#TCP b
     mmr b e         // e = runpt->next
 
     // Update running TCB
     mrm e a
 
     // Fetch new stack pointer    
-    RPTR a sp#startup::TCP b
+    RPTR a sp#TCP b
     mmr b c
     lsp c
 
