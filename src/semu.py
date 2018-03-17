@@ -166,6 +166,11 @@ def irx():
 def ssp():
     global r
     r.gp[next()] = r.sp
+    
+def mrr():
+    global r
+    val = r.gp[next()]
+    r.gp[next()] = val
 
 ### Arithmetic ###
 
@@ -214,6 +219,7 @@ handlers = {
     ops.ret  : ret,
     ops.irx  : irx,    
     ops.ssp  : ssp,
+    ops.mrr  : mrr,
     
     ops.inv  : inv,
     ops.add  : add,

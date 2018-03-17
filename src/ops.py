@@ -18,6 +18,7 @@ cll  = 0x10  # PSH IP + 4; JMP R1
 ret  = 0x11  # JMP [SP--]
 irx  = 0x12  # POP h-a; ret; opn
 ssp  = 0x13  # SP -> R1
+mrr  = 0x14  # R1 -> R2
 
 # Arithmetic
 inv  = 0x20  # ~R1 -> R2

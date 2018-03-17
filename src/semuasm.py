@@ -153,6 +153,9 @@ class FPD:
         # Issue placeholder-bytes
         for _ in range(words):
             self.issue_usigned(0x00000000)
+            
+    def issue_macro_ptr_head(self, tokens):
+        self.issue_op(ops.mrr)
     
     def issue_macro_fptr_head(self, tokens):
         self.issue_op(ops.ldr)
@@ -245,6 +248,7 @@ cll_cmd = g_cmd_1("cll", ops.cll)
 ret_cmd = g_cmd("ret", ops.ret)
 irx_cmd = g_cmd("irx", ops.irx)
 ssp_cmd = g_cmd_1("ssp", ops.ssp)
+mrr_cmd = g_cmd_2("mrr", ops.mrr)
 
 # Arithmetic
 inv_cmd = g_cmd_2("inv", ops.inv)
@@ -277,8 +281,10 @@ macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_ds, r))
 
 ptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lambda r: (FPD.issue_macro_ptr_tail, r))
+ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPD.issue_macro_ptr_head, r))
 fptr_head = pp.Literal("FPTR").setParseAction(lambda r: (FPD.issue_macro_fptr_head, r))
 rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPD.issue_macro_rptr_head, r))
+macro_ptr = ptr_head + reg + ptr_tail + reg
 macro_fptr = fptr_head + ref + ptr_tail + reg
 macro_rptr = rptr_head + reg + ptr_tail + reg
 
@@ -316,11 +322,13 @@ cmd = hlt_cmd \
     ^ bor_cmd \
     ^ xor_cmd \
     ^ band_cmd \
+    ^ mrr_cmd \
     ^ macro_dw \
     ^ macro_call \
     ^ macro_func \
     ^ macro_struct \
     ^ macro_ds \
+    ^ macro_ptr \
     ^ macro_fptr \
     ^ macro_rptr
     

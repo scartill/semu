@@ -8,7 +8,7 @@ END
 // Global vars
 DW runpt
 DS TCP main
-DS TCP sec
+DS TCP second
 
 FUNC KStartup
     // Setup interrupt handlers
@@ -18,37 +18,62 @@ FUNC KStartup
     ldc 2048 a
     ldr &twothreads::main b
     ldc 65 c
-    CALL KInitstack      // a <- new SP
-
-    // Fill main TCP
-    FPTR &main sp#TCP b
-    mrm a b                      // main.sp = 2048 + bootstrap
-    ldr &sec c
-    FPTR &main next#TCP b
-    mrm c b                      // main.next = &sec
+    ldr &main d
+    ldr &second e
+    CALL KInitThread
 
     // Setup second thread stack
     ldc 3092 a
     ldr &twothreads::second b
-    ldc 66 c
-    CALL KInitstack      // a <- new SP
-
-    // Fill second TCP
-    FPTR &sec sp#TCP b
-    mrm a b                     // sec.sp = 3092 + bootstrap
-    ldr &main b
-    FPTR &sec next#TCP g
-    mrm b g                     // sec.next = &main
+    ldc 66 c    
+    ldr &second d
+    ldr &main e
+    CALL KInitThread
 
     // Set running TCP
-    ldr &runpt h
-    mrm b h             // runpt = &main
+    ldr &runpt a
+    ldr &main b
+    mrm b a                     // runpt = &main
 
     // Return main thread stack pointer    
-    FPTR &main sp#TCP b
-    mmr b a
+    PTR b sp#TCP b
+    mmr b a                     // a <- main.sp
     ret
 
+FUNC KInitThread // stack_top, func, init_value, tcb, next_tcb
+    push b
+    push c
+    push d
+    push e
+    CALL KInitStack
+    pop e
+    pop d
+    pop c
+    pop b
+      
+    PTR d sp#TCP h
+    mrm a h                     // tcb.sp = stack_top
+    PTR d next#TCP h
+    mrm e h                     // tcp.next = next_tcb
+    ret
+
+// Init stack for a new thread
+FUNC KInitStack // stack_top, func, init_value -> new_stack
+    ssp d               // Save start-up stack
+    lsp a               // Main SP = <stack top>
+    push b              // Thread start = <func>
+    push c              // a := <init value>
+    push c              // b := <init value>
+    push c              // c := <init value>
+    push c              // d := <init value>
+    push c              // e := <init value>
+    push c              // f := <init value>
+    push c              // g := <init value>
+    push c              // h := <init value>
+    ssp a               // Updated SP
+    lsp d               // Restore start-up stack
+    ret
+    
 // Setup interrupt handlers
 FUNC KSetupHandlers
     // Loopback handler
@@ -64,27 +89,6 @@ FUNC KSetupHandlers
     ldc 1 b     // serial on line 1
     out a b     // Enable timer
     
-    ret
-
-// Init stack for a new thread
-// a = <stack top>
-// b = <func>
-// c = <init value>
-// ret: a <- new thread stack head
-FUNC KInitstack
-    ssp d               // Save start-up stack
-    lsp a               // Main SP = <stack top>
-    push b              // Thread start = <func>
-    push c              // a := <init value>
-    push c              // b := <init value>
-    push c              // c := <init value>
-    push c              // d := <init value>
-    push c              // e := <init value>
-    push c              // f := <init value>
-    push c              // g := <init value>
-    push c              // h := <init value>
-    ssp a               // Updated SP
-    lsp d               // Restore start-up stack
     ret
 
 // User interrupt handler - send 'word' to serial
