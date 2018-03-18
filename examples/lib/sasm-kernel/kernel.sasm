@@ -6,14 +6,17 @@ STRUCT TCB
     DW prev
 END
 
-// Global vars
+// Running thread pointer
 DW runpt
-DS TCB idletcb
 
 // Create idle thread
+DS TCB idletcb
+DW idlestack*100
+
 FUNC CreateIdle
-    ldc 2048 a
+    ldr &idlestack a
     ldr &TIdle b
+    ldc 0 c
     CALL InitStack      // a <- SP
     
     ldr &idletcb b
@@ -40,26 +43,49 @@ FUNC Startup
     CALL SetupHandlers
     CALL CreateIdle
     
+    CALL app::Start
+    
     // Return idle thread stack pointer    
     ldr &runpt a
     RPTR a sp#TCB b
     mmr b a             // return runpt->sp
     ret
 
-FUNC CreateThread // stack_top, func
+FUNC CreateThread // stack_top, func, param, tcb
+    push d
     CALL InitStack             // a <- new_stack
+    pop b                      // b <- tcb
+    
+    PTR b sp#TCB h
+    mrm a h                    // tcp.sp = a
       
-    PTR d sp#TCB h
-    mrm a h                     // tcb.sp = stack_top
+    ldr &runpt d               // d <- runpt
+    mmr d d                    // d <- *runpt
+    
     PTR d next#TCB h
-    mrm e h                     // tcp.next = next_tcb
+    mmr h e                    // e <- runpt->next
+    
+    mrm b h                    // runpt->next = tcb
+    
+    PTR b next#TCB h    
+    mrm e h                    // tcp.next = e
+    
+    PTR b prev#TCB h
+    mrm d h                    // tcp.prev = *runpt
+    
+    RPTR e prev#TCB h
+    mrm b h                    // runpt->next.prev = tcb    
+    
     ret
 
 // Init stack for a new thread
-FUNC InitStack // stack_top, func -> new_stack
+FUNC InitStack // stack_top, func, param -> new_stack
     mrm b a             // Thread start = <func>
-    ldc 36 c
-    add a c a
+    ldc 4 d
+    add a d a
+    mrm c a             // Func <param> passed in a
+    ldc 32 d
+    add a d a
     ret
     
 // Setup interrupt handlers

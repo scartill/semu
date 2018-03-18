@@ -1,11 +1,10 @@
 /// ROM startup code assembly file
 
 // Start-up stack
-ldc 2000 a
+ldr &startstack a
 lsp a
-
 CALL kernel::Startup
-
 lsp a
 irx
 
+DW startstack*100

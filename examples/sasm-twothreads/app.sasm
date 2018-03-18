@@ -1,0 +1,39 @@
+/// User thread functions
+
+DS kernel::TCB maintcb
+DW mainstack*100
+
+FUNC Start
+    ldr &mainstack a
+    ldr &main b
+    ldc 65 c
+    ldr &maintcb d    
+    CALL kernel::CreateThread
+    ret
+
+// Main thread
+FUNC main // symbol
+    push a
+    ldr &secstack a
+    ldr &second b
+    ldc 66 c
+    ldr &sectcb d    
+    CALL kernel::CreateThread
+    pop a
+
+  loop:
+    int a
+    nop
+    ldr &loop c
+    jmp c
+    
+DS kernel::TCB sectcb
+DW secstack*100    
+
+// Secondary thread
+FUNC second
+    int a
+    nop
+    ldr &second c
+    jmp c
+

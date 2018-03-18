@@ -94,8 +94,15 @@ class FPD:
     
     # Macros
     def issue_macro_dw(self, tokens):
-        self.on_label(tokens)
-        self.issue_usigned(0x00000000)
+        self.on_label([tokens[0]])
+        
+        if(len(tokens) == 2):
+            multipicity = int(tokens[1])
+        else:
+            multipicity = 1
+        
+        for _ in range(multipicity):
+            self.issue_usigned(0x00000000)
         
     def issue_macro_call(self, tokens):
         self.issue_op(ops.ldr)
@@ -284,7 +291,8 @@ band_cmd = g_cmd_3("and", ops.band)
 bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 # Macros
-macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_dw, r))
+multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
+macro_dw = (pp.Suppress("DW") + pp.Word(pp.alphas) + multi).setParseAction(lambda r: (FPD.issue_macro_dw, r))
 macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (FPD.issue_macro_call, r))
 macro_func = (pp.Suppress("FUNC") + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_func, r))
 
@@ -295,8 +303,7 @@ struct_field = (field_type + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.m
 struct_end = pp.Suppress("END").setParseAction(lambda r: (FPD.macro_struct_end, r))
 macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
-ds_multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
-macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas) + ds_multi).setParseAction(lambda r: (FPD.issue_macro_ds, r))
+macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas) + multi).setParseAction(lambda r: (FPD.issue_macro_ds, r))
 
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPD.issue_macro_ptr_head, r))
 rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPD.issue_macro_rptr_head, r))
