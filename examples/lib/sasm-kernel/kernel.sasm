@@ -10,12 +10,16 @@ DW runpt
 DS TCP main
 DS TCP second
 
-DS TCP others*10
+DS TCP threads*10
 
 FUNC KStartup
     // Setup interrupt handlers
     CALL KSetupHandlers
 
+//    ldr &kernel::threads a
+//    ldc 0 b    
+//    ITEM TCP a b
+    
     // Setup main thread stack
     ldc 2048 a
     ldr &twothreads::main b
