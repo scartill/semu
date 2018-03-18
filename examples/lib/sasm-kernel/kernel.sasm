@@ -7,42 +7,53 @@ END
 
 // Global vars
 DW runpt
-DS TCP main
-DS TCP second
-
 DS TCP threads*10
 
 FUNC KStartup
     // Setup interrupt handlers
     CALL KSetupHandlers
 
-//    ldr &kernel::threads a
-//    ldc 0 b    
-//    ITEM TCP a b
+    ldr &threads a
+    ldc 0 b    
+    ITEM TCP
+    mrr a d
+    
+    ldr &threads a
+    ldc 1 b
+    ITEM TCP
+    mrr a e
     
     // Setup main thread stack
     ldc 2048 a
     ldr &twothreads::main b
     ldc 65 c
-    ldr &main d
-    ldr &second e
     CALL KInitThread
-
+    
+    ldr &threads a
+    ldc 0 b    
+    ITEM TCP
+    mrr a e
+    
+    ldr &threads a
+    ldc 1 b
+    ITEM TCP
+    mrr a d
+    
     // Setup second thread stack
     ldc 3092 a
     ldr &twothreads::second b
-    ldc 66 c    
-    ldr &second d
-    ldr &main e
+    ldc 66 c
     CALL KInitThread
 
     // Set running TCP
-    ldr &runpt a
-    ldr &main b
-    mrm b a                     // runpt = &main
+    ldr &threads a
+    ldc 0 b
+    ITEM TCP    
+    ldr &runpt b
+    mrm a b                     // runpt = &main
 
     // Return main thread stack pointer    
-    PTR b sp#TCP b
+    PTR a sp#TCP b
     mmr b a                     // a <- main.sp
     ret
 

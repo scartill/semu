@@ -1,5 +1,5 @@
-// ROM startup code assembly file
-bpt 0
+/// ROM startup code assembly file
+
 // Start-up stack
 ldc 2000 a
 lsp a

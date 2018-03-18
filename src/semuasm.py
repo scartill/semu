@@ -82,7 +82,6 @@ class FPD:
         self.issue_usigned(val)
     
     def on_ref(self, tokens):
-        print(tokens)
         labelname = self.resolve_name(tokens[0])
         lg.debug("Ref {0}".format(labelname))
         
@@ -164,6 +163,7 @@ class FPD:
     def issue_macro_rptr_head(self, tokens):
         self.issue_op(ops.mmr)
     
+    # Invalidates g, h
     def issue_macro_ptr_tail(self, tokens):
         # before: partial command to to load struct address to reg
         # for PTR: mrr source-reg
@@ -181,9 +181,29 @@ class FPD:
         self.on_reg(7)
         self.on_reg(6)
         # after: target reg
-        
-#    def issue_macro_item_head(self, tokens):
-#        self.issue_op(ops.mmr)
+    
+    # Invalidates a, b, h
+    # Returns a
+    def issue_macro_item(self, tokens):
+        # a - base
+        # b - index
+        qsname = self.resolve_name(tokens[0])
+        s = self.structs[qsname]
+        width = s.size*4
+        # ldc <size> h
+        self.issue_op(ops.ldc)
+        self.issue_usigned(width)
+        self.on_reg(7)
+        # mul b h b
+        self.issue_op(ops.mul)
+        self.on_reg(1)
+        self.on_reg(7)
+        self.on_reg(1)
+        # add a b a
+        self.issue_op(ops.add)
+        self.on_reg(0)
+        self.on_reg(1)
+        self.on_reg(0)
     
 # Grammar
 def g_cmd(literal, op):
@@ -284,6 +304,8 @@ ptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lamb
 macro_ptr = ptr_head + reg + ptr_tail + reg
 macro_rptr = rptr_head + reg + ptr_tail + reg
 
+macro_item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (FPD.issue_macro_item, r))
+
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPD.on_fail, r))
 
@@ -325,7 +347,8 @@ cmd = hlt_cmd \
     ^ macro_struct \
     ^ macro_ds \
     ^ macro_ptr \
-    ^ macro_rptr
+    ^ macro_rptr \
+    ^ macro_item
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
