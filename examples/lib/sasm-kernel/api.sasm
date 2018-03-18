@@ -1,7 +1,13 @@
 /// Kernel API functions
 
 // API Suspend
-FUNC ASuspend
+FUNC Suspend
     ldc 0 a
     int a
     ret
+
+// API Print char
+FUNC Print
+    int a
+    ret
+ 

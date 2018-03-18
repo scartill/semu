@@ -4,7 +4,7 @@
 ldc 2000 a
 lsp a
 
-CALL kernel::KStartup
+CALL kernel::Startup
 
 lsp a
 irx

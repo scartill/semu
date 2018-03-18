@@ -1,98 +1,69 @@
 /// Kernel functions
 
-STRUCT TCP
+STRUCT TCB
     DW sp
     DW next
+    DW prev
 END
 
 // Global vars
 DW runpt
-DS TCP threads*10
+DS TCB idletcb
 
-FUNC KStartup
-    // Setup interrupt handlers
-    CALL KSetupHandlers
-
-    ldr &threads a
-    ldc 0 b    
-    ITEM TCP
-    mrr a d
-    
-    ldr &threads a
-    ldc 1 b
-    ITEM TCP
-    mrr a e
-    
-    // Setup main thread stack
+// Create idle thread
+FUNC CreateIdle
     ldc 2048 a
-    ldr &twothreads::main b
-    ldc 65 c
-    CALL KInitThread
+    ldr &TIdle b
+    CALL InitStack      // a <- SP
     
-    ldr &threads a
-    ldc 0 b    
-    ITEM TCP
-    mrr a e
-    
-    ldr &threads a
-    ldc 1 b
-    ITEM TCP
-    mrr a d
-    
-    // Setup second thread stack
-    ldc 3092 a
-    ldr &twothreads::second b
-    ldc 66 c
-    CALL KInitThread
+    ldr &idletcb b
+    PTR b sp#TCB h      // idletcb.sp = a
+    mrm a h
+    PTR b next#TCB h    // idletcb.next = &idletcb
+    mrm b h
+    PTR b prev#TCB h    // idletcb.prev = &idletcb
+    mrm b h
+    ldr &runpt h        // runpt = &idletcb
+    mrm b h
+    ret                 // return a
 
-    // Set running TCP
-    ldr &threads a
-    ldc 0 b
-    ITEM TCP    
-    ldr &runpt b
-    mrm a b                     // runpt = &main
+// System idle thread
+FUNC TIdle
+    nop
+    ldc 73 a            // a <- 'I'
+    CALL api::Print    
+    CALL api::Suspend
+    ldr &TIdle c
+    jmp c
 
-    // Return main thread stack pointer    
-    PTR a sp#TCP b
-    mmr b a                     // a <- main.sp
+FUNC Startup    
+    CALL SetupHandlers
+    CALL CreateIdle
+    
+    // Return idle thread stack pointer    
+    ldr &runpt a
+    RPTR a sp#TCB b
+    mmr b a             // return runpt->sp
     ret
 
-FUNC KInitThread // stack_top, func, init_value, tcb, next_tcb
-    push b
-    push c
-    push d
-    push e
-    CALL KInitStack
-    pop e
-    pop d
-    pop c
-    pop b
+FUNC CreateThread // stack_top, func
+    CALL InitStack             // a <- new_stack
       
-    PTR d sp#TCP h
+    PTR d sp#TCB h
     mrm a h                     // tcb.sp = stack_top
-    PTR d next#TCP h
+    PTR d next#TCB h
     mrm e h                     // tcp.next = next_tcb
     ret
 
 // Init stack for a new thread
-FUNC KInitStack // stack_top, func, init_value -> new_stack
-    ssp d               // Save start-up stack
-    lsp a               // Main SP = <stack top>
-    push b              // Thread start = <func>
-    push c              // a := <init value>
-    push c              // b := <init value>
-    push c              // c := <init value>
-    push c              // d := <init value>
-    push c              // e := <init value>
-    push c              // f := <init value>
-    push c              // g := <init value>
-    push c              // h := <init value>
-    ssp a               // Updated SP
-    lsp d               // Restore start-up stack
+FUNC InitStack // stack_top, func -> new_stack
+    mrm b a             // Thread start = <func>
+    ldc 36 c
+    add a c a
     ret
     
 // Setup interrupt handlers
-FUNC KSetupHandlers
+FUNC SetupHandlers
     // Loopback handler
     ldr &HLoopback a
     ldc 0 b     // int 0 handler address
@@ -127,18 +98,18 @@ FUNC HScheduler
     ldr &runpt a
     
     // Save stack pointer
-    RPTR a sp#TCP b
+    RPTR a sp#TCB b
     ssp c
     mrm c b         // runpt->sp = sp
 
-    RPTR a next#TCP b
+    RPTR a next#TCB b
     mmr b e         // e = runpt->next
 
     // Update running TCB
     mrm e a
 
     // Fetch new stack pointer    
-    RPTR a sp#TCP b
+    RPTR a sp#TCB b
     mmr b c
     lsp c
 
