@@ -66,7 +66,7 @@ class FPD:
         labelname = tokens[0]
         qlabelname = self.get_qualified_name(labelname)
         self.label_dict[qlabelname] = self.offset
-        lg.debug("Label {0} @ {1}".format(qlabelname, self.offset))
+        lg.debug("Label {0} @ 0x{1:X}".format(qlabelname, self.offset))
 
     def on_reg(self, val):
         self.issue_usigned(val)
@@ -122,7 +122,7 @@ class FPD:
             raise Exception("Bad type {0}".format(type))
         
         s = self.context
-        if(self.context == None):
+        if(s == None):
             raise Exception("Bad context")
             
         s.add_field(fname, width)        
@@ -136,19 +136,32 @@ class FPD:
         self.context = None
         lg.debug("Struct {0}".format(s.name))
         
-    def issue_macro_ds(self, tokens):
-        if(len(tokens) == 3):
+    def issue_macro_ds_head(self, tokens):
+        if(len(tokens) == 2):
             namespace = tokens[0]
             sname = tokens[1]
-            name = tokens[2]
         else:
             namespace = None
             sname = tokens[0]
-            name = tokens[1]
             
         qsname = self.get_qualified_name(sname, namespace)
+        
         s = self.structs[qsname]
-        words = s.size
+        self.context = s
+        
+    def issue_macro_ds_tail(self, tokens):
+        name = tokens[0]
+        
+        if(len(tokens) == 2):
+            multipicity = int(tokens[1])
+        else:
+            multipicity = 1
+        
+        s = self.context
+        if(s == None):
+            raise Exception("Bad context")
+            
+        words = s.size * multipicity
         self.on_label([name])
         # Issue placeholder-bytes
         for _ in range(words):
@@ -164,7 +177,8 @@ class FPD:
         self.issue_op(ops.mmr) 
     
     def issue_macro_ptr_tail(self, tokens):
-        # before: command to to load struct address to reg
+        # before: partial command to to load struct address to reg
+        # for PTR: mrr source-reg
         # for FPTR: ldr &ref
         # for RPTR: mrm source-reg
         if(len(tokens) == 3):
@@ -278,7 +292,10 @@ struct_field = (field_type + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.m
 struct_end = pp.Suppress("END").setParseAction(lambda r: (FPD.macro_struct_end, r))
 macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
-macro_ds = (pp.Suppress("DS") + refname + pp.Word(pp.alphas)).setParseAction(lambda r: (FPD.issue_macro_ds, r))
+ds_head = (pp.Suppress("DS") + refname).setParseAction(lambda r: (FPD.issue_macro_ds_head, r))
+ds_multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
+ds_tail = (pp.Word(pp.alphas) + ds_multi).setParseAction(lambda r: (FPD.issue_macro_ds_tail, r))
+macro_ds = ds_head + ds_tail
 
 ptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lambda r: (FPD.issue_macro_ptr_tail, r))
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPD.issue_macro_ptr_head, r))

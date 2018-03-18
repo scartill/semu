@@ -10,6 +10,8 @@ DW runpt
 DS TCP main
 DS TCP second
 
+DS TCP others*10
+
 FUNC KStartup
     // Setup interrupt handlers
     CALL KSetupHandlers
