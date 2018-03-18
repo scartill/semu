@@ -170,16 +170,12 @@ class FPD:
     def issue_macro_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
-    def issue_macro_fptr_head(self, tokens):
-        self.issue_op(ops.ldr)
-        
     def issue_macro_rptr_head(self, tokens):
         self.issue_op(ops.mmr) 
     
     def issue_macro_ptr_tail(self, tokens):
         # before: partial command to to load struct address to reg
         # for PTR: mrr source-reg
-        # for FPTR: ldr &ref
         # for RPTR: mrm source-reg
         if(len(tokens) == 3):
             fname = tokens[0]
@@ -299,10 +295,8 @@ macro_ds = ds_head + ds_tail
 
 ptr_tail = (pp.Word(pp.alphas) + pp.Suppress("#") + refname).setParseAction(lambda r: (FPD.issue_macro_ptr_tail, r))
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPD.issue_macro_ptr_head, r))
-fptr_head = pp.Literal("FPTR").setParseAction(lambda r: (FPD.issue_macro_fptr_head, r))
 rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPD.issue_macro_rptr_head, r))
 macro_ptr = ptr_head + reg + ptr_tail + reg
-macro_fptr = fptr_head + ref + ptr_tail + reg
 macro_rptr = rptr_head + reg + ptr_tail + reg
 
 # Fail on unknown command
@@ -346,7 +340,6 @@ cmd = hlt_cmd \
     ^ macro_struct \
     ^ macro_ds \
     ^ macro_ptr \
-    ^ macro_fptr \
     ^ macro_rptr
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
