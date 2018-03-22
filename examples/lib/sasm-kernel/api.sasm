@@ -8,6 +8,16 @@ FUNC Suspend
 
 // API Print char
 FUNC Print
+    mrr a b
+    ldc 1 a
     int a
     ret
  
+// API CreateThread
+FUNC CreateThread  // stack_top, func, param, tcb
+    bpt 1
+    mrr a e
+    ldc 2 a
+    int a
+    ret
+    

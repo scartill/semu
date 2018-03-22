@@ -10,12 +10,13 @@ END
 DW runpt
 
 // Create idle thread
-DS TCB idletcb
 DW idlestack*100
+DS TCB idletcb
 
-FUNC CreateIdle
+// Create a thread that never stops
+FUNC CreateSysThread
     ldr &idlestack a
-    ldr &TIdle b
+    ldr &TSysThread b
     ldc 0 c
     CALL InitStack      // a <- SP
     
@@ -31,21 +32,23 @@ FUNC CreateIdle
     ret                 // return a
 
 // System idle thread
-FUNC TIdle
-    nop
+FUNC TSysThread
+    // Let application start user threads
+    CALL app::Start
+    
+    // Start idle loop
+  loop:
     ldc 73 a            // a <- 'I'
     CALL api::Print    
     CALL api::Suspend
-    ldr &TIdle c
+    ldr &loop c
     jmp c
 
 FUNC Startup    
     CALL SetupHandlers
-    CALL CreateIdle
+    CALL CreateSysThread    
     
-    CALL app::Start
-    
-    // Return idle thread stack pointer    
+    // Return system thread stack pointer    
     ldr &runpt a
     RPTR a sp#TCB b
     mmr b a             // return runpt->sp
@@ -73,7 +76,7 @@ FUNC CreateThread // stack_top, func, param, tcb
     PTR b prev#TCB h
     mrm d h                    // tcp.prev = *runpt
     
-    RPTR e prev#TCB h
+    PTR e prev#TCB h
     mrm b h                    // runpt->next.prev = tcb    
     
     ret
@@ -105,18 +108,26 @@ FUNC SetupHandlers
     
     ret
 
-// User interrupt handler - send 'word' to serial
-// input: a - symbol to 'out'. 0 for force timer to suspend
-FUNC HLoopback
-  suspend:
-    ldr &serial b
-    jgt a b
-    ldr &HScheduler b       // NB: no 'cll' instruction
-    jmp b                   // - saving the stack intact
+// User interrupt handler - invokes kernel functions
+FUNC HLoopback // service_number, [params]    
+  suspend: // a == 0
+    ldr &serial h
+    jgt a h
+    ldr &HScheduler h       // NB: no 'cll' instruction
+    jmp h                   // - saving the stack intact
     
-  serial:
-    ldc 2 b
-    out a b
+  serial: // a == 1
+    ldc 1 g
+    sub a g a
+    ldr &createthread h
+    jgt a h
+    ldc 2 h
+    out b h
+    irx
+    
+  createthread: // a == 2
+    mrr e a    
+    CALL CreateThread
     irx
 
 // Timer tick handler - schedule the next thread

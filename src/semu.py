@@ -295,11 +295,13 @@ def interrupt(line, word):
     global r
     global memory
     
+#    lg.debug("INT {0} {1}".format(line, word))
+    
     cls()
     do_push(r.ip)
     for i in range(0, 8, 1):
         do_push(r.gp[i])
-    r.gp[0] = word
+    r.gp[0] = word                         # Passing int word in 'a'
     h_addr_inx = int_vect_base + line*4    # Interrupt handler address location
     (handler_addr,) = struct.unpack(">I", memory[h_addr_inx:h_addr_inx+4])
     r.ip = handler_addr
