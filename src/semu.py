@@ -24,7 +24,10 @@ class Regs():
         self.gp = [0] * 8
     
     def debug_dump(self):
-        lg.debug("IP:{0} SP:{1} II:{2}, {3}".format(self.ip, self.sp, self.ii, self.gp))
+        gps = str()
+        for reg in self.gp:
+            gps += "{0:X} ".format(reg)
+        lg.debug("IP:{0} SP:{1} II:{2}, [{3}]".format(self.ip, self.sp, self.ii, gps))
     
 ### Helpers ###
 

@@ -2,6 +2,7 @@ import time
 import logging 
 import threading as th
 import queue
+import sys
 
 class Peripheral(th.Thread):
     def __init__(self):
@@ -71,7 +72,9 @@ class SysTimer(Peripheral):
     
 class Serial(Peripheral):
     def process(self, word):
-        print(chr(word))
+        #print(chr(word))
+        sys.stdout.write(chr(word))
+        sys.stdout.flush()
         
     
 

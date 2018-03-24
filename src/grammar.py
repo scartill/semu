@@ -84,9 +84,9 @@ bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
 
 # Macros
 multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
-macro_dw = (pp.Suppress("DW") + id + multi).setParseAction(lambda r: (FPP.issue_macro_dw, r))
-macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (FPP.issue_macro_call, r))
-macro_func = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (FPP.issue_macro_func, r))
+macro_dw = (pp.Suppress("DW") + id + multi).setParseAction(lambda r: (FPP.macro_issue_dw, r))
+macro_call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (FPP.macro_issue_call, r))
+macro_func = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (FPP.macro_issue_func, r))
 
 # Macro-struct
 struct_begin = (pp.Suppress("STRUCT") + id).setParseAction(lambda r: (FPP.macro_begin_struct, r))
@@ -95,15 +95,18 @@ struct_field = (field_type + id).setParseAction(lambda r: (FPP.macro_struct_fiel
 struct_end = pp.Suppress("END").setParseAction(lambda r: (FPP.macro_struct_end, r))
 macro_struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
-macro_ds = (pp.Suppress("DS") + refname + id + multi).setParseAction(lambda r: (FPP.issue_macro_ds, r))
+macro_ds = (pp.Suppress("DS") + refname + id + multi).setParseAction(lambda r: (FPP.macro_issue_ds, r))
 
-ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPP.issue_macro_ptr_head, r))
-rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPP.issue_macro_rptr_head, r))
-ptr_tail = (id + pp.Suppress("#") + refname).setParseAction(lambda r: (FPP.issue_macro_ptr_tail, r))
+ptr_head = pp.Literal("PTR").setParseAction(lambda r: (FPP.macro_issue_ptr_head, r))
+rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (FPP.macro_issue_rptr_head, r))
+ptr_tail = (id + pp.Suppress("#") + refname).setParseAction(lambda r: (FPP.macro_issue_ptr_tail, r))
 macro_ptr = ptr_head + reg + ptr_tail + reg
 macro_rptr = rptr_head + reg + ptr_tail + reg
 
-macro_item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (FPP.issue_macro_item, r))
+macro_item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (FPP.macro_issue_item, r))
+
+text = pp.Suppress('"') + pp.Word(pp.alphas) + pp.Suppress('"')
+macro_dt = (pp.Suppress("DT") + id + text).setParseAction(lambda r: (FPP.macro_issue_dt, r))
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPP.on_fail, r))
@@ -147,7 +150,8 @@ cmd = hlt_cmd \
     ^ macro_ds \
     ^ macro_ptr \
     ^ macro_rptr \
-    ^ macro_item
+    ^ macro_item \
+    ^ macro_dt
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)

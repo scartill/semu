@@ -93,7 +93,7 @@ class MacroFPP(FPP):
         self.structs = dict()
         
     # Macros
-    def issue_macro_dw(self, tokens):
+    def macro_issue_dw(self, tokens):
         self.on_label([tokens[0]])
         
         if(len(tokens) == 2):
@@ -104,18 +104,17 @@ class MacroFPP(FPP):
         for _ in range(multipicity):
             self.issue_usigned(0x00000000)
         
-    def issue_macro_call(self, tokens):
+    def macro_issue_call(self, tokens):
         self.issue_op(ops.ldr)
         self.on_ref(tokens)
         self.on_reg(7)               # Using the last for routine address
         self.issue_op(ops.cll)
         self.on_reg(7)
     
-    def issue_macro_func(self, tokens):
+    def macro_issue_func(self, tokens):
         self.on_label(tokens)        # Does nothing fancy really
         
-    def macro_begin_struct(self, tokens):
-    
+    def macro_begin_struct(self, tokens):    
         name = tokens[0]
         qname = self.get_qualified_name(name)
         
@@ -147,7 +146,7 @@ class MacroFPP(FPP):
         self.context = None
         lg.debug("Struct {0}".format(s.name))
         
-    def issue_macro_ds(self, tokens):
+    def macro_issue_ds(self, tokens):
         qsname = self.resolve_name(tokens[0])        
         s = self.structs[qsname]
     
@@ -164,14 +163,14 @@ class MacroFPP(FPP):
         for _ in range(words):
             self.issue_usigned(0x00000000)
             
-    def issue_macro_ptr_head(self, tokens):
+    def macro_issue_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
-    def issue_macro_rptr_head(self, tokens):
+    def macro_issue_rptr_head(self, tokens):
         self.issue_op(ops.mmr)
     
     # Invalidates g, h
-    def issue_macro_ptr_tail(self, tokens):
+    def macro_issue_ptr_tail(self, tokens):
         # before: partial command to to load struct address to reg
         # for PTR: mrr source-reg
         # for RPTR: mrm source-reg        
@@ -191,7 +190,7 @@ class MacroFPP(FPP):
     
     # Invalidates a, b, h
     # Returns a
-    def issue_macro_item(self, tokens):
+    def macro_issue_item(self, tokens):
         # a - base
         # b - index
         qsname = self.resolve_name(tokens[0])
@@ -211,3 +210,10 @@ class MacroFPP(FPP):
         self.on_reg(0)
         self.on_reg(1)
         self.on_reg(0)
+
+    def macro_issue_dt(self, tokens):
+        self.on_label([tokens[0]])
+        text = tokens[1]
+        self.issue_usigned(len(text))
+        for c in text.encode():
+            self.issue_usigned(c)

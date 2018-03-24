@@ -23,7 +23,7 @@ def compile(in_filenames, out_filename):
         for (func, arg) in actions:
             func(first_pass, arg)
     
-    # Second pass    
+    # Second pass
     bytestr = bytearray()
     for (t, d) in first_pass.cmd_list:
         if t == 'bytes':
