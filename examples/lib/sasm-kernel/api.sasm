@@ -7,7 +7,7 @@ FUNC Suspend
     ret
 
 // API Print char
-FUNC Print
+FUNC PrintChar
     mrr a b
     ldc 1 a
     int a

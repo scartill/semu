@@ -24,7 +24,7 @@ FUNC Start
 // Thread func for both threads
 FUNC TLoop // symbol
     push a
-    CALL api::Print
+    CALL api::PrintChar
     pop a
     nop
     ldr &TLoop c

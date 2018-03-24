@@ -39,7 +39,7 @@ FUNC TSysThread
     // Start idle loop
   loop:
     ldc 73 a            // a <- 'I'
-    CALL api::Print    
+    CALL api::PrintChar
     CALL api::Suspend
     ldr &loop c
     jmp c
