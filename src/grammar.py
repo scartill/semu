@@ -1,7 +1,7 @@
 import pyparsing as pp
 
 import ops
-from fp import FPP
+from fp import MacroFPP as FPP
 
 # Grammar
 def g_cmd(literal, op):

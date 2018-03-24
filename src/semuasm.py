@@ -15,7 +15,7 @@ def namespace(in_filename):
 
 def compile(in_filenames, out_filename):    
     # First pass
-    first_pass = fp.FPP()        
+    first_pass = fp.MacroFPP()        
     for in_filename in in_filenames:
         lg.info("Processing {0}".format(in_filename))
         first_pass.namespace = namespace(in_filename)

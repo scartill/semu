@@ -21,13 +21,11 @@ class Struct:
 
 # First pass processor
 class FPP:
-    def __init__(self):      
+    def __init__(self):
         self.cmd_list = list()
         self.offset = 0
         self.namespace = "<global>"
         self.label_dict = dict()
-        self.context = None
-        self.structs = dict()
         
     def get_qualified_name(self, name, namespace = None):    
         if(namespace == None):
@@ -88,6 +86,12 @@ class FPP:
     def on_fail(self, r):
         raise Exception("Unknown command {0}".format(r))
     
+class MacroFPP(FPP):
+    def __init__(self):
+        FPP.__init__(self)
+        self.context = None
+        self.structs = dict()
+        
     # Macros
     def issue_macro_dw(self, tokens):
         self.on_label([tokens[0]])
