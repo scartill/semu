@@ -119,13 +119,13 @@ FUNC HLoopback // service_number, [params]
   serial: // a == 1
     ldc 1 g
     sub a g a
-    ldr &createthread h
+    ldr &create_thread h
     jgt a h
     ldc 2 h
     out b h
     irx
     
-  createthread: // a == 2
+  create_thread: // a == 2
     mrr e a    
     CALL CreateThread
     irx
