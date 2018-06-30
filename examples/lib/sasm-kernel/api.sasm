@@ -3,19 +3,19 @@
 // API Suspend
 FUNC Suspend
     ldc 0 a
-    int a
+    int
     ret
 
 // API Print char
 FUNC PrintChar
     mrr a b
     ldc 1 a
-    int a
+    int
     ret
     
 // API Print text line
 FUNC Print // Pascal-string
-    ldc 1 d    
+    ldc 1 d
     ldr &print_next e
     ldr &print_loop f
     ldc 4 g
@@ -32,7 +32,10 @@ FUNC Print // Pascal-string
     mmr c a
     push b
     mrr a b
-    int d
+    push a
+    mrr d a
+    int
+    pop a
     pop b
     jmp f   
     
@@ -48,6 +51,6 @@ FUNC PrintLn
 FUNC CreateThread  // stack_top, func, param, tcb
     mrr a e
     ldc 2 a
-    int a
+    int
     ret
     

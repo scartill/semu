@@ -144,9 +144,7 @@ def pop():
     r.gp[next()] = v
     
 def int():
-    global r
-    w = r.gp[next()]
-    interrupt(0x00, w)
+    interrupt(0x00)
     
 def cll():
     global r
@@ -291,20 +289,19 @@ def proc_int_queue():
     for l, p in pp.items():
         w = p.peek()        
         if(w != None):
-            interrupt(l, w)
+            interrupt(l)
             break
     
-def interrupt(line, word):
+def interrupt(line):
     global r
     global memory
     
-#    lg.debug("INT {0} {1}".format(line, word))
+#    lg.debug("INT {0}".format(line))
     
     cls()
     do_push(r.ip)
     for i in range(0, 8, 1):
         do_push(r.gp[i])
-    r.gp[0] = word                         # Passing int word in 'a'
     h_addr_inx = int_vect_base + line*4    # Interrupt handler address location
     (handler_addr,) = struct.unpack(">I", memory[h_addr_inx:h_addr_inx+4])
     r.ip = handler_addr
