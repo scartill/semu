@@ -35,7 +35,6 @@ FUNC CreateSysThread
 FUNC TSysThread
     // Let application start user threads
     CALL app::Start
-    
     // Start idle loop
   loop:
     ldc 73 a            // a <- 'I'
@@ -43,15 +42,27 @@ FUNC TSysThread
     CALL api::Suspend
     ldr &loop c
     jmp c
+    
+DT message "CStartingkernel"
 
-FUNC Startup    
+FUNC Startup
+
+    ldc 66 a
+    ldc 64 b
+    mrm a b
+    ldc 2 c                 // serial device number
+    out c                   // signal serial
+    out c                   // signal serial
+    out c                   // signal serial
+    out c                   // signal serial
+    
     CALL SetupHandlers
     CALL CreateSysThread    
     
     // Return system thread stack pointer    
     ldr &runpt a
     RPTR a sp#TCB b
-    mmr b a             // return runpt->sp
+    mmr b a             // return runpt->sp    
     ret
 
 FUNC CreateThread // stack_top, func, param, tcb
@@ -103,13 +114,12 @@ FUNC SetupHandlers
     ldc 4 b     // int 1 handler address
     mrm a b     // Handler = scheduler
     ldc 1 a     // enable == 1
-    ldc 1 b     // serial on line 1
-    out a b     // Enable timer
+    out a       // Enable timer
     
     ret
 
 // User interrupt handler - invokes kernel functions
-FUNC HLoopback // service_number, [params]    
+FUNC HLoopback // service_number, [params]
   suspend: // a == 0
     ldr &serial h
     jgt a h
@@ -121,14 +131,22 @@ FUNC HLoopback // service_number, [params]
     sub a g a
     ldr &create_thread h
     jgt a h
-    ldc 2 h
-    out b h
+    mrr b a
+    CALL HWriteSerial
     irx
     
   create_thread: // a == 2
     mrr e a    
     CALL CreateThread
     irx
+    
+// Writes a char to serial peripheral
+FUNC HWriteSerial // (symbol)
+    ldc 64 b                // serial MM base
+    mrm a b
+    ldc 2 c                 // serial device number
+    out c                   // signal serial
+    ret
 
 // Timer tick handler - schedule the next thread
 FUNC HScheduler

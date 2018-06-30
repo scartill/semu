@@ -33,11 +33,11 @@ FUNC Print // Pascal-string
     push b
     mrr a b
     push a
-    mrr d a
+    ldc 1 a
     int
     pop a
     pop b
-    jmp f   
+    jmp f
     
 // API Newline
 FUNC PrintLn

@@ -8,9 +8,9 @@ import logging as lg
 import ops
 import peripheral
 
-memory_size      = 0xFFFF
-int_vect_base    = 0x0000
-rom_base         = 0x0040
+from hwconf import *
+
+memory = bytearray(memory_size)
 
 class Halt(Exception):
     pass
@@ -103,9 +103,8 @@ def mmr():
 def out():
     global r
     global pp   
-    w = r.gp[next()]
     l = r.gp[next()]
-    pp[l].send_word(w)
+    pp[l].signal()
     
 def jgt():
     global r
@@ -240,8 +239,8 @@ handlers = {
 # Line -> Device
 pp = {
    #0 : loopback interrupt
-    1 : peripheral.SysTimer(),
-    2 : peripheral.Serial()
+    1 : peripheral.SysTimer(memory),
+    2 : peripheral.Serial(memory)
 }
     
 def start_pp():
@@ -250,17 +249,13 @@ def start_pp():
 
 def stop_pp():
     for l, p in pp.items():
-        p.send_stop()
+        p.stop()
         p.join()
 
 def init_registers():
     global r
     r = Regs()
     
-def init_memory():
-    global memory
-    memory = bytearray(memory_size)
-
 def load_rom():
     global r
     global memory
@@ -270,9 +265,8 @@ def load_rom():
     memory[rb:rb+l] = rom
     r.ip = rom_base
 
-def reset():
+def setup():
     init_registers()
-    init_memory()   
     load_rom()
     
 def exec_next():
@@ -286,9 +280,8 @@ def proc_int_queue():
     if(r.ii == 1):
         return
 
-    for l, p in pp.items():
-        w = p.peek()        
-        if(w != None):
+    for l, p in pp.items():        
+        if(p.has_signal()):
             interrupt(l)
             break
     
@@ -310,10 +303,10 @@ def run():
     global r
 
     start_pp()
-    reset()
+    setup()
     
     try:
-        while(True):    
+        while(True):
             exec_next()
             proc_int_queue()
     except Halt:

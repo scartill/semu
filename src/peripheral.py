@@ -1,55 +1,59 @@
 import time
-import logging 
+import logging as lg
 import threading as th
-import queue
 import sys
+import struct
+import time
+
+from hwconf import *
 
 class Peripheral(th.Thread):
-    def __init__(self):
+    def __init__(self, memory):
         super().__init__()
-        self.in_queue = queue.Queue()
-        self.out_queue = queue.Queue()      
+        self.memory = memory
+        self.in_event = th.Event()
+        self.out_event = th.Event()
+        self.stop_event = th.Event()
 
-    def send_stop(self):
-        self.in_queue.put(('cmd', 'stop'))
+    def stop(self):
+        self.stop_event.set()
+        self.out_event.set()
         
-    def send_word(self, word):
-        self.in_queue.put(('word', word))
+    def signal(self):
+        self.out_event.set()
+        time.sleep(0.01)
         
-    def peek(self):
-        try:
-            if(not self.out_queue.empty()):
-                return self.out_queue.get_nowait()
-            else:
-                return None
-        except queue.Empty:
-                return None         
-        
+    def has_signal(self):
+        if self.in_event.is_set():
+            self.in_event.clear()
+            return True
+        else:
+            return False
+            
     def run(self):
         while True:
-            (type, message) = self.in_queue.get()
+            self.out_event.wait()
+            self.out_event.clear()
         
-            if(type == 'cmd'):
-                if(message == 'stop'):
-                    self.on_stop()
-                    logging.debug("Peripheral stop")
-                    return
+            if(self.stop_event.is_set()):
+                self.stop_event.clear()
+                self.on_stop()
+                lg.debug("Peripheral stop")
+                return
             
-            if(type == 'word'):
-                self.process(message)
-
-    def process(self, word):
+            self.process_in_signal()
+            
+    def process_in_signal(self):
         pass
         
     def on_stop(self):
         pass
         
 class SysTimer(Peripheral):
-    def __init__(self):
-        super().__init__()
-        self.tick = 0
-        self.restart_timer()
-        self.gen_signal = 0      # Starts disactivated
+    def __init__(self, memory):
+        super().__init__(memory)
+        self.gen_signal = False      # Starts disactivated
+        self.restart_timer()        
         
     def restart_timer(self):
         self.timer = th.Timer(1.0, self.on_timer)
@@ -58,21 +62,20 @@ class SysTimer(Peripheral):
     def on_timer(self):
         self.restart_timer()
         
-        if(self.gen_signal != 0):            
-            self.out_queue.put(self.tick)
-            
-        self.tick += 1
-        self.tick &= 0xFFFFFFFF
-    
-    def process(self, word):
-        self.gen_signal = word
+        if(self.gen_signal):
+            self.in_event.set()
+
+    def process_in_signal(self):
+       self.gen_signal = not self.gen_signal
     
     def on_stop(self):
         self.timer.cancel()     
     
 class Serial(Peripheral):
-    def process(self, word):
-        #print(chr(word))
+    def process_in_signal(self):
+        addr = serial_rm_base
+        buf = self.memory[addr:addr + 4]
+        (word,) = struct.unpack(">I", buf)
         sys.stdout.write(chr(word))
         sys.stdout.flush()
         
