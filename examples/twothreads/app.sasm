@@ -6,25 +6,29 @@ DW mainstack*100
 DS kernel::TCB sectcb
 DW secstack*100
 
+DT first "First"
+DT second "Second"
+
 FUNC Start
     ldr &mainstack a
     ldr &TLoop b
-    ldc 65 c
+    ldr &first c 
     ldr &maintcb d
     CALL api::CreateThread
     
     ldr &secstack a
     ldr &TLoop b
-    ldc 66 c
+    ldr &second c
     ldr &sectcb d
-    CALL api::CreateThread    
+    CALL api::CreateThread
     
     ret
 
 // Thread func for both threads
-FUNC TLoop // symbol
+FUNC TLoop // String
     push a
-    CALL api::PrintChar
+    CALL api::Print
+    CALL api::PrintLn
     pop a
     nop
     ldr &TLoop c

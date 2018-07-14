@@ -4,6 +4,7 @@ import threading as th
 import struct
 import time
 import socket
+import sys
 
 import hwconf as hw
 
@@ -63,6 +64,8 @@ class SysTimer(Peripheral):
         self.restart_timer()
         
         if(self.gen_signal):
+            sys.stdout.write('T')
+            sys.stdout.flush()
             self.in_event.set()
 
     def process_in_signal(self):

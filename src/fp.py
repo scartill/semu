@@ -104,6 +104,8 @@ class MacroFPP(FPP):
         for _ in range(multipicity):
             self.issue_usigned(0x00000000)
         
+    # CALL <func-ref>
+    # Invalidates 'h'
     def macro_issue_call(self, tokens):
         self.issue_op(ops.ldr)
         self.on_ref(tokens)
@@ -111,9 +113,11 @@ class MacroFPP(FPP):
         self.issue_op(ops.cll)
         self.on_reg(7)
     
+    # CALL <func-name>
     def macro_issue_func(self, tokens):
         self.on_label(tokens)        # Does nothing fancy really
         
+    # STRUCT <struct-type-name>
     def macro_begin_struct(self, tokens):    
         name = tokens[0]
         qname = self.get_qualified_name(name)
@@ -121,7 +125,8 @@ class MacroFPP(FPP):
         if(self.context != None):
             raise Exception("Bad context")
         self.context = Struct(qname)
-        
+    
+    # DW <field-name>
     def macro_struct_field(self, tokens):
         type = tokens[0]
         fname = tokens[1]
@@ -135,8 +140,9 @@ class MacroFPP(FPP):
         if(s == None):
             raise Exception("Bad context")
             
-        s.add_field(fname, width)        
+        s.add_field(fname, width)
         
+    # END
     def macro_struct_end(self, tokens):    
         s = self.context
         if(self.context == None):
@@ -145,7 +151,8 @@ class MacroFPP(FPP):
         self.structs[s.name] = s
         self.context = None
         lg.debug("Struct {0}".format(s.name))
-        
+    
+    # DS <type-name> <array-name> [* <size>]
     def macro_issue_ds(self, tokens):
         qsname = self.resolve_name(tokens[0])        
         s = self.structs[qsname]
@@ -162,10 +169,14 @@ class MacroFPP(FPP):
         # Issue placeholder-bytes
         for _ in range(words):
             self.issue_usigned(0x00000000)
-            
+    
+    # PTR <struct-address-reg> <struct-type-name>#<field-name> <target-reg>
+    # Invalidates 'g', 'h'
     def macro_issue_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
+    # PTR <pointer-to-struct-address-reg> <struct-type-name>#<field-name> <target-reg>
+    # Invalidates 'g', 'h'
     def macro_issue_rptr_head(self, tokens):
         self.issue_op(ops.mmr)
     
@@ -188,8 +199,10 @@ class MacroFPP(FPP):
         self.on_reg(6)
         # after: target reg
     
+    # ITEM <struct-type-name-name>
+    # Parameters: 'a' - array address, 'b' - index
     # Invalidates a, b, h
-    # Returns a
+    # Returns a - item address
     def macro_issue_item(self, tokens):
         # a - base
         # b - index
@@ -211,6 +224,7 @@ class MacroFPP(FPP):
         self.on_reg(1)
         self.on_reg(0)
 
+    # DT <text-name> "<string>"
     def macro_issue_dt(self, tokens):
         self.on_label([tokens[0]])
         text = tokens[1]
