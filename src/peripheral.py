@@ -1,11 +1,11 @@
 import time
 import logging as lg
 import threading as th
-import sys
 import struct
 import time
+import socket
 
-from hwconf import *
+import hwconf as hw
 
 class Peripheral(th.Thread):
     def __init__(self, memory):
@@ -72,13 +72,14 @@ class SysTimer(Peripheral):
         self.timer.cancel()     
     
 class Serial(Peripheral):
-    def process_in_signal(self):
-        addr = serial_rm_base
-        buf = self.memory[addr:addr + 4]
-        (word,) = struct.unpack(">I", buf)
-        sys.stdout.write(chr(word))
-        sys.stdout.flush()
+    def __init__(self, memory):
+        super().__init__(memory)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
+    def process_in_signal(self):
+        addr = hw.serial_rm_base
+        buf = self.memory[addr:addr + 4]        
+        self.sock.sendto(buf, (hw.ctl_udp_ip, hw.ctl_ser_udp_port))
     
 
         
