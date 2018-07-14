@@ -2,7 +2,7 @@
 Slow emulator - experimental machine
 
 Emulates the simplest 32-bit uniprocessor von Neumann machine totally
-from the scratch - own architecture, own assembly, peripherals (char output),
+from the scratch - own architecture, own assembly, peripherals,
 own simple micro-OS.
 
 Runs very slow on purpose, has no practical use, but may be useful for equcational
