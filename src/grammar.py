@@ -106,8 +106,7 @@ macro_rptr = rptr_head + reg + ptr_tail + reg
 
 macro_item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (FPP.macro_issue_item, r))
 
-text = pp.Suppress('"') + pp.Word(pp.alphas) + pp.Suppress('"')
-macro_dt = (pp.Suppress("DT") + id + text).setParseAction(lambda r: (FPP.macro_issue_dt, r))
+macro_dt = (pp.Suppress("DT") + id + pp.QuotedString('"')).setParseAction(lambda r: (FPP.macro_issue_dt, r))
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (FPP.on_fail, r))

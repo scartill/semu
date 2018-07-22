@@ -31,8 +31,14 @@ FUNC CreateSysThread
     mrm b h
     ret
 
+DT message "Kernel thread started"
+
 // System idle thread
 FUNC TSysThread
+
+    ldr &message a
+    CALL api::Print
+    CALL api::PrintLn
     
     // Let application start user threads
     CALL app::Start
@@ -42,8 +48,6 @@ FUNC TSysThread
     CALL api::Suspend
     ldr &loop c
     jmp c
-    
-DT message "CStartingkernel"
 
 FUNC Startup
    
