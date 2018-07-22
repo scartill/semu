@@ -1,0 +1,41 @@
+/// Test for local variables
+    
+ldr &start a
+jmp a
+
+DW stack*100
+
+start:
+ldr &stack a
+lsp a
+
+ldc 4 a
+CALL fact
+bpt 0
+hlt
+
+FUNC fact
+    push h              // auto local[0]
+    ldr &nonzero h      // if a > 0 goto nonzero
+    jgt a h
+    
+    ldc 1 a             // else return 1
+    pop h
+    ret
+    
+nonzero:
+    lla 0 h         // local[0] = a
+    mrm a h    
+    
+    ldc 1 b         // a--
+    sub a b a
+        
+    CALL fact       // a = fact(a)
+    
+    lla 0 h         // b = local 0
+    mmr h b
+    
+    mul a b a       // return a * b
+    
+    pop h
+    ret

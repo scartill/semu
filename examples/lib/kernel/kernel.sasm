@@ -29,10 +29,11 @@ FUNC CreateSysThread
     mrm b h
     ldr &runpt h        // runpt = &idletcb
     mrm b h
-    ret                 // return a
+    ret
 
 // System idle thread
 FUNC TSysThread
+    
     // Let application start user threads
     CALL app::Start
     // Start idle loop
@@ -45,16 +46,7 @@ FUNC TSysThread
 DT message "CStartingkernel"
 
 FUNC Startup
-
-    ldc 66 a
-    ldc 64 b
-    mrm a b
-    ldc 2 c                 // serial device number
-    out c                   // signal serial
-    out c                   // signal serial
-    out c                   // signal serial
-    out c                   // signal serial
-    
+   
     CALL SetupHandlers
     CALL CreateSysThread    
     
@@ -93,12 +85,19 @@ FUNC CreateThread // stack_top, func, param, tcb
 
 // Init stack for a new thread
 FUNC InitStack // stack_top, func, param -> new_stack
+    mrr a h             // Save stack top as initial FP
+
     mrm b a             // Thread start = <func>
     ldc 4 d
     add a d a
+    
     mrm c a             // Func <param> passed in a
-    ldc 32 d
-    add a d a
+    
+    ldc 32 e            // Leave 4*8 bytes for GPRs
+    add a e a
+        
+    mrm h a
+    add a d a           // Start thread with fp = sp
     ret
     
 // Setup interrupt handlers
@@ -118,7 +117,7 @@ FUNC SetupHandlers
     ret
 
 // User interrupt handler - invokes kernel functions
-FUNC HLoopback // service_number, [params]
+FUNC HLoopback // service_number, [params]    
   suspend: // a == 0
     ldr &serial h
     jgt a h
@@ -140,7 +139,7 @@ FUNC HLoopback // service_number, [params]
     irx
     
 // Writes a char to serial peripheral
-FUNC HWriteSerial // (symbol)
+FUNC HWriteSerial // (symbol)    
     ldc 64 b                // serial MM base
     mrm a b
     ldc 2 c                 // serial device number

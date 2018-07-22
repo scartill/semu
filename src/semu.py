@@ -20,14 +20,15 @@ class Regs():
         self.ip = 0     # Set when ROM is loaded
         self.sp = 0     # Set when lsp is called
         self.ii = 0x01  # Interrupt inhibit
+        self.fp = 0     # Global code has no frame
         
         self.gp = [0] * 8
     
     def debug_dump(self):
         gps = str()
         for reg in self.gp:
-            gps += "{0:X} ".format(reg)
-        lg.debug("IP:{0} SP:{1} II:{2}, [{3}]".format(self.ip, self.sp, self.ii, gps))
+            gps += "0x{0:X} ".format(reg)
+        lg.debug("IP:{0:X} SP:{1:X} II:{2:X}, FP:{3:X}, [{4}]".format(self.ip, self.sp, self.ii, self.fp, gps))
     
 ### Helpers ###
 
@@ -149,18 +150,26 @@ def cll():
     global r
     ret_addr = r.ip + 4
     do_push(ret_addr)
+    do_push(r.fp)
+    r.fp = r.sp
     jmp()
     
 def ret():
     global r
+    r.fp = do_pop()
     addr = do_pop()
     r.ip = addr
     
 def irx():
     global r
+    
+    r.fp = do_pop()
     for i in range(7, -1, -1):
         r.gp[i] = do_pop()
-    ret()
+        
+    addr = do_pop()
+    r.ip = addr
+    
     opn()
     
 def ssp():
@@ -171,6 +180,11 @@ def mrr():
     global r
     val = r.gp[next()]
     r.gp[next()] = val
+    
+def lla():
+    global r
+    offset = next_unsigned()
+    r.gp[next()] = r.fp + offset
 
 ### Arithmetic ###
 
@@ -220,6 +234,7 @@ handlers = {
     ops.irx  : irx,    
     ops.ssp  : ssp,
     ops.mrr  : mrr,
+    ops.lla  : lla,
     
     ops.inv  : inv,
     ops.add  : add,
@@ -291,11 +306,20 @@ def interrupt(line):
     
 #    lg.debug("INT {0}".format(line))
     
+    # Inhibit interrupts
     cls()
+    
+    # Save registers    
     do_push(r.ip)
     for i in range(0, 8, 1):
         do_push(r.gp[i])
-    h_addr_inx = int_vect_base + line*4    # Interrupt handler address location
+    do_push(r.fp)
+    
+    # Set handler's frame
+    r.fp = r.sp
+    
+    # Find and a call a handler
+    h_addr_inx = int_vect_base + line*4         # Interrupt handler address location
     (handler_addr,) = struct.unpack(">I", memory[h_addr_inx:h_addr_inx+4])
     r.ip = handler_addr
 

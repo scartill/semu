@@ -65,6 +65,7 @@ ret_cmd = g_cmd("ret", ops.ret)
 irx_cmd = g_cmd("irx", ops.irx)
 ssp_cmd = g_cmd_1("ssp", ops.ssp)
 mrr_cmd = g_cmd_2("mrr", ops.mrr)
+lla_cmd = g_cmd("lla", ops.lla) + us_dec_const + reg
 
 # Arithmetic
 inv_cmd = g_cmd_2("inv", ops.inv)
@@ -143,6 +144,7 @@ cmd = hlt_cmd \
     ^ xor_cmd \
     ^ band_cmd \
     ^ mrr_cmd \
+    ^ lla_cmd \
     ^ macro_dw \
     ^ macro_call \
     ^ macro_func \

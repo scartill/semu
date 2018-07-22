@@ -14,11 +14,12 @@ lsp  = 0x0C  # R1 -> SP
 psh  = 0x0D  # R1 -> [SP++]
 pop  = 0x0E  # [SP--] -> R1
 int  = 0x0F  # INT L[0]
-cll  = 0x10  # PSH IP + 4; JMP R1
-ret  = 0x11  # JMP [SP--]
-irx  = 0x12  # POP h-a; ret; opn
+cll  = 0x10  # push IP + 4; push fp; sp -> fp; JMP R1
+ret  = 0x11  # pop fp; JMP [SP--]
+irx  = 0x12  # pop fp; pop h-a; ret; opn
 ssp  = 0x13  # SP -> R1
 mrr  = 0x14  # R1 -> R2
+lla  = 0x15  # FP + R1 -> R2
 
 # Arithmetic
 inv  = 0x20  # ~R1 -> R2
