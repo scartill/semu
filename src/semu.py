@@ -10,9 +10,17 @@ import peripheral
 
 from hwconf import *
 
+EXIT_HALT = 0
+EXIT_ASSERT_FAIL = 1
+EXIT_LAUNCH_FAIL = 2
+EXIT_EXEC_ERROR = 3
+
 memory = bytearray(memory_size)
 
 class Halt(Exception):
+    pass
+    
+class Assert(Exception):
     pass
 
 class Regs():
@@ -211,6 +219,16 @@ def bpt():
     lg.debug("BREAKPOINT {0}".format(val))
     r.debug_dump()
     
+def aeq():
+    global r
+    a = r.gp[next()]
+    b = next_unsigned()
+    
+    lg.info("ASSERTION {0} <> {1}".format(a, b))
+    
+    if a != b:        
+        raise Assert()
+    
 ### Implementation ###
 
 handlers = {
@@ -248,7 +266,8 @@ handlers = {
     ops.xor  : xor,
     ops.band : band,
 
-    ops.bpt  : bpt
+    ops.bpt  : bpt,
+    ops.aeq  : aeq
 }
 
 # Line -> Device
@@ -334,14 +353,26 @@ def run():
             exec_next()
             proc_int_queue()
     except Halt:
-        lg.info("Execution halted")
+        lg.info("Execution halted gracefully")
+        return EXIT_HALT
+    except Assert:
+        lg.info("Execution halted on false assertion")
+        return EXIT_ASSERT_FAIL
+    except:
+        lg.info("Execution halted on general error")
+        return EXIT_EXEC_ERROR
     finally:
         stop_pp()
 
 if len(sys.argv) != 2:
     print("Usage: semu rom-binary")
-    sys.exit(1)
+    sys.exit(EXIT_LAUNCH_FAIL)
 
 lg.basicConfig(level = lg.DEBUG)
 lg.info("SEMU")
-run()
+
+ec = run()
+sys.exit(ec)
+
+
+

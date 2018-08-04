@@ -11,7 +11,7 @@ lsp a
 
 ldc 4 a
 CALL fact
-bpt 0
+.assert a 24
 hlt
 
 FUNC fact

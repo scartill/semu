@@ -5,3 +5,5 @@ ROM=${SEMU_ROOT}"/roms/test_run.bin"
 
 py ${ASM} locals.sasm ${ROM}
 py ${SEMU} ${ROM}
+
+echo Exited $?

@@ -81,7 +81,8 @@ xor_cmd = g_cmd_3("xor", ops.xor)
 band_cmd = g_cmd_3("and", ops.band)
 
 # Emulated
-bpt_cmd = g_cmd("bpt", ops.bpt) + us_dec_const
+bpt_cmd = g_cmd(".break", ops.bpt) + us_dec_const
+aeq_cmd = g_cmd(".assert", ops.aeq) + reg + us_dec_const
 
 # Macros
 multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
@@ -129,7 +130,6 @@ cmd = hlt_cmd \
     ^ cll_cmd \
     ^ ret_cmd \
     ^ irx_cmd \
-    ^ bpt_cmd \
     ^ ssp_cmd \
     ^ inv_cmd \
     ^ add_cmd \
@@ -152,7 +152,9 @@ cmd = hlt_cmd \
     ^ macro_ptr \
     ^ macro_rptr \
     ^ macro_item \
-    ^ macro_dt
+    ^ macro_dt \
+    ^ bpt_cmd \
+    ^ aeq_cmd
     
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
 program = pp.ZeroOrMore(statement ^ comment ^ unknown)
