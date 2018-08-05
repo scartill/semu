@@ -28,7 +28,7 @@ class MacroFPP(FPP):
         self.structs = dict()
         
     # Macros
-    def macro_issue_dw(self, tokens):
+    def issue_dw(self, tokens):
         self.on_label([tokens[0]])
         
         if(len(tokens) == 2):
@@ -41,7 +41,7 @@ class MacroFPP(FPP):
         
     # CALL <func-ref>
     # Invalidates 'h'
-    def macro_issue_call(self, tokens):
+    def issue_call(self, tokens):
         self.issue_op(ops.ldr)
         self.on_ref(tokens)
         self.on_reg(7)               # Using the last for routine address
@@ -49,11 +49,11 @@ class MacroFPP(FPP):
         self.on_reg(7)
     
     # CALL <func-name>
-    def macro_issue_func(self, tokens):
+    def issue_func(self, tokens):
         self.on_label(tokens)        # Does nothing fancy really
         
     # STRUCT <struct-type-name>
-    def macro_begin_struct(self, tokens):    
+    def begin_struct(self, tokens):    
         name = tokens[0]
         qname = self.get_qualified_name(name)
         
@@ -62,7 +62,7 @@ class MacroFPP(FPP):
         self.context = Struct(qname)
     
     # DW <field-name>
-    def macro_struct_field(self, tokens):
+    def struct_field(self, tokens):
         type = tokens[0]
         fname = tokens[1]
         
@@ -78,7 +78,7 @@ class MacroFPP(FPP):
         s.add_field(fname, width)
         
     # END
-    def macro_struct_end(self, tokens):    
+    def struct_end(self, tokens):    
         s = self.context
         if(self.context == None):
             raise Exception("Bad context")
@@ -88,7 +88,7 @@ class MacroFPP(FPP):
         lg.debug("Struct {0}".format(s.name))
     
     # DS <type-name> <array-name> [* <size>]
-    def macro_issue_ds(self, tokens):
+    def issue_ds(self, tokens):
         qsname = self.resolve_name(tokens[0])        
         s = self.structs[qsname]
     
@@ -107,16 +107,16 @@ class MacroFPP(FPP):
     
     # PTR <struct-address-reg> <struct-type-name>#<field-name> <target-reg>
     # Invalidates 'g', 'h'
-    def macro_issue_ptr_head(self, tokens):
+    def issue_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
     # PTR <pointer-to-struct-address-reg> <struct-type-name>#<field-name> <target-reg>
     # Invalidates 'g', 'h'
-    def macro_issue_rptr_head(self, tokens):
+    def issue_rptr_head(self, tokens):
         self.issue_op(ops.mmr)
     
     # Invalidates g, h
-    def macro_issue_ptr_tail(self, tokens):
+    def issue_ptr_tail(self, tokens):
         # before: partial command to to load struct address to reg
         # for PTR: mrr source-reg
         # for RPTR: mrm source-reg        
@@ -138,7 +138,7 @@ class MacroFPP(FPP):
     # Parameters: 'a' - array address, 'b' - index
     # Invalidates a, b, h
     # Returns a - item address
-    def macro_issue_item(self, tokens):
+    def issue_item(self, tokens):
         # a - base
         # b - index
         qsname = self.resolve_name(tokens[0])
@@ -160,7 +160,7 @@ class MacroFPP(FPP):
         self.on_reg(0)
 
     # DT <text-name> "<string>"
-    def macro_issue_dt(self, tokens):
+    def issue_dt(self, tokens):
         self.on_label([tokens[0]])
         text = tokens[1]
         self.issue_usigned(len(text))
