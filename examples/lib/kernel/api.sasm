@@ -4,7 +4,7 @@
 FUNC Suspend BEGIN
     ldc 0 a
     int
-    ret
+    RETURN
 END
 
 // API Print char
@@ -12,7 +12,7 @@ FUNC PrintChar BEGIN
     mrr a b
     ldc 1 a
     int
-    ret
+    RETURN
 END
 
 // API Print text line
@@ -27,7 +27,7 @@ BEGIN
     mrr a c
   print_loop:
     jgt b e
-    ret
+    RETURN
     
   print_next:    
     add c g c
@@ -49,7 +49,7 @@ FUNC PrintLn BEGIN
     CALL api::PrintChar
     ldc 10 a
     CALL api::PrintChar
-    ret
+    RETURN
 END
  
 // API CreateThread
@@ -58,5 +58,5 @@ BEGIN
     mrr a e
     ldc 2 a
     int
-    ret
+    RETURN
 END

@@ -22,7 +22,7 @@ FUNC Start BEGIN
     ldr &sectcb d
     CALL api::CreateThread
     
-    ret
+    RETURN
 END
 
 // Thread func for both threads

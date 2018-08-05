@@ -29,7 +29,7 @@ FUNC CreateSysThread BEGIN
     mrm b h
     ldr &runpt h        // runpt = &idletcb
     mrm b h
-    ret
+    RETURN
 END
 
 DT message "Kernel thread started"
@@ -58,7 +58,7 @@ FUNC Startup BEGIN
     ldr &runpt a
     RPTR a sp#TCB b
     mmr b a             // return runpt->sp    
-    ret
+    RETURN
 END
 
 FUNC CreateThread // stack_top, func, param, tcb
@@ -87,7 +87,7 @@ BEGIN
     PTR e prev#TCB h
     mrm b h                    // runpt->next.prev = tcb    
     
-    ret
+    RETURN
 END
 
 // Init stack for a new thread
@@ -106,7 +106,7 @@ BEGIN
         
     mrm h a
     add a d a           // Start thread with fp = sp
-    ret
+    RETURN
 END
     
 // Setup interrupt handlers
@@ -123,7 +123,7 @@ FUNC SetupHandlers BEGIN
     ldc 1 a     // enable == 1
     out a       // Enable timer
     
-    ret
+    RETURN
 END
 
 // User interrupt handler - invokes kernel functions
@@ -157,7 +157,7 @@ FUNC HWriteSerial BEGIN
     mrm a b
     ldc 2 c                 // serial device number
     out c                   // signal serial
-    ret
+    RETURN
 END
 
 // Timer tick handler - schedule the next thread

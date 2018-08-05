@@ -28,16 +28,15 @@ BEGIN
     RETURN
     
 nonzero:
-    lla 0 h         // local[0] = a
-    mrm a h    
+    LSTORE a val
+    LSTORE b vval
     
     ldc 1 b         // a--
     sub a b a
         
     CALL fact       // a = fact(a)
-    
-    lla 0 h         // b = local 0
-    mmr h b
+  
+    LLOAD val b     // b = val
     
     mul a b a       // return a * b
 

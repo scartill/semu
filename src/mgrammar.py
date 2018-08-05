@@ -31,6 +31,9 @@ dt = (pp.Suppress("DT") + id + pp.QuotedString('"')).setParseAction(lambda r: (M
 
 func_return = pp.Suppress("RETURN").setParseAction(lambda r: (MFPP.func_return, r))
 
+local_store = (pp.Suppress("LSTORE") + reg_ref + id).setParseAction(lambda r: (MFPP.local_store, [reg_indices[r[0]], r[1]]))
+local_load = (pp.Suppress("LLOAD") + id + reg_ref).setParseAction(lambda r: (MFPP.local_load, [r[0], reg_indices[r[1]]]))
+
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (MFPP.on_fail, r))
 
@@ -43,7 +46,9 @@ cmd = asm_cmd \
     ^ rptr \
     ^ item \
     ^ dt \
-    ^ func_return
+    ^ func_return \
+    ^ local_store \
+    ^ local_load
 
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
     

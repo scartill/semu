@@ -98,6 +98,8 @@ class MacroFPP(FPP):
             raise Exception("Duplicate local variable declaration")
             
         func.locals.append(vname)
+        
+        # push <reg>
         self.issue_op(ops.psh)
         self.on_reg(reg)
         
@@ -108,12 +110,15 @@ class MacroFPP(FPP):
         if(func.ctxtype() != "func"):
             raise Exception("Unexpected RETURN macro")
         
-        # goto <func-name>:prologue
-        self.issue_op(ops.ldr)
+        # Go to <func-name>:prologue
         pname = func.name + ":prologue"
+        
+        # ldr &name:prologue h
+        self.issue_op(ops.ldr)
         self.on_ref([[pname]])
         self.on_reg(7)
         
+        # jmp h
         self.issue_op(ops.jmp)
         self.on_reg(7)
     
@@ -127,16 +132,62 @@ class MacroFPP(FPP):
         pname = func.name + ":prologue"
         self.on_label([pname])
         
+        # pop h
+        # ...
+        # pop h
+        # ret
         for _ in func.locals:
             self.issue_op(ops.pop)
             self.on_reg(7)              # Dumping values to 'h'
         
-        self.issue_op(ops.bpt)
-        self.issue_usigned(111)
-        
         self.issue_op(ops.ret)
         
+        # Restore global context
         self.context = func.parent
+        
+    # LSTORE <reg> <var-name>
+    # Invalidates 'h'
+    def local_store(self, tokens):
+        func = self.context
+        if(func.ctxtype() != "func"):
+            raise Exception("Unexpected LSTORE macro")
+    
+        reg = tokens[0]
+        vname = tokens[1]        
+        
+        offset = func.locals.index(vname) * 4
+        lg.debug("Local store {0}@{1}".format(vname, offset))
+        
+        # lla <var-offset> h
+        # mrm <reg> h
+        self.issue_op(ops.lla)
+        self.issue_usigned(offset)
+        self.on_reg(7)
+        self.issue_op(ops.mrm)
+        self.on_reg(reg)
+        self.on_reg(7)
+        
+    # LLOAD <var-name> <reg>
+    # Invalidates 'h'
+    def local_load(self, tokens):
+        func = self.context
+        if(func.ctxtype() != "func"):
+            raise Exception("Unexpected LSTORE macro")
+    
+        vname = tokens[0]
+        reg = tokens[1]
+        
+        offset = func.locals.index(vname) * 4
+        lg.debug("Local load {0}@{1}".format(vname, offset))
+        
+        # lla <var-offset> h
+        # mmr h <reg>
+        self.issue_op(ops.lla)
+        self.issue_usigned(offset)
+        self.on_reg(7)
+        self.issue_op(ops.mmr)
+        self.on_reg(7)
+        self.on_reg(reg)        
         
     # STRUCT <struct-type-name>
     def begin_struct(self, tokens):    
