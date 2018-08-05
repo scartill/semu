@@ -3,7 +3,12 @@ SEMU=${SEMU_ROOT}"/src/semu.py"
 ASM=${SEMU_ROOT}"/src/semuasm.py"
 ROM=${SEMU_ROOT}"/roms/test_run.bin"
 
-py ${ASM} locals.sasm ${ROM}
-py ${SEMU} ${ROM}
+function test_run {
+    py ${ASM} $1.sasm ${ROM}
+    py ${SEMU} ${ROM} || (echo "Test failed (case $1)" && exit 1)
+}
 
-echo Exited $?
+test_run locals
+echo "Passed successfully"
+
+

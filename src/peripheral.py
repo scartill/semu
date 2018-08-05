@@ -64,8 +64,7 @@ class SysTimer(Peripheral):
         self.restart_timer()
         
         if(self.gen_signal):
-            sys.stdout.write('T')
-            sys.stdout.flush()
+            lg.debug("Systimer")
             self.in_event.set()
 
     def process_in_signal(self):
