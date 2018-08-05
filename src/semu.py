@@ -11,16 +11,15 @@ from hwconf import *
 EXIT_HALT = 0
 EXIT_ASSERT_FAIL = 1
 EXIT_LAUNCH_FAIL = 2
-EXIT_EXEC_ERROR = 3
-
-### Global ###
+EXIT_KEYBOARD = 3
+EXIT_EXEC_ERROR = 100
 
 def start_pp(pp):
-    for l, p in pp.items():
+    for _, p in pp.items():
         p.start()
 
 def stop_pp(pp):
-    for l, p in pp.items():
+    for _, p in pp.items():
         p.stop()
         p.join()
 
@@ -37,21 +36,21 @@ def process_int_queue(pp, proc):
             break
 
 def run():
-    memory = bytearray(memory_size)
-    
-    # Peripherals: Line -> Device
-    pp = {
-       #0 : loopback interrupt
-        1 : peripheral.SysTimer(memory),
-        2 : peripheral.Serial(memory)
-    }
-
-    proc = cpu.CPU(memory, pp)
-
-    start_pp(pp)
-    load_rom(memory)
-    
     try:
+        memory = bytearray(memory_size)
+    
+        # Peripherals: Line -> Device
+        pp = {
+           #0 : loopback interrupt
+            1 : peripheral.SysTimer(memory),
+            2 : peripheral.Serial(memory)
+        }
+
+        proc = cpu.CPU(memory, pp)
+
+        start_pp(pp)
+        load_rom(memory)
+    
         while(True):
             proc.exec_next()
             process_int_queue(pp, proc)
@@ -61,6 +60,9 @@ def run():
     except cpu.Assert:
         lg.info("Execution halted on false assertion")
         return EXIT_ASSERT_FAIL
+    except KeyboardInterrupt:
+        lg.info("Execution halted by the user")
+        return EXIT_KEYBOARD
     except Exception as e:
         lg.info("Execution halted on general error {0}".format(e))
         return EXIT_EXEC_ERROR
