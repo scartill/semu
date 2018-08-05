@@ -22,8 +22,8 @@ ds = (pp.Suppress("DS") + refname + id + multi).setParseAction(lambda r: (MFPP.i
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (MFPP.issue_ptr_head, r))
 rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (MFPP.issue_rptr_head, r))
 ptr_tail = (id + pp.Suppress("#") + refname).setParseAction(lambda r: (MFPP.issue_ptr_tail, r))
-ptr = ptr_head + reg + ptr_tail + reg
-rptr = rptr_head + reg + ptr_tail + reg
+ptr = ptr_head + reg_op + ptr_tail + reg_op
+rptr = rptr_head + reg_op + ptr_tail + reg_op
 
 item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (MFPP.issue_item, r))
 
@@ -44,10 +44,10 @@ cmd = asm_cmd \
 
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
     
-func_decl = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.issue_func, r)) + pp.Optional(comment)
-func_local_var = pp.Suppress("DW") + pp.Optional(comment)
+func_decl = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.begin_func, r)) + pp.Optional(comment)
+func_local_var = (pp.Suppress("DW") + id).setParseAction(lambda r: (MFPP.func_local_var, r)) + pp.Optional(comment)
 func_prologue = func_decl + pp.ZeroOrMore(func_local_var) + pp.Suppress("BEGIN")
-func_epilogue = pp.Suppress("END") + pp.Optional(comment)
+func_epilogue = pp.Suppress("END").setParseAction(lambda r: (MFPP.end_func, r)) + pp.Optional(comment)
 func = func_prologue + pp.ZeroOrMore(statement) + func_epilogue
     
 program = pp.ZeroOrMore(statement ^ func ^ comment ^ unknown)

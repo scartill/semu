@@ -14,7 +14,8 @@ CALL fact
 .assert a 24
 hlt
 
-FUNC fact
+FUNC fact BEGIN
+
     push h              // auto local[0]
     ldr &nonzero h      // if a > 0 goto nonzero
     jgt a h
@@ -39,3 +40,4 @@ nonzero:
     
     pop h
     ret
+END

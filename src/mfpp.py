@@ -6,12 +6,28 @@ import logging as lg
 import ops
 from fpp import FPP
 
+# Abstract compilation context
+class Context:
+    pass
+    
+# Default global context
+class GlobalContext(Context):
+    def __init__(self):
+        self.parent = self
+        
+    def ctxtype(self):
+        return "global"
+        
 # Struct definition
-class Struct:
-    def __init__(self, name):
+class Struct(Context):
+    def __init__(self, name, parent):
+        self.parent = parent
         self.name = name
         self.fields = dict()
         self.size = 0                       # size in 4-byte words
+        
+    def ctxtype(self):
+        return "struct"
         
     def add_field(self, name, width):
         lg.debug("Field {0}:{1}:{2}".format(name, width, self.size))
@@ -20,11 +36,20 @@ class Struct:
         
     def get_offset(self, fieldname):
         return self.fields[fieldname] * 4   # offset in bytes
+        
+class Func(Context):
+    def __init__(self, name, parent):
+        self.parent = parent
+        self.name = name
+        self.locals = dict()
+        
+    def ctxtype(self):
+        return "func"
     
 class MacroFPP(FPP):
     def __init__(self):
         FPP.__init__(self)
-        self.context = None
+        self.context = GlobalContext()
         self.structs = dict()
         
     # Macros
@@ -48,18 +73,32 @@ class MacroFPP(FPP):
         self.issue_op(ops.cll)
         self.on_reg(7)
     
-    # CALL <func-name>
-    def issue_func(self, tokens):
+    # FUNC <func-name>
+    def begin_func(self, tokens):
+        name = tokens[0]
+        qname = self.get_qualified_name(name)
+        
+        if(self.context.ctxtype() != "global"):
+            raise Exception("Cannot define non-global FUNC {0}", qname)
+        self.context = Func(qname, self.context)
+    
         self.on_label(tokens)        # Does nothing fancy really
+        
+    def func_local_var(self, tokens):
+        pass
+    
+    def end_func(self, tokens):
+        s = self.context
+        self.context = s.parent
         
     # STRUCT <struct-type-name>
     def begin_struct(self, tokens):    
         name = tokens[0]
         qname = self.get_qualified_name(name)
         
-        if(self.context != None):
-            raise Exception("Bad context")
-        self.context = Struct(qname)
+        if(self.context.ctxtype() != "global"):
+            raise Exception("Cannot define non-global STRUCT type")
+        self.context = Struct(qname, self.context)
     
     # DW <field-name>
     def struct_field(self, tokens):
@@ -72,19 +111,19 @@ class MacroFPP(FPP):
             raise Exception("Bad type {0}".format(type))
         
         s = self.context
-        if(s == None):
-            raise Exception("Bad context")
+        if(s.ctxtype() != "struct"):
+            raise Exception("Unable to define STRUCT field outside a record")
             
         s.add_field(fname, width)
         
     # END
     def struct_end(self, tokens):    
         s = self.context
-        if(self.context == None):
-            raise Exception("Bad context")
+        if(s.ctxtype() != "struct"):
+            raise Exception("Unable to define end STRUCT outside a record")
             
         self.structs[s.name] = s
-        self.context = None
+        self.context = s.parent
         lg.debug("Struct {0}".format(s.name))
     
     # DS <type-name> <array-name> [* <size>]
