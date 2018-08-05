@@ -27,7 +27,7 @@ reg_indices = {
 reg_ref = pp.Or([pp.Literal(x) for x in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']])
 
 def g_reg_action(func):
-    return reg_ref.setParseAction(lambda r: (func, reg_indices[r[0]]))
+    return pp.And([reg_ref]).setParseAction(lambda r: (func, reg_indices[r[0]]))
 
 reg_op = g_reg_action(FPP.on_reg)
 

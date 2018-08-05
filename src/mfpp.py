@@ -41,7 +41,7 @@ class Func(Context):
     def __init__(self, name, parent):
         self.parent = parent
         self.name = name
-        self.locals = dict()
+        self.locals = []
         
     def ctxtype(self):
         return "func"
@@ -80,16 +80,63 @@ class MacroFPP(FPP):
         
         if(self.context.ctxtype() != "global"):
             raise Exception("Cannot define non-global FUNC {0}", qname)
-        self.context = Func(qname, self.context)
+        self.context = Func(name, self.context)
     
         self.on_label(tokens)        # Does nothing fancy really
         
-    def func_local_var(self, tokens):
-        pass
+    # Inside FUNC:
+    #   DW <var-name> <init_reg>    
+    def func_var(self, tokens):
+        func = self.context
+        if(func.ctxtype() != "func"):
+            raise Exception("Unable to define local variable outside a function")
+        
+        vname = tokens[0]
+        reg = tokens[1]
+        
+        if vname in func.locals:
+            raise Exception("Duplicate local variable declaration")
+            
+        func.locals.append(vname)
+        self.issue_op(ops.psh)
+        self.on_reg(reg)
+        
+    # Inside FUNC:
+    #   END
+    def func_return(self, tokens):
+        func = self.context
+        if(func.ctxtype() != "func"):
+            raise Exception("Unexpected RETURN macro")
+        
+        # goto <func-name>:prologue
+        self.issue_op(ops.ldr)
+        pname = func.name + ":prologue"
+        self.on_ref([[pname]])
+        self.on_reg(7)
+        
+        self.issue_op(ops.jmp)
+        self.on_reg(7)
     
+    # Inside FUNC:
+    #   END
     def end_func(self, tokens):
-        s = self.context
-        self.context = s.parent
+        func = self.context
+        if(func.ctxtype() != "func"):
+            raise Exception("Unexpected function end")
+        
+        pname = func.name + ":prologue"
+        self.on_label([pname])
+        
+        for _ in func.locals:
+            self.issue_op(ops.pop)
+            self.on_reg(7)              # Dumping values to 'h'
+        
+        self.issue_op(ops.bpt)
+        self.issue_usigned(111)
+        
+        self.issue_op(ops.ret)
+        
+        self.context = func.parent
         
     # STRUCT <struct-type-name>
     def begin_struct(self, tokens):    
@@ -149,14 +196,14 @@ class MacroFPP(FPP):
     def issue_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
-    # PTR <pointer-to-struct-address-reg> <struct-type-name>#<field-name> <target-reg>
+    # RPTR <pointer-to-struct-address-reg> <struct-type-name>#<field-name> <target-reg>
     # Invalidates 'g', 'h'
     def issue_rptr_head(self, tokens):
         self.issue_op(ops.mmr)
     
     # Invalidates g, h
     def issue_ptr_tail(self, tokens):
-        # before: partial command to to load struct address to reg
+        # <before>: partial command to to load struct address to reg
         # for PTR: mrr source-reg
         # for RPTR: mrm source-reg        
         fname = tokens[0]
@@ -171,7 +218,7 @@ class MacroFPP(FPP):
         self.issue_op(ops.add)       # Adding the offset
         self.on_reg(7)
         self.on_reg(6)
-        # after: target reg
+        # <after>: target reg
     
     # ITEM <struct-type-name-name>
     # Parameters: 'a' - array address, 'b' - index

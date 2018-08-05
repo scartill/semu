@@ -12,17 +12,20 @@ lsp a
 ldc 4 a
 CALL fact
 .assert a 24
+ssp a
+.assert a 340
 hlt
 
-FUNC fact BEGIN
+FUNC fact
+    DW val a
+    DW vval b
+BEGIN
 
-    push h              // auto local[0]
     ldr &nonzero h      // if a > 0 goto nonzero
     jgt a h
     
     ldc 1 a             // else return 1
-    pop h
-    ret
+    RETURN
     
 nonzero:
     lla 0 h         // local[0] = a
@@ -37,7 +40,6 @@ nonzero:
     mmr h b
     
     mul a b a       // return a * b
-    
-    pop h
-    ret
+
+    RETURN
 END

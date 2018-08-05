@@ -29,6 +29,8 @@ item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (MFPP.issue_item
 
 dt = (pp.Suppress("DT") + id + pp.QuotedString('"')).setParseAction(lambda r: (MFPP.issue_dt, r))
 
+func_return = pp.Suppress("RETURN").setParseAction(lambda r: (MFPP.func_return, r))
+
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (MFPP.on_fail, r))
 
@@ -40,13 +42,15 @@ cmd = asm_cmd \
     ^ ptr \
     ^ rptr \
     ^ item \
-    ^ dt
+    ^ dt \
+    ^ func_return
 
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
     
 func_decl = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.begin_func, r)) + pp.Optional(comment)
-func_local_var = (pp.Suppress("DW") + id).setParseAction(lambda r: (MFPP.func_local_var, r)) + pp.Optional(comment)
-func_prologue = func_decl + pp.ZeroOrMore(func_local_var) + pp.Suppress("BEGIN")
+func_var_def = pp.Suppress("DW") + id + reg_ref + pp.Suppress(pp.Optional(comment))
+func_var = func_var_def.setParseAction(lambda r: (MFPP.func_var, [r[0], reg_indices[r[1]]]))
+func_prologue = func_decl + pp.ZeroOrMore(func_var) + pp.Suppress("BEGIN")
 func_epilogue = pp.Suppress("END").setParseAction(lambda r: (MFPP.end_func, r)) + pp.Optional(comment)
 func = func_prologue + pp.ZeroOrMore(statement) + func_epilogue
     
