@@ -14,7 +14,7 @@ DW idlestack*100
 DS TCB idletcb
 
 // Create a thread that never stops
-FUNC CreateSysThread
+FUNC CreateSysThread BEGIN
     ldr &idlestack a
     ldr &TSysThread b
     ldc 0 c
@@ -30,12 +30,12 @@ FUNC CreateSysThread
     ldr &runpt h        // runpt = &idletcb
     mrm b h
     ret
+END
 
 DT message "Kernel thread started"
 
 // System idle thread
-FUNC TSysThread
-
+FUNC TSysThread BEGIN
     ldr &message a
     CALL api::Print
     CALL api::PrintLn
@@ -48,9 +48,9 @@ FUNC TSysThread
     CALL api::Suspend
     ldr &loop c
     jmp c
+END
 
-FUNC Startup
-   
+FUNC Startup BEGIN
     CALL SetupHandlers
     CALL CreateSysThread    
     
@@ -59,8 +59,10 @@ FUNC Startup
     RPTR a sp#TCB b
     mmr b a             // return runpt->sp    
     ret
+END
 
 FUNC CreateThread // stack_top, func, param, tcb
+BEGIN
     push d
     CALL InitStack             // a <- new_stack
     pop b                      // b <- tcb
@@ -86,9 +88,11 @@ FUNC CreateThread // stack_top, func, param, tcb
     mrm b h                    // runpt->next.prev = tcb    
     
     ret
+END
 
 // Init stack for a new thread
 FUNC InitStack // stack_top, func, param -> new_stack
+BEGIN
     mrr a h             // Save stack top as initial FP
 
     mrm b a             // Thread start = <func>
@@ -103,9 +107,10 @@ FUNC InitStack // stack_top, func, param -> new_stack
     mrm h a
     add a d a           // Start thread with fp = sp
     ret
+END
     
 // Setup interrupt handlers
-FUNC SetupHandlers
+FUNC SetupHandlers BEGIN
     // Loopback handler
     ldr &HLoopback a
     ldc 0 b     // int 0 handler address
@@ -119,9 +124,11 @@ FUNC SetupHandlers
     out a       // Enable timer
     
     ret
+END
 
 // User interrupt handler - invokes kernel functions
-FUNC HLoopback // service_number, [params]    
+// HLoopback(service_number, [params])
+FUNC HLoopback BEGIN
   suspend: // a == 0
     ldr &serial h
     jgt a h
@@ -141,17 +148,20 @@ FUNC HLoopback // service_number, [params]
     mrr e a    
     CALL CreateThread
     irx
+END
     
 // Writes a char to serial peripheral
-FUNC HWriteSerial // (symbol)    
+// HWriteSerial(symbol)
+FUNC HWriteSerial BEGIN
     ldc 64 b                // serial MM base
     mrm a b
     ldc 2 c                 // serial device number
     out c                   // signal serial
     ret
+END
 
 // Timer tick handler - schedule the next thread
-FUNC HScheduler
+FUNC HScheduler BEGIN
     ldr &runpt a
     
     // Save stack pointer
@@ -172,5 +182,5 @@ FUNC HScheduler
 
     // Resume that thread
     irx    
-
+END
 

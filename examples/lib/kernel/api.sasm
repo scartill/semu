@@ -1,20 +1,23 @@
 /// Kernel API functions
 
 // API Suspend
-FUNC Suspend
+FUNC Suspend BEGIN
     ldc 0 a
     int
     ret
+END
 
 // API Print char
-FUNC PrintChar
+FUNC PrintChar BEGIN
     mrr a b
     ldc 1 a
     int
     ret
-    
+END
+
 // API Print text line
 FUNC Print // Pascal-string
+BEGIN
     ldc 1 d
     ldr &print_next e
     ldr &print_loop f
@@ -38,19 +41,22 @@ FUNC Print // Pascal-string
     pop a
     pop b
     jmp f
-    
+END
+
 // API Newline
-FUNC PrintLn
+FUNC PrintLn BEGIN
     ldc 13 a
     CALL api::PrintChar
     ldc 10 a
     CALL api::PrintChar
     ret
+END
  
 // API CreateThread
 FUNC CreateThread  // stack_top, func, param, tcb
+BEGIN
     mrr a e
     ldc 2 a
     int
     ret
-    
+END

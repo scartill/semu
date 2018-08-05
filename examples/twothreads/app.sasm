@@ -9,7 +9,7 @@ DW secstack*100
 DT first "First"
 DT second "Second"
 
-FUNC Start
+FUNC Start BEGIN
     ldr &mainstack a
     ldr &TLoop b
     ldr &first c 
@@ -23,9 +23,11 @@ FUNC Start
     CALL api::CreateThread
     
     ret
+END
 
 // Thread func for both threads
 FUNC TLoop // String
+BEGIN
     push a
     CALL api::Print
     CALL api::PrintLn
@@ -33,3 +35,4 @@ FUNC TLoop // String
     nop
     ldr &TLoop c
     jmp c
+END

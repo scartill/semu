@@ -9,7 +9,6 @@ from grammar import *
 multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
 dw = (pp.Suppress("DW") + id + multi).setParseAction(lambda r: (MFPP.issue_dw, r))
 call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (MFPP.issue_call, r))
-func = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.issue_func, r))
 
 # Macro-struct
 struct_begin = (pp.Suppress("STRUCT") + id).setParseAction(lambda r: (MFPP.begin_struct, r))
@@ -36,13 +35,19 @@ unknown = pp.Regex(".+").setParseAction(lambda r: (MFPP.on_fail, r))
 cmd = asm_cmd \
     ^ dw \
     ^ call \
-    ^ func \
     ^ struct \
     ^ ds \
     ^ ptr \
     ^ rptr \
     ^ item \
     ^ dt
-    
+
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
-program = pp.ZeroOrMore(statement ^ comment ^ unknown)
+    
+func_decl = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.issue_func, r)) + pp.Optional(comment)
+func_local_var = pp.Suppress("DW") + pp.Optional(comment)
+func_prologue = func_decl + pp.ZeroOrMore(func_local_var) + pp.Suppress("BEGIN")
+func_epilogue = pp.Suppress("END") + pp.Optional(comment)
+func = func_prologue + pp.ZeroOrMore(statement) + func_epilogue
+    
+program = pp.ZeroOrMore(statement ^ func ^ comment ^ unknown)
