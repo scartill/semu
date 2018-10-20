@@ -1,5 +1,9 @@
 /// Kernel functions
 
+CONST LOOPBACK_SUSPEND 0
+CONST LOOPBACK_SERIAL 1
+CONST LOOPBACK_CREATE_THREAD 2
+
 STRUCT TCB
     DW sp
     DW next
@@ -128,25 +132,23 @@ FUNC SetupHandlers BEGIN
 END
 
 // User interrupt handler - invokes kernel functions
-// HLoopback(service_number, [params])
+// HLoopback([params], h=service_number)
 FUNC HLoopback BEGIN
-  suspend: // a == 0
-    ldr &serial h
-    jgt a h
-    ldr &HScheduler h       // NB: no 'cll' instruction
-    jmp h                   // - saving the stack intact
+  suspend: // h == 0
+    ldr &serial g
+    jgt h g
+    ldr &HScheduler g       // NB: no 'cll' instruction
+    jmp g                   // - saving the stack intact
     
-  serial: // a == 1
-    ldc 1 g
-    sub a g a
-    ldr &create_thread h
-    jgt a h
-    mrr b a
+  serial: // h == 1
+    ldc 1 e
+    sub h e h
+    ldr &create_thread g
+    jgt h g
     CALL HWriteSerial
     irx
     
-  create_thread: // a == 2
-    mrr e a    
+  create_thread: // h == 2    
     CALL CreateThread
     irx
 END

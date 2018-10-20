@@ -16,6 +16,7 @@ function test_run {
 # Create definitions from hardware configuration
 py ${WHWC} > hw.sasm
 
+test_run sem
 test_run consts
 test_run locals
 echo "Passed successfully"

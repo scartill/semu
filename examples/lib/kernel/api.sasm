@@ -2,15 +2,14 @@
 
 // API Suspend
 FUNC Suspend BEGIN
-    ldc 0 a
+    CLOAD kernel::LOOPBACK_SUSPEND h
     int
     RETURN
 END
 
 // API Print char
-FUNC PrintChar BEGIN
-    mrr a b
-    ldc 1 a
+FUNC PrintChar BEGIN    
+    CLOAD kernel::LOOPBACK_SERIAL h
     int
     RETURN
 END
@@ -19,28 +18,22 @@ END
 FUNC Print // Pascal-string
 BEGIN
     ldc 1 d
-    ldr &print_next e
+    ldr &print_next e   
     ldr &print_loop f
     ldc 4 g
   
-    mmr a b
-    mrr a c
+    mmr a b         // int b = len
+    mrr a c         // char * c = (&str - 1) (PASCAL-style)
   print_loop:
-    jgt b e
+    jgt b e         // if b > 0 then goto next
     RETURN
     
   print_next:    
-    add c g c
-    sub b d b
-    mmr c a
-    push b
-    mrr a b
-    push a
-    ldc 1 a
-    int
-    pop a
-    pop b
-    jmp f
+    add c g c       // ++c
+    sub b d b       // --b
+    mmr c a         // a = c[b]
+    CALL PrintChar
+    jmp f           // goto loop
 END
 
 // API Newline
@@ -55,8 +48,7 @@ END
 // API CreateThread
 FUNC CreateThread  // stack_top, func, param, tcb
 BEGIN
-    mrr a e
-    ldc 2 a
+    CLOAD kernel::LOOPBACK_CREATE_THREAD h
     int
     RETURN
 END

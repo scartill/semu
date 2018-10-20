@@ -2,6 +2,7 @@
 
 import sys
 import logging as lg
+import traceback
 
 import peripheral
 import cpu
@@ -65,6 +66,7 @@ def run():
         return EXIT_KEYBOARD
     except Exception as e:
         lg.info("Execution halted on general error {0}".format(e))
+        traceback.print_exc()
         return EXIT_EXEC_ERROR
     finally:
         stop_pp(pp)
