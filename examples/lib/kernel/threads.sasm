@@ -1,0 +1,132 @@
+// -- Threads and scheduler functions --
+
+STRUCT TCB
+    DW sp
+    DW next
+    DW prev
+END
+
+// Running thread pointer
+DW runpt
+
+// Init stack for a new thread
+FUNC InitStack // stack_top, func, param -> new_stack
+BEGIN
+    mrr a h             // Save stack top as initial FP
+
+    mrm b a             // Thread start = <func>
+    ldc 4 d
+    add a d a
+    
+    mrm c a             // Func <param> passed in a
+    
+    ldc 32 e            // Leave 4*8 bytes for GPRs
+    add a e a
+        
+    mrm h a
+    add a d a           // Start thread with fp = sp
+    RETURN
+END
+
+FUNC CreateThread // stack_top, func, param, tcb
+BEGIN
+    push d
+    CALL InitStack             // a <- new_stack
+    pop b                      // b <- tcb
+    
+    PTR b sp#TCB h
+    mrm a h                    // tcp.sp = a
+      
+    ldr &runpt d               // d <- runpt
+    mmr d d                    // d <- *runpt
+    
+    PTR d next#TCB h
+    mmr h e                    // e <- runpt->next
+    
+    mrm b h                    // runpt->next = tcb
+    
+    PTR b next#TCB h    
+    mrm e h                    // tcp.next = e
+    
+    PTR b prev#TCB h
+    mrm d h                    // tcp.prev = *runpt
+    
+    PTR e prev#TCB h
+    mrm b h                    // runpt->next.prev = tcb    
+    
+    RETURN
+END
+
+// - Scheduling
+
+// Timer tick handler - schedule the next thread
+FUNC HScheduler BEGIN
+    ldr &runpt a
+    
+    // Save stack pointer
+    RPTR a sp#TCB b
+    ssp c
+    mrm c b         // runpt->sp = sp
+
+    RPTR a next#TCB b
+    mmr b e         // e = runpt->next
+
+    // Update running TCB
+    mrm e a
+
+    // Fetch new stack pointer    
+    RPTR a sp#TCB b
+    mmr b c
+    lsp c
+
+    // Resume that thread
+    irx    
+END
+
+// - System-idle thread
+
+// System idle thread
+DW idlestack*100
+DS TCB idletcb
+
+// Create a thread that never stops
+FUNC CreateSysThread BEGIN
+    ldr &idlestack a
+    ldr &TSysThread b
+    ldc 0 c
+    CALL threads::InitStack      // a <- SP
+    
+    ldr &idletcb b
+    PTR b sp#TCB h      // idletcb.sp = a
+    mrm a h
+    PTR b next#TCB h    // idletcb.next = &idletcb
+    mrm b h
+    PTR b prev#TCB h    // idletcb.prev = &idletcb
+    mrm b h
+    ldr &runpt h        // runpt = &idletcb
+    mrm b h
+    RETURN
+END
+
+DT message "Kernel thread started"
+
+// System idle thread
+FUNC TSysThread BEGIN
+    // Ready the be scheduled, starting system timer
+    ldc 1 a       // enable == 1
+    out a         // Enable timer
+    
+    ldr &message a
+    CALL api::Print
+    CALL api::PrintLn
+    
+    // Let application start user threads
+    CALL app::Start
+    // Start idle loop
+  loop:
+    nop
+    CALL api::Suspend
+    ldr &loop c
+    jmp c
+END
+

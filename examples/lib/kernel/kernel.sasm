@@ -4,112 +4,16 @@ CONST LOOPBACK_SUSPEND 0
 CONST LOOPBACK_SERIAL 1
 CONST LOOPBACK_CREATE_THREAD 2
 
-STRUCT TCB
-    DW sp
-    DW next
-    DW prev
-END
-
-// Running thread pointer
-DW runpt
-
-// Create idle thread
-DW idlestack*100
-DS TCB idletcb
-
-// Create a thread that never stops
-FUNC CreateSysThread BEGIN
-    ldr &idlestack a
-    ldr &TSysThread b
-    ldc 0 c
-    CALL InitStack      // a <- SP
-    
-    ldr &idletcb b
-    PTR b sp#TCB h      // idletcb.sp = a
-    mrm a h
-    PTR b next#TCB h    // idletcb.next = &idletcb
-    mrm b h
-    PTR b prev#TCB h    // idletcb.prev = &idletcb
-    mrm b h
-    ldr &runpt h        // runpt = &idletcb
-    mrm b h
-    RETURN
-END
-
-DT message "Kernel thread started"
-
-// System idle thread
-FUNC TSysThread BEGIN
-    ldr &message a
-    CALL api::Print
-    CALL api::PrintLn
-    
-    // Let application start user threads
-    CALL app::Start
-    // Start idle loop
-  loop:
-    nop
-    CALL api::Suspend
-    ldr &loop c
-    jmp c
-END
-
 FUNC Startup BEGIN
     CALL SetupHandlers
-    CALL CreateSysThread    
+    
+    // Start system-idle thread
+    CALL threads::CreateSysThread
     
     // Return system thread stack pointer    
-    ldr &runpt a
-    RPTR a sp#TCB b
+    ldr &threads::runpt a
+    RPTR a sp#threads::TCB b
     mmr b a             // return runpt->sp    
-    RETURN
-END
-
-FUNC CreateThread // stack_top, func, param, tcb
-BEGIN
-    push d
-    CALL InitStack             // a <- new_stack
-    pop b                      // b <- tcb
-    
-    PTR b sp#TCB h
-    mrm a h                    // tcp.sp = a
-      
-    ldr &runpt d               // d <- runpt
-    mmr d d                    // d <- *runpt
-    
-    PTR d next#TCB h
-    mmr h e                    // e <- runpt->next
-    
-    mrm b h                    // runpt->next = tcb
-    
-    PTR b next#TCB h    
-    mrm e h                    // tcp.next = e
-    
-    PTR b prev#TCB h
-    mrm d h                    // tcp.prev = *runpt
-    
-    PTR e prev#TCB h
-    mrm b h                    // runpt->next.prev = tcb    
-    
-    RETURN
-END
-
-// Init stack for a new thread
-FUNC InitStack // stack_top, func, param -> new_stack
-BEGIN
-    mrr a h             // Save stack top as initial FP
-
-    mrm b a             // Thread start = <func>
-    ldc 4 d
-    add a d a
-    
-    mrm c a             // Func <param> passed in a
-    
-    ldc 32 e            // Leave 4*8 bytes for GPRs
-    add a e a
-        
-    mrm h a
-    add a d a           // Start thread with fp = sp
     RETURN
 END
     
@@ -121,12 +25,10 @@ FUNC SetupHandlers BEGIN
     mrm a b                      // Handler = loopback
 
     // Setup timer
-    ldr &HScheduler a
+    ldr &threads::HScheduler a
     ldc 4 c
     add b c b     // int 1 handler address
     mrm a b       // Handler = scheduler
-    ldc 1 a       // enable == 1
-    out a         // Enable timer
     
     RETURN
 END
@@ -137,7 +39,7 @@ FUNC HLoopback BEGIN
   suspend: // h == 0
     ldr &serial g
     jgt h g
-    ldr &HScheduler g       // NB: no 'cll' instruction
+    ldr &threads::HScheduler g       // NB: no 'cll' instruction
     jmp g                   // - saving the stack intact
     
   serial: // h == 1
@@ -149,7 +51,7 @@ FUNC HLoopback BEGIN
     irx
     
   create_thread: // h == 2    
-    CALL CreateThread
+    CALL threads::CreateThread
     irx
 END
     
@@ -161,29 +63,5 @@ FUNC HWriteSerial BEGIN
     ldc 2 c                 // serial device number
     out c                   // signal serial
     RETURN
-END
-
-// Timer tick handler - schedule the next thread
-FUNC HScheduler BEGIN
-    ldr &runpt a
-    
-    // Save stack pointer
-    RPTR a sp#TCB b
-    ssp c
-    mrm c b         // runpt->sp = sp
-
-    RPTR a next#TCB b
-    mmr b e         // e = runpt->next
-
-    // Update running TCB
-    mrm e a
-
-    // Fetch new stack pointer    
-    RPTR a sp#TCB b
-    mmr b c
-    lsp c
-
-    // Resume that thread
-    irx    
 END
 

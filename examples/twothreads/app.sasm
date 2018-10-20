@@ -1,9 +1,9 @@
 /// User thread functions
 
-DS kernel::TCB maintcb
+DS threads::TCB maintcb
 DW mainstack*100
 
-DS kernel::TCB sectcb
+DS threads::TCB sectcb
 DW secstack*100
 
 DT first "First"

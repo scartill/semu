@@ -8,4 +8,4 @@ LIB="../lib/kernel"
 py ${WHWC} > hw.sasm
 
 # Compile with the Kernel
-py ${ASM} hw.sasm ${LIB}/startup.sasm ${LIB}/kernel.sasm ${LIB}/api.sasm app.sasm ${ROM}
+py ${ASM} hw.sasm ${LIB}/startup.sasm ${LIB}/threads.sasm ${LIB}/kernel.sasm ${LIB}/api.sasm app.sasm ${ROM}
