@@ -113,15 +113,16 @@ END
 FUNC SetupHandlers BEGIN
     // Loopback handler
     ldr &HLoopback a
-    ldc 0 b     // int 0 handler address
-    mrm a b     // Handler = loopback
+    CLOAD hw::INT_VECT_BASE b     // int 0 handler address
+    mrm a b                      // Handler = loopback
 
     // Setup timer
     ldr &HScheduler a
-    ldc 4 b     // int 1 handler address
-    mrm a b     // Handler = scheduler
-    ldc 1 a     // enable == 1
-    out a       // Enable timer
+    ldc 4 c
+    add b c b     // int 1 handler address
+    mrm a b       // Handler = scheduler
+    ldc 1 a       // enable == 1
+    out a         // Enable timer
     
     RETURN
 END
@@ -153,7 +154,7 @@ END
 // Writes a char to serial peripheral
 // HWriteSerial(symbol)
 FUNC HWriteSerial BEGIN
-    ldc 64 b                // serial MM base
+    CLOAD hw::SERIAL_MM_BASE b       // serial MM base
     mrm a b
     ldc 2 c                 // serial device number
     out c                   // signal serial
