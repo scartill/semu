@@ -79,9 +79,9 @@ class Serial(Peripheral):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
     def process_in_signal(self):
-        addr = hw.serial_rm_base
-        buf = self.memory[addr:addr + 4]        
-        self.sock.sendto(buf, (hw.ctl_udp_ip, hw.ctl_ser_udp_port))
+        addr = hw.SERIAL_MM_BASE
+        buf = self.memory[addr:addr + 4]
+        self.sock.sendto(buf, (hw.CTL_SER_UDP_IP, hw.CTL_SER_UDP_PORT))
     
 
         

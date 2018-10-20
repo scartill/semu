@@ -25,7 +25,7 @@ def stop_pp(pp):
 
 def load_rom(memory):    
     rom = open(sys.argv[1], "rb").read()  
-    rb = rom_base
+    rb = ROM_BASE
     l = len(rom)    
     memory[rb:rb+l] = rom    
         
@@ -37,9 +37,9 @@ def process_int_queue(pp, proc):
 
 def run():
     try:
-        memory = bytearray(memory_size)
+        memory = bytearray(MEMORY_SIZE)
     
-        # Peripherals: Line -> Device
+        # PERIPHERALS: Line -> Device
         pp = {
            #0 : loopback interrupt
             1 : peripheral.SysTimer(memory),

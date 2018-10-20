@@ -15,9 +15,9 @@ class Assert(Exception):
 class CPU():
     def __init__(self, memory, pp):
         self.memory = memory    # Ref. to memory
-        self.pp = pp            # Ref. to peripherals
+        self.pp = pp            # Ref. to PERIPHERALS
     
-        self.ip = rom_base      # Execution start from the beginning of ROM
+        self.ip = ROM_BASE      # Execution start from the beginning of ROM
         self.sp = 0             # Set when lsp is called
         self.ii = 0x01          # Interrupt inhibit
         self.fp = 0             # Global code has no frame
@@ -255,7 +255,7 @@ class CPU():
         self.fp = self.sp
         
         # Find and a call a handler
-        h_addr_inx = int_vect_base + line*4         # Interrupt handler address location
+        h_addr_inx = INT_VECT_BASE + line*4         # Interrupt handler address location
         (handler_addr,) = struct.unpack(">I", self.memory[h_addr_inx:h_addr_inx+4])
         self.ip = handler_addr
             

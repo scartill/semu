@@ -11,7 +11,7 @@ lg.basicConfig(level = lg.DEBUG)
 lg.info("SEMU SERIAL")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((hw.ctl_udp_ip, hw.ctl_ser_udp_port))
+sock.bind((hw.CTL_SER_UDP_IP, hw.CTL_SER_UDP_PORT))
 
 while True:
     buf, _ = sock.recvfrom(1024) # buffer size is 1024 bytes

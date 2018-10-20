@@ -1,11 +1,13 @@
 
-memory_size      = 0xFFFF
-int_vect_base    = 0x00000000
-peripherals      = 16
-int_vect_size    = peripherals*4
-serial_rm_base   = int_vect_base + int_vect_size        # serial device mapped memory location
-serial_rm_size   = 256
-rom_base         = serial_rm_base + serial_rm_size
+MEMORY_SIZE      = 0xFFFF
+INT_VECT_BASE    = 0x00000000
+PERIPHERALS      = 16
+INT_VECT_SIZE    = PERIPHERALS*4
+SERIAL_MM_BASE   = INT_VECT_BASE + INT_VECT_SIZE        # serial device mapped memory location
+SERIAL_MM_SIZE   = 4
+ROM_BASE         = SERIAL_MM_BASE + SERIAL_MM_SIZE
 
-ctl_udp_ip = "127.0.0.1"
-ctl_ser_udp_port = 5005     # port for serial device
+CTL_IP = "127.0.0.1"		# Be default run virtual devices on the localhost
+
+CTL_SER_UDP_IP = CTL_IP     # IP for serial device
+CTL_SER_UDP_PORT = 5005     # port for serial device
