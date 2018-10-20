@@ -60,7 +60,7 @@ END
 FUNC HWriteSerial BEGIN
     CLOAD hw::SERIAL_MM_BASE b       // serial MM base
     mrm a b
-    ldc 2 c                 // serial device number
+    CLOAD hw::SERIAL_LINE c
     out c                   // signal serial
     RETURN
 END

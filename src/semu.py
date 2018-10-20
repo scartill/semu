@@ -43,8 +43,8 @@ def run():
         # PERIPHERALS: Line -> Device
         pp = {
            #0 : loopback interrupt
-            1 : peripheral.SysTimer(memory),
-            2 : peripheral.Serial(memory)
+            SYSTIMER_LINE : peripheral.SysTimer(memory),
+            SERIAL_LINE : peripheral.Serial(memory)
         }
 
         proc = cpu.CPU(memory, pp)

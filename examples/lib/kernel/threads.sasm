@@ -93,7 +93,7 @@ DS TCB idletcb
 FUNC CreateSysThread BEGIN
     ldr &idlestack a
     ldr &TSysThread b
-    ldc 0 c
+    ldc 0 c                      // No parameters
     CALL threads::InitStack      // a <- SP
     
     ldr &idletcb b
@@ -113,7 +113,7 @@ DT message "Kernel thread started"
 // System idle thread
 FUNC TSysThread BEGIN
     // Ready the be scheduled, starting system timer
-    ldc 1 a       // enable == 1
+    CLOAD hw::SYSTIMER_LINE a
     out a         // Enable timer
     
     ldr &message a
