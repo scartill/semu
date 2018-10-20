@@ -89,6 +89,19 @@ BEGIN
     // param := a
     // <func> := c
     cll c
+    
+    // Removing thread from schedule
+    LLOAD tcb a
+    PTR a prev#TCB h
+    mmr h b             // b := prev
+    PTR a next#TCB h
+    mmr h c             // c := next
+    PTR b next#TCB h
+    mrm c h             // prev.next = next
+    PTR c prev#TCB h
+    mrm b h             // next.prev = prev
+    CALL api::Suspend
+    // This function never returns
 END
 
 // - Scheduling
