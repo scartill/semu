@@ -42,7 +42,7 @@ argc = len(sys.argv)
 if argc < 3:
     print("Usage: semuasm <sources> binary")
     sys.exit(1)
-
+    
 lg.basicConfig(level=lg.INFO)
 lg.info("SEMU ASM")
 compile(sys.argv[1:(argc - 1)], sys.argv[argc - 1])

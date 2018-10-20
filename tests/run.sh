@@ -5,7 +5,10 @@ ROM=${SEMU_ROOT}"/roms/test_run.bin"
 
 function test_run {
     py ${ASM} $1.sasm ${ROM}
-    py ${SEMU} ${ROM} || (echo "Test failed (case $1)" && exit 1)
+    if [[ $? != 0 ]]; then echo "Compilation failed for test case $1" && return 1; fi
+
+    py ${SEMU} ${ROM}    
+    if [[ $? != 0 ]]; then echo "Test failed (case $1)" && return 1; fi
 }
 
 test_run consts || exit $?

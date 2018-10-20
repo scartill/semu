@@ -38,8 +38,9 @@ local_store = (pp.Suppress("LSTORE") + reg_ref + id).setParseAction(lambda r: (M
 local_load = (pp.Suppress("LLOAD") + id + reg_ref).setParseAction(lambda r: (MFPP.local_load, [r[0], reg_indices[r[1]]]))
 
 # Macro constants
-m_int_const = pp.Regex("[\+\-]?[0-9]+")
-const_def = (pp.Suppress("CONST") + id + m_int_const).setParseAction(lambda r: (MFPP.const_def, r))
+m_uint_const = pp.Regex("[0-9]+")
+const_def = (pp.Suppress("CONST") + id + m_uint_const).setParseAction(lambda r: (MFPP.const_def, r))
+const_load = (pp.Suppress("CLOAD") + refname + reg_ref).setParseAction(lambda r: (MFPP.const_load, [r[0], reg_indices[r[1]]]))
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (MFPP.on_fail, r))
@@ -56,7 +57,8 @@ cmd = asm_cmd \
     ^ func_return \
     ^ local_store \
     ^ local_load \
-    ^ const_def
+    ^ const_def \
+    ^ const_load
 
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
     

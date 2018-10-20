@@ -173,7 +173,7 @@ class MacroFPP(FPP):
     def local_load(self, tokens):
         func = self.context
         if(func.ctxtype() != "func"):
-            raise Exception("Unexpected LSTORE macro")
+            raise Exception("Unexpected LLOAD macro")
     
         vname = tokens[0]
         reg = tokens[1]
@@ -317,4 +317,14 @@ class MacroFPP(FPP):
         self.consts[qname] = value
         lg.debug("Constant {0}={1}".format(qname, value))
         
+    # CLOAD <const-name> <reg>
+    # Invalidates <reg>
+    def const_load(self, tokens):  
+        qsname = self.resolve_name(tokens[0])
+        value = self.consts[qsname]
+        reg = tokens[1]
+        # ldc <const> <reg>
+        self.issue_op(ops.ldc)
+        self.issue_usigned(value)
+        self.on_reg(reg)
         
