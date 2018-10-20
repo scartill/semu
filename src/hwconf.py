@@ -7,7 +7,9 @@ SERIAL_MM_BASE   = INT_VECT_BASE + INT_VECT_SIZE        # serial device mapped m
 SERIAL_MM_SIZE   = 4
 ROM_BASE         = SERIAL_MM_BASE + SERIAL_MM_SIZE
 
+SERIAL_DELAY = 0.05			# Serial is much slower than UDP, that's it
+
 CTL_IP = "127.0.0.1"		# Be default run virtual devices on the localhost
 
-CTL_SER_UDP_IP = CTL_IP     # IP for serial device
+CTL_SER_UDP_IP   = CTL_IP     # IP for serial device
 CTL_SER_UDP_PORT = 5005     # port for serial device

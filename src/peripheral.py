@@ -82,6 +82,5 @@ class Serial(Peripheral):
         addr = hw.SERIAL_MM_BASE
         buf = self.memory[addr:addr + 4]
         self.sock.sendto(buf, (hw.CTL_SER_UDP_IP, hw.CTL_SER_UDP_PORT))
-    
+        time.sleep(hw.SERIAL_DELAY)
 
-        
