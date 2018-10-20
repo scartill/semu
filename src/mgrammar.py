@@ -5,7 +5,7 @@ from mfpp import MacroFPP as MFPP
 
 from grammar import *
 
-# Macros
+# Simple macros
 multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))
 dw = (pp.Suppress("DW") + id + multi).setParseAction(lambda r: (MFPP.issue_dw, r))
 call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (MFPP.issue_call, r))
@@ -19,20 +19,27 @@ struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
 ds = (pp.Suppress("DS") + refname + id + multi).setParseAction(lambda r: (MFPP.issue_ds, r))
 
+# Indirect references
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (MFPP.issue_ptr_head, r))
 rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (MFPP.issue_rptr_head, r))
 ptr_tail = (id + pp.Suppress("#") + refname).setParseAction(lambda r: (MFPP.issue_ptr_tail, r))
 ptr = ptr_head + reg_op + ptr_tail + reg_op
 rptr = rptr_head + reg_op + ptr_tail + reg_op
 
+# Array access
 item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (MFPP.issue_item, r))
 
+# Text array
 dt = (pp.Suppress("DT") + id + pp.QuotedString('"')).setParseAction(lambda r: (MFPP.issue_dt, r))
 
+# Auto variable support
 func_return = pp.Suppress("RETURN").setParseAction(lambda r: (MFPP.func_return, r))
-
 local_store = (pp.Suppress("LSTORE") + reg_ref + id).setParseAction(lambda r: (MFPP.local_store, [reg_indices[r[0]], r[1]]))
 local_load = (pp.Suppress("LLOAD") + id + reg_ref).setParseAction(lambda r: (MFPP.local_load, [r[0], reg_indices[r[1]]]))
+
+# Macro constants
+m_int_const = pp.Regex("[\+\-]?[0-9]+")
+const_def = (pp.Suppress("CONST") + id + m_int_const).setParseAction(lambda r: (MFPP.const_def, r))
 
 # Fail on unknown command
 unknown = pp.Regex(".+").setParseAction(lambda r: (MFPP.on_fail, r))
@@ -48,7 +55,8 @@ cmd = asm_cmd \
     ^ dt \
     ^ func_return \
     ^ local_store \
-    ^ local_load
+    ^ local_load \
+    ^ const_def
 
 statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
     

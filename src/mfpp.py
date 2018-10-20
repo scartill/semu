@@ -51,6 +51,7 @@ class MacroFPP(FPP):
         FPP.__init__(self)
         self.context = GlobalContext()
         self.structs = dict()
+        self.consts = dict()
         
     # Macros
     def issue_dw(self, tokens):
@@ -303,3 +304,17 @@ class MacroFPP(FPP):
         self.issue_usigned(len(text))
         for c in text.encode():
             self.issue_usigned(c)
+
+    # CONST <name> <integer>
+    def const_def(self, tokens):
+        name = tokens[0]
+        value = int(tokens[1])      # Integer constants support
+        qname = self.get_qualified_name(name)
+        
+        if(self.context.ctxtype() != "global"):
+            raise Exception("Cannot define non-global CONST {0}", qname)
+            
+        self.consts[qname] = value
+        lg.debug("Constant {0}={1}".format(qname, value))
+        
+        

@@ -8,7 +8,8 @@ function test_run {
     py ${SEMU} ${ROM} || (echo "Test failed (case $1)" && exit 1)
 }
 
-test_run locals
+test_run consts || exit $?
+test_run locals || exit $?
 echo "Passed successfully"
 
 

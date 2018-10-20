@@ -13,12 +13,12 @@ ldc 4 a
 CALL fact
 .assert a 24
 ssp a
-.assert a 340
+.assert a 88
 hlt
 
 FUNC fact
     DW val a
-    DW vval b
+    DW vval b           // dummy
 BEGIN
 
     ldr &nonzero h      // if a > 0 goto nonzero
