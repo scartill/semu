@@ -2,6 +2,8 @@
 
 STRUCT TCB
     DW sp
+    DW func
+    DW param
     DW next
     DW prev
 END
@@ -10,7 +12,10 @@ END
 DW runpt
 
 // Init stack for a new thread
-FUNC InitStack // stack_top, func, param -> new_stack
+FUNC InitStack // -> new_stack
+    DW stack_top a
+    DW func b
+    DW param c
 BEGIN
     mrr a h             // Save stack top as initial FP
 
@@ -28,14 +33,29 @@ BEGIN
     RETURN
 END
 
-FUNC CreateThread // stack_top, func, param, tcb
+FUNC CreateThread // -> new_stack
+    DW stack_top a
+    DW func b
+    DW param c
+    DW tcb d
 BEGIN
-    push d
+    // stack_top := stack_top
+    mrr a a
+    // func := TUserThread
+    ldr &TUserThread b
+    // param := tcb
+    LLOAD tcb c
     CALL InitStack             // a <- new_stack
-    pop b                      // b <- tcb
     
-    PTR b sp#TCB h
-    mrm a h                    // tcp.sp = a
+    LLOAD tcb b                // b <- tcb
+    PTR b sp#TCB c
+    mrm a c                    // tcb.sp = a
+    LLOAD func a
+    PTR b func#TCB c
+    mrm a c                    // tcb.func = func
+    LLOAD param a
+    PTR b param#TCB c
+    mrm a c                    // tcb.param = param
       
     ldr &runpt d               // d <- runpt
     mmr d d                    // d <- *runpt
@@ -55,6 +75,20 @@ BEGIN
     mrm b h                    // runpt->next.prev = tcb    
     
     RETURN
+END
+
+// A wrapper around user thread function enable correct thread termination on callback's return
+FUNC TUserThread
+    DW tcb a
+BEGIN
+    LLOAD tcb b
+    PTR b param#TCB c
+    mmr c a    
+    PTR b func#TCB h
+    mmr h c
+    // param := a
+    // <func> := c
+    cll c
 END
 
 // - Scheduling
