@@ -21,10 +21,8 @@ ds = (pp.Suppress("DS") + refname + id + multi).setParseAction(lambda r: (MFPP.i
 
 # Indirect references
 ptr_head = pp.Literal("PTR").setParseAction(lambda r: (MFPP.issue_ptr_head, r))
-rptr_head = pp.Literal("RPTR").setParseAction(lambda r: (MFPP.issue_rptr_head, r))
 ptr_tail = (id + pp.Suppress("#") + refname).setParseAction(lambda r: (MFPP.issue_ptr_tail, r))
 ptr = ptr_head + reg_op + ptr_tail + reg_op
-rptr = rptr_head + reg_op + ptr_tail + reg_op
 
 # Array access
 item = (pp.Suppress("ITEM") + refname).setParseAction(lambda r: (MFPP.issue_item, r))
@@ -51,7 +49,6 @@ cmd = asm_cmd \
     ^ struct \
     ^ ds \
     ^ ptr \
-    ^ rptr \
     ^ item \
     ^ dt \
     ^ func_return \

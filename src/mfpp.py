@@ -248,16 +248,10 @@ class MacroFPP(FPP):
     def issue_ptr_head(self, tokens):
         self.issue_op(ops.mrr)
     
-    # RPTR <pointer-to-struct-address-reg> <struct-type-name>#<field-name> <target-reg>
-    # Invalidates 'g', 'h'
-    def issue_rptr_head(self, tokens):
-        self.issue_op(ops.mmr)
-    
     # Invalidates g, h
     def issue_ptr_tail(self, tokens):
         # <before>: partial command to to load struct address to reg
         # for PTR: mrr source-reg
-        # for RPTR: mrm source-reg        
         fname = tokens[0]
         qsname = self.resolve_name(tokens[1])
         s = self.structs[qsname]
