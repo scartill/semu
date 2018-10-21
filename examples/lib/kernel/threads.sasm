@@ -120,6 +120,32 @@ END
 
 // - Scheduling
 
+FUNC SelectNextThread
+    DW tcb a
+BEGIN
+    PTR a next#TCB b
+    mmr b a         // a := next = tcb->next
+    PTR a syncobj#TCB b 
+    mmr b b         // b := next->syncobj
+    ldr &locked h
+    jgt b h         // if (next.syncobj != 0) goto locked
+    RETURN          // else return next
+    
+  locked:
+    PTR b lock#sync::Mutex c
+    mmr c c
+    ldr &continue h
+    jgt c h         // if (next->syncobj.lock) goto continue
+    PTR a syncobj#TCB b
+    ldc 0 d
+    mrm d b         // else next->syncobj = 0 (resume thread)
+    RETURN          // return next
+    
+  continue:
+    CALL SelectNextThread       // SelectNextThread(next)
+    RETURN
+END
+
 // Timer tick handler - schedule the next thread
 FUNC HScheduler BEGIN
     ldr &runpt a
@@ -130,8 +156,7 @@ FUNC HScheduler BEGIN
     ssp c
     mrm c b         // runpt->sp = sp
 
-    PTR a next#TCB b
-    mmr b a         // a = runpt->next
+    CALL SelectNextThread       // a <- new TCB
 
     // Fetch new stack pointer    
     PTR a sp#TCB b

@@ -183,8 +183,10 @@ class CPU():
     
     def cpt(self):
         val = self.next_unsigned()
+        message = "CHECKPOINT {0}".format(val)
+        lg.debug(message)
         # Write this to stdout so test engine can control execution
-        print("CHECKPOINT {0}".format(val))
+        print(message)
         self.debug_dump()
         
     def aeq(self):

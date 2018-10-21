@@ -22,6 +22,7 @@ END
 FUNC TF
 BEGIN
     ldr &mutex a
+    .check 0
     CALL sync::InitMutex
     
     ldr &mutex a
@@ -44,15 +45,17 @@ BEGIN
     CALL api::CreateThread
     .check 3
     
-    CALL SpinWait    
+    CALL SpinWait
     
-    ldr &mutex a
+    ldr &mutex a    
     CALL sync::UnlockMutex
     .check 5
     
     ldr &mutex a
     CALL sync::IsMutexLocked
     .assert a 0
+    
+    CALL SpinWait
     hlt
     
     RETURN
@@ -73,6 +76,9 @@ END
 FUNC TS
 BEGIN
     .check 4
+    ldr &mutex a
+    CALL sync::IsMutexLocked
+    .assert a 1
     
     ldr &mutex a
     CALL sync::LockMutex

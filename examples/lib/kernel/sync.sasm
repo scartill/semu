@@ -7,7 +7,6 @@ END
 FUNC InitMutex
     DW mutex a
 BEGIN
-   // RPTR a sp#threads::TCB b
    ldc 0 b
    PTR a lock#Mutex c  
    mrm b c              // mutex.lock = 0
@@ -26,7 +25,7 @@ FUNC LockMutex
     DW mutex a
 BEGIN
     CALL IsMutexLocked
-    ldr &lock b
+    ldr &wait b
     jgt a b             // if (mutex.lock == 1) goto wait
   lock:
     LLOAD mutex a
@@ -35,6 +34,7 @@ BEGIN
     mrm c b
     RETURN              // mutex.lock = 1
   wait:
+    LLOAD mutex a
     CALL threads::ThreadWait
     // REMOVE BELOW
     CALL api::Suspend
