@@ -4,6 +4,7 @@ STRUCT TCB
     DW sp
     DW func
     DW param
+    DW syncobj
     DW next
     DW prev
 END
@@ -56,6 +57,9 @@ BEGIN
     LLOAD param a
     PTR b param#TCB c
     mrm a c                    // tcb.param = param
+    ldc 0 a
+    PTR b syncobj#TCB c
+    mrm a c                    // tcb.syncobj = 0 (ready to run)
       
     ldr &runpt d               // d <- runpt
     mmr d d                    // d <- *runpt
@@ -77,7 +81,17 @@ BEGIN
     RETURN
 END
 
-// A wrapper around user thread function enable correct thread termination on callback's return
+FUNC ThreadWait
+    DW syncobj a
+BEGIN
+    ldr &runpt b
+    mmr b b
+    PTR b syncobj#TCB h
+    mrm a h                 // runpt->syncobj = syncobj (set thread to wait)
+    RETURN
+END
+
+// A wrapper around user thread function enables correct thread termination on callback's return
 FUNC TUserThread
     DW tcb a
 BEGIN
@@ -88,7 +102,7 @@ BEGIN
     mmr h c
     // param := a
     // <func> := c
-    cll c
+    cll c               // Call to real user thread function
     
     // Removing thread from schedule
     LLOAD tcb a
@@ -109,22 +123,24 @@ END
 // Timer tick handler - schedule the next thread
 FUNC HScheduler BEGIN
     ldr &runpt a
+    mmr a a             // a = *runpt
     
     // Save stack pointer
-    RPTR a sp#TCB b
+    PTR a sp#TCB b
     ssp c
     mrm c b         // runpt->sp = sp
 
-    RPTR a next#TCB b
-    mmr b e         // e = runpt->next
-
-    // Update running TCB
-    mrm e a
+    PTR a next#TCB b
+    mmr b a         // a = runpt->next
 
     // Fetch new stack pointer    
-    RPTR a sp#TCB b
+    PTR a sp#TCB b
     mmr b c
     lsp c
+    
+    // Update running TCB
+    ldr &runpt b
+    mrm a b
 
     // Resume that thread
     irx    
@@ -158,6 +174,7 @@ END
 DT message "Kernel thread started"
 
 // System idle thread
+// NB: On the contrary to other kernel functions executes with interrupts open
 FUNC TSysThread BEGIN
     // Ready the be scheduled, starting system timer
     CLOAD hw::SYSTIMER_LINE a
@@ -176,4 +193,3 @@ FUNC TSysThread BEGIN
     ldr &loop c
     jmp c
 END
-

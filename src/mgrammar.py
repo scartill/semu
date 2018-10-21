@@ -13,7 +13,7 @@ call = (pp.Suppress("CALL") + refname).setParseAction(lambda r: (MFPP.issue_call
 # Macro-struct
 struct_begin = (pp.Suppress("STRUCT") + id).setParseAction(lambda r: (MFPP.begin_struct, r))
 field_type = pp.Or(pp.Literal("DW"))
-struct_field = (field_type + id).setParseAction(lambda r: (MFPP.struct_field, r))
+struct_field = (field_type + id + pp.Optional(comment)).setParseAction(lambda r: (MFPP.struct_field, r))
 struct_end = pp.Suppress("END").setParseAction(lambda r: (MFPP.struct_end, r))
 struct = struct_begin + pp.OneOrMore(struct_field) + struct_end
 
@@ -60,7 +60,7 @@ cmd = asm_cmd \
     ^ const_def \
     ^ const_load
 
-statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.Optional(comment)
+statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.ZeroOrMore(comment)
     
 func_decl = (pp.Suppress("FUNC") + id).setParseAction(lambda r: (MFPP.begin_func, r)) + pp.Optional(comment)
 func_var_def = pp.Suppress("DW") + id + reg_ref + pp.Suppress(pp.Optional(comment))

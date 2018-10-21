@@ -12,7 +12,8 @@ FUNC Startup BEGIN
     
     // Return system thread stack pointer    
     ldr &threads::runpt a
-    RPTR a sp#threads::TCB b
+    mmr a a             // a = *runpt
+    PTR a sp#threads::TCB b
     mmr b a             // return runpt->sp    
     RETURN
 END

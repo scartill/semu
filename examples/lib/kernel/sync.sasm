@@ -1,0 +1,52 @@
+// Synchronization primitives
+
+STRUCT Mutex
+    DW lock         // 0 == unlocked, 1 == locked
+END
+
+FUNC InitMutex
+    DW mutex a
+BEGIN
+   // RPTR a sp#threads::TCB b
+   ldc 0 b
+   PTR a lock#Mutex c  
+   mrm b c              // mutex.lock = 0
+   RETURN
+END
+
+FUNC IsMutexLocked
+    DW mutex a
+BEGIN
+    PTR a lock#Mutex b
+    mmr b a                 // return a.lock
+    RETURN
+END
+
+FUNC LockMutex
+    DW mutex a
+BEGIN
+    CALL IsMutexLocked
+    ldr &lock b
+    jgt a b             // if (mutex.lock == 1) goto wait
+  lock:
+    LLOAD mutex a
+    PTR a lock#Mutex b
+    ldc 1 c
+    mrm c b
+    RETURN              // mutex.lock = 1
+  wait:
+    CALL threads::ThreadWait
+    // REMOVE BELOW
+    CALL api::Suspend
+    // REMOVE ABOVE
+    RETURN
+END
+
+FUNC UnlockMutex
+    DW mutex a
+BEGIN
+    PTR a lock#Mutex b
+    ldc 0 c
+    mrm c b                 // mutex.lock = 0
+    RETURN
+END

@@ -1,0 +1,87 @@
+/// Mutex test
+
+DS threads::TCB ftcb
+DW fs*100
+
+DS threads::TCB stcb
+DW ss*100
+
+DS sync::Mutex mutex
+
+FUNC Start
+BEGIN
+    ldr &fs a
+    ldr &TF b
+    ldc 0 c 
+    ldr &ftcb d
+    CALL api::CreateThread
+    
+    RETURN
+END
+
+FUNC TF
+BEGIN
+    ldr &mutex a
+    CALL sync::InitMutex
+    
+    ldr &mutex a
+    CALL sync::IsMutexLocked
+    .assert a 0
+    .check 1
+    
+    ldr &mutex a
+    CALL sync::LockMutex
+    
+    ldr &mutex a
+    CALL sync::IsMutexLocked
+    .assert a 1
+    .check 2
+    
+    ldr &ss a
+    ldr &TS b
+    ldc 0 c
+    ldr &stcb d
+    CALL api::CreateThread
+    .check 3
+    
+    CALL SpinWait    
+    
+    ldr &mutex a
+    CALL sync::UnlockMutex
+    .check 5
+    
+    ldr &mutex a
+    CALL sync::IsMutexLocked
+    .assert a 0
+    hlt
+    
+    RETURN
+END
+
+FUNC SpinWait
+BEGIN
+    ldc 10 a
+    ldc 1 b
+    ldr &wait c
+  wait:
+    nop
+    CALL api::Suspend
+    sub a b a
+    jgt a c
+END
+
+FUNC TS
+BEGIN
+    .check 4
+    
+    ldr &mutex a
+    CALL sync::LockMutex
+    
+    .check 6
+    nop
+
+    ldr &mutex a
+    CALL sync::UnlockMutex
+    
+    RETURN
+END
