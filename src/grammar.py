@@ -85,7 +85,7 @@ xor_cmd = g_cmd_3("xor", ops.xor)
 band_cmd = g_cmd_3("and", ops.band)
 
 # Emulated
-bpt_cmd = g_cmd(".break", ops.bpt) + us_dec_const
+cpt_cmd = g_cmd(".check", ops.cpt) + us_dec_const
 aeq_cmd = g_cmd(".assert", ops.aeq) + reg_op + us_dec_const
 
 asm_cmd = hlt_cmd \
@@ -120,5 +120,5 @@ asm_cmd = hlt_cmd \
     ^ band_cmd \
     ^ mrr_cmd \
     ^ lla_cmd \
-    ^ bpt_cmd \
+    ^ cpt_cmd \
     ^ aeq_cmd

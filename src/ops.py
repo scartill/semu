@@ -35,5 +35,5 @@ xor  = 0x28  # R1 ^ R2 -> R3
 band = 0x29  # R1 & R2 -> R3
 
 # Emulated
-bpt  = 0xF0  # U1 -> external breakpoint
+cpt  = 0xF0  # U1 -> external breakpoint
 aeq  = 0xF1  # if R1 .ne U2 -> exit with EXIT_ASSERT_FAIL

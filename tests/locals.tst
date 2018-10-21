@@ -1,1 +1,2 @@
-locals.sasm
+SRC=locals/locals.sasm
+CMP=

@@ -181,9 +181,10 @@ class CPU():
     def xor(self): self.arithm_pair(lambda a, b: a ^ b)
     def band(self): self.arithm_pair(lambda a, b: a % b)
     
-    def bpt(self):
-        val = self.next_unsigned()    
-        lg.debug("BREAKPOINT {0}".format(val))
+    def cpt(self):
+        val = self.next_unsigned()
+        # Write this to stdout so test engine can control execution
+        print("CHECKPOINT {0}".format(val))
         self.debug_dump()
         
     def aeq(self):
@@ -230,7 +231,7 @@ class CPU():
         ops.xor  : xor,
         ops.band : band,
 
-        ops.bpt  : bpt,
+        ops.cpt  : cpt,
         ops.aeq  : aeq
     }
             

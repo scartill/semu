@@ -1,1 +1,2 @@
-consts.sasm
+SRC=consts/consts.sasm
+CMP=

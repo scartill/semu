@@ -1,0 +1,42 @@
+/// Semaphore test
+
+DS threads::TCB ftcb
+DW fs*100
+
+DS threads::TCB stcb
+DW ss*100
+
+FUNC Start BEGIN
+    ldr &fs a
+    ldr &TF b
+    ldc 0 c 
+    ldr &ftcb d
+    CALL api::CreateThread
+    
+    ldr &ss a
+    ldr &TS b
+    ldc 0 c
+    ldr &stcb d
+    CALL api::CreateThread
+    
+    RETURN
+END
+
+FUNC TF
+BEGIN
+    nop
+    .check 1
+END
+
+FUNC TS
+BEGIN
+    ldc 10 a
+    ldc 1 b
+    ldr &wait c
+  wait:
+    nop
+    sub a b a
+    jgt a c
+    .check 2
+    hlt
+END
