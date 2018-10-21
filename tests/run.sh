@@ -24,6 +24,9 @@ function test_run {
 # Create definitions from hardware configuration
 py $WHWC > hw.sasm
 
+# Test if single test requested
+if [[ $1 != "" ]]; then test_run $1 && exit 0; fi
+
 test_run sem
 test_run consts
 test_run locals
