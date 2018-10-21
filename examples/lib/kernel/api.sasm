@@ -13,6 +13,14 @@ FUNC PrintChar BEGIN
     int
     RETURN
 END
+ 
+// API CreateThread
+FUNC CreateThread  // stack_top, func, param, tcb
+BEGIN
+    CLOAD kernel::LOOPBACK_CREATE_THREAD h
+    int
+    RETURN
+END
 
 // API Print text line
 FUNC Print // Pascal-string
@@ -44,11 +52,4 @@ FUNC PrintLn BEGIN
     CALL api::PrintChar
     RETURN
 END
- 
-// API CreateThread
-FUNC CreateThread  // stack_top, func, param, tcb
-BEGIN
-    CLOAD kernel::LOOPBACK_CREATE_THREAD h
-    int
-    RETURN
-END
+
