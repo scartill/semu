@@ -1,8 +1,11 @@
-/// Kernel functions
+/// - Kernel functions
 
+// Loopback services offsets
 CONST LOOPBACK_SUSPEND 0
-CONST LOOPBACK_SERIAL 1
-CONST LOOPBACK_CREATE_THREAD 2
+CONST LOOPBACK_SERIAL 4
+CONST LOOPBACK_CREATE_THREAD 8
+CONST LOOPBACK_LOCK_MUTEX 12
+CONST LOOPBACK_UNLOCK_MUTEX 16
 
 FUNC Startup BEGIN
     CALL SetupHandlers
@@ -17,9 +20,41 @@ FUNC Startup BEGIN
     mmr b a             // return runpt->sp    
     RETURN
 END
+
+// Addresses of kernel services. NB: LOOPBACK_SUSPEND is not used, because 'suspend' is not a real function
+DW loopbacks*5
+
+FUNC InitKernelServiceTable
+BEGIN
+    // Register kernel functions as loopback services
+    ldr &loopbacks a
+
+    CLOAD LOOPBACK_SERIAL b
+    add a b c
+    ldr &WriteSerial d
+    mrm d c                     // loopbacks[LOOPBACK_SERIAL] = &WriteSerial
+    
+    CLOAD LOOPBACK_CREATE_THREAD b
+    add a b c
+    ldr &threads::CreateThread d
+    mrm d c
+
+    CLOAD LOOPBACK_LOCK_MUTEX b
+    add a b c
+    ldr &sync::LockMutex d
+    mrm d c
+    
+    CLOAD LOOPBACK_UNLOCK_MUTEX b
+    add a b c
+    ldr &sync::UnlockMutex d
+    mrm d c
+END
     
 // Setup interrupt handlers
 FUNC SetupHandlers BEGIN
+    // Static kernel services table
+    CALL InitKernelServiceTable
+
     // Loopback handler
     ldr &HLoopback a
     CLOAD hw::INT_VECT_BASE b     // int 0 handler address
@@ -35,30 +70,26 @@ FUNC SetupHandlers BEGIN
 END
 
 // User interrupt handler - invokes kernel functions
-// HLoopback([params], h=service_number)
+// HLoopback([params], h := service)
 FUNC HLoopback BEGIN
-  suspend: // h == 0
-    ldr &serial g
-    jgt h g
+    ldr &callservice g
+    jgt h g                 // if (service == 0) Suspend else goto callservice
+
+  suspend:
     ldr &threads::HScheduler g       // NB: no 'cll' instruction
-    jmp g                   // - saving the stack intact
+    jmp g                            // - saving the stack intact
     
-  serial: // h == 1
-    ldc 1 e
-    sub h e h
-    ldr &create_thread g
-    jgt h g
-    CALL HWriteSerial
-    irx
-    
-  create_thread: // h == 2    
-    CALL threads::CreateThread
+  callservice:
+    ldr &loopbacks g
+    add g h g                       
+    mmr g g                         // g := loopbacks[service]
+    cll g
     irx
 END
     
 // Writes a char to serial peripheral
 // HWriteSerial(symbol)
-FUNC HWriteSerial BEGIN
+FUNC WriteSerial BEGIN
     CLOAD hw::SERIAL_MM_BASE b       // serial MM base
     mrm a b
     CLOAD hw::SERIAL_LINE c
