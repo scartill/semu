@@ -36,9 +36,6 @@ BEGIN
   wait:
     LLOAD mutex a
     CALL threads::ThreadWait
-    // REMOVE BELOW
-    CALL api::Suspend
-    // REMOVE ABOVE
     RETURN
 END
 

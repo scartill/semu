@@ -1,23 +1,48 @@
 /// Kernel API functions
 
-// API Suspend
+// Kernel service Suspend
 FUNC Suspend BEGIN
     CLOAD kernel::LOOPBACK_SUSPEND h
     int
     RETURN
 END
 
-// API Print char
+// Kernel service Print char
 FUNC PrintChar BEGIN    
     CLOAD kernel::LOOPBACK_SERIAL h
     int
     RETURN
 END
  
-// API CreateThread
+// Kernel service CreateThread
 FUNC CreateThread  // stack_top, func, param, tcb
 BEGIN
     CLOAD kernel::LOOPBACK_CREATE_THREAD h
+    int
+    RETURN
+END
+
+// Kernel service CreateThread
+FUNC CreateThread  // stack_top, func, param, tcb
+BEGIN
+    CLOAD kernel::LOOPBACK_CREATE_THREAD h
+    int
+    RETURN
+END
+
+// Kernel service LockMutex
+FUNC LockMutex
+BEGIN
+    CLOAD kernel::LOOPBACK_LOCK_MUTEX h
+    int
+    CALL Suspend
+    RETURN
+END
+
+// Kernel service UnlockMutex
+FUNC UnlockMutex
+BEGIN
+    CLOAD kernel::LOOPBACK_UNLOCK_MUTEX h
     int
     RETURN
 END
