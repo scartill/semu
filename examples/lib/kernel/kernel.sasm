@@ -48,6 +48,7 @@ BEGIN
     add a b c
     ldr &sync::UnlockMutex d
     mrm d c
+    RETURN
 END
     
 // Setup interrupt handlers

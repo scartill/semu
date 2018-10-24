@@ -71,6 +71,7 @@ BEGIN
     CALL api::Suspend
     sub a b a
     jgt a c
+    RETURN
 END
 
 FUNC TS
