@@ -8,5 +8,6 @@ def configure(param):
     
 configure("INT_VECT_BASE")
 configure("SERIAL_MM_BASE")
+configure("LOOPBACK_LINE")
 configure("SYSTIMER_LINE")
 configure("SERIAL_LINE")

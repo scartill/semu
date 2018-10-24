@@ -2,10 +2,10 @@
 
 // Loopback services offsets
 CONST LOOPBACK_SUSPEND 0
-CONST LOOPBACK_SERIAL 4
-CONST LOOPBACK_CREATE_THREAD 8
-CONST LOOPBACK_LOCK_MUTEX 12
-CONST LOOPBACK_UNLOCK_MUTEX 16
+CONST LOOPBACK_SERIAL 1
+CONST LOOPBACK_CREATE_THREAD 2
+CONST LOOPBACK_LOCK_MUTEX 3
+CONST LOOPBACK_UNLOCK_MUTEX 4
 
 FUNC Startup BEGIN
     CALL SetupHandlers
@@ -24,30 +24,50 @@ END
 // Addresses of kernel services. NB: LOOPBACK_SUSPEND is not used, because 'suspend' is not a real function
 DW loopbacks*5
 
+// Add one kernel service to service table
+FUNC AddKernelService
+    DW index a
+    DW handler b
+BEGIN
+    ldr &loopbacks c
+    ldc 4 d    
+    mul a d a
+    add c a c
+    mrm b c             // loopbacks[index] = handler
+    RETURN
+END
+
+// Add kernel services to loopback interrupt handler
 FUNC InitKernelServiceTable
 BEGIN
-    // Register kernel functions as loopback services
-    ldr &loopbacks a
-
-    CLOAD LOOPBACK_SERIAL b
-    add a b c
-    ldr &WriteSerial d
-    mrm d c                     // loopbacks[LOOPBACK_SERIAL] = &WriteSerial
+    CLOAD LOOPBACK_SERIAL a
+    ldr &WriteSerial b
+    CALL AddKernelService
     
-    CLOAD LOOPBACK_CREATE_THREAD b
-    add a b c
-    ldr &threads::CreateThread d
-    mrm d c
+    CLOAD LOOPBACK_CREATE_THREAD a
+    ldr &threads::CreateThread b
+    CALL AddKernelService
 
-    CLOAD LOOPBACK_LOCK_MUTEX b
-    add a b c
-    ldr &sync::LockMutex d
-    mrm d c
+    CLOAD LOOPBACK_LOCK_MUTEX a
+    ldr &sync::LockMutex b
+    CALL AddKernelService
     
-    CLOAD LOOPBACK_UNLOCK_MUTEX b
-    add a b c
-    ldr &sync::UnlockMutex d
-    mrm d c
+    CLOAD LOOPBACK_UNLOCK_MUTEX a
+    ldr &sync::UnlockMutex b
+    CALL AddKernelService
+    RETURN
+END
+
+// Add one kernel service to service table
+FUNC SetupHandler
+    DW index a
+    DW handler b
+BEGIN
+    CLOAD hw::INT_VECT_BASE c
+    ldc 4 d
+    mul a d a
+    add c a c
+    mrm b c             // memory[INT_VECT_BASE][index] = handler
     RETURN
 END
     
@@ -57,15 +77,14 @@ FUNC SetupHandlers BEGIN
     CALL InitKernelServiceTable
 
     // Loopback handler
-    ldr &HLoopback a
-    CLOAD hw::INT_VECT_BASE b     // int 0 handler address
-    mrm a b                      // Handler = loopback
+    CLOAD hw::LOOPBACK_LINE a
+    ldr &HLoopback b
+    CALL SetupHandler
 
     // Setup timer
-    ldr &threads::HScheduler a
-    ldc 4 c
-    add b c b     // int 1 handler address
-    mrm a b       // Handler = scheduler
+    CLOAD hw::SYSTIMER_LINE a
+    ldr &threads::HScheduler b
+    CALL SetupHandler
     
     RETURN
 END
@@ -81,6 +100,8 @@ FUNC HLoopback BEGIN
     jmp g                            // - saving the stack intact
     
   callservice:
+    ldc 4 g
+    mul h g h
     ldr &loopbacks g
     add g h g                       
     mmr g g                         // g := loopbacks[service]
