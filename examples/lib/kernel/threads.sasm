@@ -53,7 +53,7 @@ BEGIN
     mrm a c                    // tcb.sp = a
     LLOAD func a
     PTR b func#TCB c
-    mrm a c                    // tcb.func = func
+    mrm a c                    // tcb.func = TUserThread
     LLOAD param a
     PTR b param#TCB c
     mrm a c                    // tcb.param = param
