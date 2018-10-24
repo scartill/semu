@@ -1,7 +1,5 @@
-KERNEL="../examples/lib/kernel"
+source $SEMU_ROOT/lib/kernel/build.list
 
-SRC="hw.sasm"
-SRC+=" $KERNEL/startup.sasm $KERNEL/sync.sasm $KERNEL/threads.sasm $KERNEL/kernel.sasm $KERNEL/api.sasm"
-SRC+=" mutex/app.sasm"
+SRC="hw.sasm $KERNEL_SRC mutex/app.sasm"
 
 CMP=mutex/output.log

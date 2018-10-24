@@ -2,10 +2,12 @@ SEMU_ROOT="../.."
 WHWC=${SEMU_ROOT}"/src/semuwhwc.py"
 ASM=${SEMU_ROOT}"/src/semuasm.py"
 ROM=${SEMU_ROOT}"/roms/twothreads.bin"
-LIB="../lib/kernel"
 
 # Create definitions from hardware configuration
 py ${WHWC} > hw.sasm
 
+# Add kernel to compilcation
+source $SEMU_ROOT/lib/kernel/build.list
+
 # Compile with the Kernel
-py ${ASM} hw.sasm ${LIB}/startup.sasm ${LIB}/sync.sasm ${LIB}/threads.sasm ${LIB}/kernel.sasm ${LIB}/api.sasm app.sasm ${ROM}
+py ${ASM} hw.sasm $KERNEL_SRC app.sasm ${ROM}
