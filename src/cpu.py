@@ -94,7 +94,7 @@ class CPU():
         self.mmu.write32(m, struct.pack(">I", v))
 
     def mmr(self):
-        a = self.get_next_gp
+        a = self.get_next_gp()
         (v,) = struct.unpack(">I", self.mmu.read32(a))
         self.set_next_gp(v)
         
