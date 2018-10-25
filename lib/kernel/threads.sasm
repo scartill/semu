@@ -115,7 +115,9 @@ BEGIN
     PTR c prev#TCB h
     mrm b h             // next.prev = prev
     CALL api::Suspend
+
     // This function never returns
+    RETURN
 END
 
 // - Scheduling
@@ -168,7 +170,10 @@ FUNC HScheduler BEGIN
     mrm a b
 
     // Resume that thread
-    irx    
+    irx
+    
+    // This function returns with 'irx'
+    RETURN
 END
 
 // - System-idle thread
@@ -217,4 +222,7 @@ FUNC TSysThread BEGIN
     CALL api::Suspend
     ldr &loop c
     jmp c
+    
+    // This function never returns
+    RETURN
 END

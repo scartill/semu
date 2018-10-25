@@ -107,6 +107,9 @@ FUNC HLoopback BEGIN
     mmr g g                         // g := loopbacks[service]
     cll g
     irx
+    
+    // This function returns with 'irx'
+    RETURN
 END
     
 // Writes a char to serial peripheral

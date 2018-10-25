@@ -42,6 +42,7 @@ class Func(Context):
         self.parent = parent
         self.name = name
         self.locals = []
+        self.has_return = False
         
     def ctxtype(self):
         return "func"
@@ -110,6 +111,8 @@ class MacroFPP(FPP):
         func = self.context
         if(func.ctxtype() != "func"):
             raise Exception("Unexpected RETURN macro")
+            
+        func.has_return = True
         
         # Go to <func-name>:prologue
         pname = func.name + ":prologue"
@@ -129,6 +132,9 @@ class MacroFPP(FPP):
         func = self.context
         if(func.ctxtype() != "func"):
             raise Exception("Unexpected function end")
+            
+        if not func.has_return:
+            raise Exception("Function END without RETURN ({0})".format(func.name))
         
         pname = func.name + ":prologue"
         self.on_label([pname])
