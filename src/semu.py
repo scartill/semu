@@ -45,7 +45,7 @@ def run():
         # PERIPHERALS: Line -> Device
         pp = {
            #0 : loopback interrupt
-           #1 : MMU interrupt
+           #1 : violations interrupt
             SYSTIMER_LINE : peripheral.SysTimer(memory),
             SERIAL_LINE : peripheral.Serial(memory)
         }

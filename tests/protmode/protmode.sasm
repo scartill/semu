@@ -1,0 +1,10 @@
+
+ldc 10 b
+ldc 0 a
+mrm b a                     // Install handler
+
+.check 1
+opn
+int
+.check 2
+hlt

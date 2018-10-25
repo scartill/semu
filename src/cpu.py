@@ -94,7 +94,7 @@ class CPU():
         self.mmu.write32(m, struct.pack(">I", v))
 
     def mmr(self):
-        a = self.get_next_gp()
+        a = self.get_next_gp
         (v,) = struct.unpack(">I", self.mmu.read32(a))
         self.set_next_gp(v)
         
@@ -241,11 +241,9 @@ class CPU():
             
     ### Implementation ###
 
-    def interrupt(self, line):   
+    def interrupt(self, line):
         if(self.ii == 1):
             return
-        
-        #    lg.debug("INT {0}".format(line))
         
         # Inhibit interrupts
         self.cls()
@@ -263,6 +261,7 @@ class CPU():
         h_addr_inx = INT_VECT_BASE + line*4         # Interrupt handler address location
         (handler_addr,) = struct.unpack(">I", self.mmu.read32(h_addr_inx))
         self.ip = handler_addr
+        lg.debug("INT {0} table 0x{1:X} handler 0x{2:X}".format(line, h_addr_inx, handler_addr))
             
     def exec_next(self):
         op = self.next()

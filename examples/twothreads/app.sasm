@@ -35,5 +35,7 @@ BEGIN
     nop
     ldr &TLoop c
     jmp c
+   
+    RETURN
 END
 
