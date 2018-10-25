@@ -6,6 +6,7 @@ import traceback
 
 import peripheral
 import cpu
+import mmu
 
 from hwconf import *
 
@@ -39,15 +40,17 @@ def process_int_queue(pp, proc):
 def run():
     try:
         memory = bytearray(MEMORY_SIZE)
+        mmunit = mmu.MMU(memory)
     
         # PERIPHERALS: Line -> Device
         pp = {
            #0 : loopback interrupt
+           #1 : MMU interrupt
             SYSTIMER_LINE : peripheral.SysTimer(memory),
             SERIAL_LINE : peripheral.Serial(memory)
         }
 
-        proc = cpu.CPU(memory, pp)
+        proc = cpu.CPU(mmunit, pp)
 
         start_pp(pp)
         load_rom(memory)
@@ -82,6 +85,3 @@ lg.info("SEMU")
 
 ec = run()
 sys.exit(ec)
-
-
-
