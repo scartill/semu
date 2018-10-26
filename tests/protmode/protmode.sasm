@@ -1,10 +1,32 @@
+ldr &start a
+jmp a
 
-ldc 10 b
-ldc 0 a
+FUNC HViolation
+BEGIN
+    .check 0
+    irx
+    RETURN
+END
+
+DW stack*100
+
+start:
+ldr &start a
+lsp a
+
+CLOAD hw::INT_VECT_BASE a
+CLOAD hw::VIOLATION_LINE b
+ldc 4 c
+mul b c b
+add a b a
+ldr &HViolation b
 mrm b a                     // Install handler
 
+opn                         // Open interrupts
+
 .check 1
-opn
-int
+
+
+
 .check 2
 hlt
