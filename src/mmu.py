@@ -1,4 +1,6 @@
-# Emulated memory management unit
+# Emulated protected mode memory management unit
+
+import ops
 
 class MMU:
     def __init__(self, memory):
