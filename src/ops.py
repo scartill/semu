@@ -34,6 +34,10 @@ bor  = 0x28  # R1 | R2 -> R3
 xor  = 0x28  # R1 ^ R2 -> R3
 band = 0x29  # R1 & R2 -> R3
 
+# Protected mode
+spm  = 0x31  # R1 -> MMU low; R2 -> MMU high
+lpm  = 0x32  # Violation -> R1
+
 # Emulated
 cpt  = 0xF0  # U1 -> external breakpoint
 aeq  = 0xF1  # if R1 .ne U2 -> exit with EXIT_ASSERT_FAIL

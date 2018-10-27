@@ -6,6 +6,7 @@ import traceback
 
 import peripheral
 import cpu
+import mmu
 
 from hwconf import *
 
@@ -39,6 +40,7 @@ def process_int_queue(pp, proc):
 def run():
     try:
         memory = bytearray(MEMORY_SIZE)
+        mmunit = mmu.MMU(memory)
     
         # PERIPHERALS: Line -> Device
         pp = {
@@ -47,7 +49,7 @@ def run():
             SERIAL_LINE : peripheral.Serial(memory)
         }
 
-        proc = cpu.CPU(memory, pp)
+        proc = cpu.CPU(mmunit, pp)
 
         start_pp(pp)
         load_rom(memory)

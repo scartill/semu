@@ -1,3 +1,5 @@
+# Emulated central processing unit
+
 import struct
 import time
 import logging as lg
@@ -13,8 +15,8 @@ class Assert(Exception):
     pass
 
 class CPU():
-    def __init__(self, memory, pp):
-        self.memory = memory    # Ref. to memory
+    def __init__(self, mmu, pp):
+        self.mmu = mmu          # Ref. to memory management unit
         self.pp = pp            # Ref. to PERIPHERALS
     
         self.ip = ROM_BASE      # Execution start from the beginning of ROM
@@ -34,7 +36,7 @@ class CPU():
     
     def next_fmt(self, fmt):
         addr = self.ip 
-        buf = self.memory[addr:addr + 4]
+        buf = self.mmu.read32(addr)
         (op,) = struct.unpack(fmt, buf)
         self.ip += 4
         return op
@@ -60,14 +62,14 @@ class CPU():
         self.set_next_gp(op(a, b))
             
     def do_push(self, val):
-        m = self.sp
-        self.memory[m:m+4] = struct.pack(">I", val)
+        addr = self.sp
+        self.mmu.write32(addr, struct.pack(">I", val))
         self.sp += 4
         
     def do_pop(self):
         self.sp -= 4
-        m = self.sp
-        (v,) = struct.unpack(">I", self.memory[m:m+4])
+        addr = self.sp
+        (v,) = struct.unpack(">I", self.mmu.read32(addr))
         return v
         
     ### Operations ###
@@ -89,11 +91,11 @@ class CPU():
     def mrm(self):
         v = self.get_next_gp()
         m = self.get_next_gp()
-        self.memory[m:m+4] = struct.pack(">I", v)
+        self.mmu.write32(m, struct.pack(">I", v))
 
     def mmr(self):
         a = self.get_next_gp()
-        (v,) = struct.unpack(">I", self.memory[a:a+4])
+        (v,) = struct.unpack(">I", self.mmu.read32(a))
         self.set_next_gp(v)
         
     def out(self):
@@ -239,10 +241,10 @@ class CPU():
             
     ### Implementation ###
 
-    def interrupt(self, line):   
+    def interrupt(self, line):
         if(self.ii == 1):
             return
-                
+        
         # Inhibit interrupts
         self.cls()
         
@@ -257,8 +259,9 @@ class CPU():
         
         # Find and a call a handler
         h_addr_inx = INT_VECT_BASE + line*4         # Interrupt handler address location
-        (handler_addr,) = struct.unpack(">I", self.memory[h_addr_inx:h_addr_inx+4])
+        (handler_addr,) = struct.unpack(">I", self.mmu.read32(h_addr_inx))
         self.ip = handler_addr
+        #lg.debug("INT {0} table 0x{1:X} handler 0x{2:X}".format(line, h_addr_inx, handler_addr))
             
     def exec_next(self):
         op = self.next()
