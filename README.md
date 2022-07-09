@@ -5,7 +5,7 @@ Emulates the simplest 32-bit uniprocessor von Neumann machine totally
 from the scratch - own architecture, own assembly, peripherals,
 own simple micro-OS.
 
-Runs very slow on purpose, has no practical use, but may be useful for equcational
+Has no practical use, but may be useful for equcational
 purposes due to its total transparency.
 
 Written in Python.
