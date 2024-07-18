@@ -4,10 +4,10 @@ import sys
 import logging as lg
 import traceback
 
-import peripheral
-import cpu
+import semu.peripheral as peripheral
+import semu.cpu as cpu
 
-from hwconf import *
+from semu.compile.hwconf import *
 
 EXIT_HALT = 0
 EXIT_ASSERT_FAIL = 1
@@ -82,6 +82,3 @@ lg.info("SEMU")
 
 ec = run()
 sys.exit(ec)
-
-
-

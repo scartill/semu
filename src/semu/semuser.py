@@ -5,7 +5,7 @@ import logging as lg
 import struct
 import sys
 
-import hwconf as hw
+import semu.compile.hwconf as hw
 
 lg.basicConfig(level = lg.DEBUG)
 lg.info("SEMU SERIAL")

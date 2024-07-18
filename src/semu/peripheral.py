@@ -6,7 +6,7 @@ import time
 import socket
 import sys
 
-import hwconf as hw
+import semu.compile.hwconf as hw
 
 class Peripheral(th.Thread):
     def __init__(self, memory):
@@ -83,4 +83,3 @@ class Serial(Peripheral):
         buf = self.memory[addr:addr + 4]
         self.sock.sendto(buf, (hw.CTL_SER_UDP_IP, hw.CTL_SER_UDP_PORT))
         time.sleep(hw.SERIAL_DELAY)
-

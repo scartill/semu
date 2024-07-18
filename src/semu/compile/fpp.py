@@ -1,7 +1,6 @@
 import struct
 import logging as lg
 
-import ops
 
 # First pass processor
 class FPP:

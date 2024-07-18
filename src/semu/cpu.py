@@ -2,9 +2,9 @@ import struct
 import time
 import logging as lg
 
-import ops
+import semu.common.ops as ops
 
-from hwconf import *
+from semu.compile.hwconf import *
 
 class Halt(Exception):
     pass

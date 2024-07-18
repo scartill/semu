@@ -1,7 +1,7 @@
 import pyparsing as pp
 
-import ops
-from fpp import FPP
+import semu.common.ops as ops
+from semu.compile.fpp import FPP
 
 # Grammar
 

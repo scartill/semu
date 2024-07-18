@@ -1,9 +1,9 @@
 import pyparsing as pp
 
-import ops
-from mfpp import MacroFPP as MFPP
+import semu.common.ops as ops
+from semu.compile.mfpp import MacroFPP as MFPP
 
-from grammar import *
+from semu.compile.grammar import *
 
 # Simple macros
 multi = pp.Optional(pp.Suppress("*") + pp.Regex("[1-9][0-9]*"))

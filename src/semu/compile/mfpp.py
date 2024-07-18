@@ -1,14 +1,15 @@
 # First-pass macroprocessor
 
-import struct
 import logging as lg
 
-import ops
-from fpp import FPP
+import semu.common.ops as ops
+from semu.compile.fpp import FPP
+
 
 # Abstract compilation context
 class Context:
     pass
+
     
 # Default global context
 class GlobalContext(Context):

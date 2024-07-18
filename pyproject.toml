@@ -1,0 +1,35 @@
+[project]
+name = "semu"
+version = "0.1.0"
+description = "Experimaental emulator for a custom microprocessor"
+authors = [
+    { name = "Boris Resnick", email = "boris.resnick@gmail.com" }
+]
+dependencies = [
+    "click>=8.1.7",
+    "pyparsing>=3.1.2",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "pytest>=8.2.2",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/semu"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "tests",
+  "src"
+]
