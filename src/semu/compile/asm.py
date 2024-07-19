@@ -29,7 +29,7 @@ def collect_files(filenames: list[str]) -> list[CompilationItem]:
     return [collect_file(in_filename) for in_filename in filenames]
 
 
-def compile_items(compile_items: list[CompilationItem]) -> bytearray:
+def compile_items(compile_items: list[CompilationItem]) -> bytes:
     # First pass
     first_pass = mfpp.MacroFPP()
 
@@ -54,7 +54,7 @@ def compile_items(compile_items: list[CompilationItem]) -> bytearray:
             bytestr += struct.pack(">i", offset)
 
     # Dumping results
-    return bytestr
+    return bytes(bytestr)
 
 
 def compile_files(in_filenames: list[str], out_filename: str):
