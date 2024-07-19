@@ -1,6 +1,6 @@
 from pathlib import Path
 import logging as lg
-from typing import Tuple
+from typing import Tuple, cast
 import struct
 
 import click
@@ -46,14 +46,18 @@ def compile_items(compile_items: list[CompilationItem]) -> bytes:
     bytestr = bytearray()
 
     for (t, d) in first_pass.cmd_list:
+        new_bytes = bytes()
+
         if t == 'bytes':
-            bytestr += d
+            new_bytes = d
 
         if t == 'ref':
             (ref_offset, labelname) = d
-            label_offset = first_pass.label_dict[labelname]
+            label_offset = first_pass.label_dict[str(labelname)]
             offset = label_offset - ref_offset
-            bytestr += struct.pack(">i", offset)
+            new_bytes = struct.pack(">i", offset)
+
+        bytestr += cast(bytes, new_bytes)
 
     # Dumping results
     return bytes(bytestr)
@@ -66,10 +70,11 @@ def compile_files(in_filenames: list[str], out_filename: str):
 
 
 @click.command()
+@click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
 @click.argument('sources', nargs=-1)
 @click.argument('binary')
-def compile(sources: Tuple[str], binary: str):
-    lg.basicConfig(level=lg.INFO)
+def compile(verbose: bool, sources: Tuple[str], binary: str):
+    lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
     lg.info("SEMU ASM")
     compile_files(list(sources), binary)
 

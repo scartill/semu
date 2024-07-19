@@ -1,8 +1,10 @@
 import struct
 import logging as lg
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
 
 from semu.common.hwconf import WORD_SIZE
+
+Tokens = List[Any]
 
 
 class FPP:
@@ -20,18 +22,15 @@ class FPP:
         if namespace is None:
             namespace = self.namespace
 
-        print('GQN', namespace, name)
         qname = namespace + '::' + name
         return qname
 
-    def resolve_name(self, tokens: List[str]):
+    def resolve_name(self, tokens: Tokens):
         if len(tokens) == 1:
             # Unqualified
-            print('Calling GQN with unqualified', tokens)
             name = self.get_qualified_name(tokens[0])
         else:
             # Qualified
-            print('Calling GQN with qualified', tokens)
             name = self.get_qualified_name(tokens[1], tokens[0])  # name, namespace
 
         return name
@@ -52,18 +51,16 @@ class FPP:
         lg.debug(f'Issuing command 0x{op:X}')
         self.issue_usigned(op)
 
-    def on_uconst(self, tokens: List[str]):
+    def on_uconst(self, tokens: Tokens):
         word = int(tokens[0])
         self.issue_usigned(word)
 
-    def on_sconst(self, tokens: List[str]):
+    def on_sconst(self, tokens: Tokens):
         word = int(tokens[0])
         self.issue_signed(word)
 
-    def on_label(self, tokens: List[str]):
-        print('ON_LABEL', tokens)
+    def on_label(self, tokens: Tokens):
         labelname = tokens[0]
-        print('Calling GQN with labelname', labelname)
         qlabelname = self.get_qualified_name(labelname)
         self.label_dict[qlabelname] = self.offset
         lg.debug(f'Label {qlabelname} @ 0x{self.offset:X}')
@@ -71,8 +68,7 @@ class FPP:
     def on_reg(self, val: int):
         self.issue_usigned(val)
 
-    def on_ref(self, refname: List[str]):
-        print('ON REF', refname)
+    def on_ref(self, refname: Tokens):
         labelname = self.resolve_name(refname)
 
         lg.debug(f'Ref {labelname}')
