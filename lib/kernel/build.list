@@ -1,2 +1,0 @@
-KERNEL="$SEMU_ROOT/lib/kernel"
-KERNEL_SRC="$KERNEL/startup.sasm $KERNEL/sync.sasm $KERNEL/threads.sasm $KERNEL/kernel.sasm $KERNEL/api.sasm"

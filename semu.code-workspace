@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.analysis.typeCheckingMode": "strict",
+		"python.analysis.inlayHints.callArgumentNames": "off"
+	}
+}
