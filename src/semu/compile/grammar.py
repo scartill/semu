@@ -1,52 +1,63 @@
+# type: ignore
+''' Basic grammar '''
+
 import pyparsing as pp
 
 import semu.common.ops as ops
 from semu.compile.fpp import FPP
 
-# Grammar
 
 def g_cmd(literal, op):
     return pp.Literal(literal).setParseAction(lambda _: (FPP.issue_op, op))
 
+
 id = pp.Word(pp.alphas + "_")
-comment = pp.Suppress(pp.Literal("//") + pp.SkipTo("\n"))
+comment = pp.Suppress(pp.Literal('//') + pp.SkipTo('\n'))
 
 label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.on_label, r))
 
 reg_indices = {
-    'a' : 0,
-    'b' : 1,
-    'c' : 2,
-    'd' : 3,
-    'e' : 4,
-    'f' : 5,
-    'g' : 6,
-    'h' : 7
+    'a': 0,
+    'b': 1,
+    'c': 2,
+    'd': 3,
+    'e': 4,
+    'f': 5,
+    'g': 6,
+    'h': 7
 }
 
 reg_ref = pp.Or([pp.Literal(x) for x in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']])
 
+
 def g_reg_action(func):
     return pp.And([reg_ref]).setParseAction(lambda r: (func, reg_indices[r[0]]))
 
+
 reg_op = g_reg_action(FPP.on_reg)
+
 
 def g_cmd_1(literal, op):
     return g_cmd(literal, op) + reg_op
-    
+
+
 def g_cmd_2(literal, op):
     return g_cmd(literal, op) + reg_op + reg_op
+
 
 def g_cmd_3(literal, op):
     return g_cmd(literal, op) + reg_op + reg_op + reg_op
 
-us_dec_const = pp.Regex("[0-9]+").setParseAction(lambda r: (FPP.on_uconst, r))    
+
+us_dec_const = pp.Regex("[0-9]+").setParseAction(lambda r: (FPP.on_uconst, r))
 us_const = us_dec_const
-s_const = pp.Regex("[\+\-]?[0-9]+").setParseAction(lambda r: (FPP.on_sconst, r))
-    
+s_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.on_sconst, r))
+
 refname = pp.Optional(id + pp.Suppress("::")) + id
-refname.setParseAction(lambda r: [r[:]])  # Join tokens
-ref = (pp.Suppress("&") + refname).setParseAction(lambda r: (FPP.on_ref, r))
+# Join into [namespace, name] or [name]
+refname.setParseAction(lambda r: [r])
+
+ref = (pp.Suppress("&") + refname).setParseAction(lambda r: (FPP.on_ref, r[0]))
 
 # Basic instructions
 hlt_cmd = g_cmd("hlt", ops.hlt)

@@ -15,12 +15,21 @@ click==8.1.7
 colorama==0.4.6
     # via click
     # via pytest
+importlib-metadata==8.0.0
+    # via yapf
 iniconfig==2.0.0
     # via pytest
 packaging==24.1
     # via pytest
+platformdirs==4.2.2
+    # via yapf
 pluggy==1.5.0
     # via pytest
 pyparsing==3.1.2
     # via semu
 pytest==8.2.2
+tomli==2.0.1
+    # via yapf
+yapf==0.40.2
+zipp==3.19.2
+    # via importlib-metadata

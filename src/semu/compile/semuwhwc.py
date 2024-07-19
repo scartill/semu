@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import semu.compile.hwconf as hw
+import semu.common.hwconf as hw
 
 def configure(param):
     value = hw.__dict__[param]

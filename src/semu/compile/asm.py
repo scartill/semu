@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging as lg
 from typing import Tuple
+import struct
 
 import click
 
@@ -43,6 +44,7 @@ def compile_items(compile_items: list[CompilationItem]) -> bytes:
 
     # Second pass
     bytestr = bytearray()
+
     for (t, d) in first_pass.cmd_list:
         if t == 'bytes':
             bytestr += d

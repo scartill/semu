@@ -6,7 +6,7 @@ import time
 import socket
 from typing import Mapping
 
-import semu.compile.hwconf as hw
+import semu.common.hwconf as hw
 
 class Peripheral(th.Thread):
     def __init__(self, memory):

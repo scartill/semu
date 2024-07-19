@@ -5,9 +5,9 @@ import traceback
 
 import click
 
-from semu.compile.hwconf import MEMORY_SIZE, SYSTIMER_LINE, SERIAL_LINE, ROM_BASE
-from semu.peripheral import Peripherals, SysTimer, Serial
-import semu.cpu as cpu
+from semu.common.hwconf import MEMORY_SIZE, SYSTIMER_LINE, SERIAL_LINE, ROM_BASE
+from semu.runtime.peripheral import Peripherals, SysTimer, Serial
+import semu.runtime.cpu as cpu
 
 
 EXIT_HALT = 0

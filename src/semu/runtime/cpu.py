@@ -5,9 +5,9 @@ from typing import Callable
 
 
 import semu.common.ops as ops
-from semu.peripheral import Peripherals
+from semu.runtime.peripheral import Peripherals
 
-from semu.compile.hwconf import ROM_BASE, INT_VECT_BASE, WORD_SIZE
+from semu.common.hwconf import ROM_BASE, INT_VECT_BASE, WORD_SIZE
 
 
 class Halt(Exception):

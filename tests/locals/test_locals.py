@@ -7,10 +7,10 @@ import semu.runtime.cpu as cpu
 import unit_utils
 
 
-def test_consts():
+def test_locals():
     item = asm.CompilationItem()
-    item.namespace = 'consts'
-    item.contents = unit_utils.load_sasm('consts/consts.sasm')
+    item.namespace = 'locals'
+    item.contents = unit_utils.load_sasm('locals/locals.sasm')
     binary = asm.compile_items([item])
 
     with pytest.raises(cpu.Halt):
