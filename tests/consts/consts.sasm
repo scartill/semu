@@ -3,7 +3,7 @@
 CONST SERIAL_MM_BASE 64
 CLOAD SERIAL_MM_BASE a
 mrr a b
-.assert b 64
+.assert b 63
 CLOAD consts::SERIAL_MM_BASE d
 .assert d 64
 hlt

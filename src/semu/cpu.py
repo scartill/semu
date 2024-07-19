@@ -1,76 +1,99 @@
 import struct
 import time
 import logging as lg
+from typing import Callable
+
 
 import semu.common.ops as ops
+from semu.peripheral import Peripherals
 
-from semu.compile.hwconf import *
+from semu.compile.hwconf import ROM_BASE, INT_VECT_BASE, WORD_SIZE
+
 
 class Halt(Exception):
     pass
-    
+
+
 class Assert(Exception):
     pass
 
+
 class CPU():
-    def __init__(self, memory, pp):
+    ip: int  # Instruction pointer
+    sp: int  # Stack pointer
+    ii: int  # Interrupt inhibit
+    fp: int  # Frame pointer
+    gp: list[int]  # General purpose registers
+
+    def __init__(self, memory: bytearray, pp: Peripherals):
         self.memory = memory    # Ref. to memory
-        self.pp = pp            # Ref. to PERIPHERALS
-    
+        self.pp = pp            # Ref. to Peripherals
+
         self.ip = ROM_BASE      # Execution start from the beginning of ROM
         self.sp = 0             # Set when lsp is called
         self.ii = 0x01          # Interrupt inhibit
         self.fp = 0             # Global code has no frame
-        
+
         self.gp = [0] * 8
-        
-    ### Helpers ###
-    
+
+    # - Helpers - $
+
     def debug_dump(self):
         gps = str()
+
+        state = [f'{k}:{v:X}' for k, v in {
+            'IP': self.ip,
+            'SP': self.sp,
+            'II': self.ii,
+            'FP': self.fp
+        }]
+
+        state.extend([f'{k}:{v:X}' for k, v in enumerate(self.gp)])
+
         for reg in self.gp:
-            gps += "0x{0:X} ".format(reg)
-        lg.debug("IP:{0:X} SP:{1:X} II:{2:X}, FP:{3:X}, [{4}]".format(self.ip, self.sp, self.ii, self.fp, gps))
-    
-    def next_fmt(self, fmt):
-        addr = self.ip 
-        buf = self.memory[addr:addr + 4]
+            gps += f'0x{reg:X} '
+
+        lg.debug(' '.join(state))
+
+    def next_fmt(self, fmt: str):
+        addr = self.ip
+        buf = self.memory[addr:addr + WORD_SIZE]
         (op,) = struct.unpack(fmt, buf)
-        self.ip += 4
+        self.ip += WORD_SIZE
         return op
 
-    def next_unsigned(self):
+    def next_unsigned(self) -> int:
         return self.next_fmt(">I")
 
-    def next_signed(self):
+    def next_signed(self) -> int:
         return self.next_fmt(">i")
-        
+
     def next(self):
         return self.next_unsigned()
-        
-    def set_next_gp(self, val):
+
+    def set_next_gp(self, val: int):
         self.gp[self.next()] = val
-        
+
     def get_next_gp(self):
         return self.gp[self.next()]
-        
-    def arithm_pair(self, op):
+
+    def arithm_pair(self, op: Callable[[int, int], int]):
         a = self.get_next_gp()
         b = self.get_next_gp()
         self.set_next_gp(op(a, b))
-            
-    def do_push(self, val):
+
+    def do_push(self, val: int):
         m = self.sp
-        self.memory[m:m+4] = struct.pack(">I", val)
-        self.sp += 4
-        
-    def do_pop(self):
-        self.sp -= 4
+        self.memory[m:m + WORD_SIZE] = struct.pack(">I", val)
+        self.sp += WORD_SIZE
+
+    def do_pop(self) -> int:
+        self.sp -= WORD_SIZE
         m = self.sp
-        (v,) = struct.unpack(">I", self.memory[m:m+4])
+        (v,) = struct.unpack(">I", self.memory[m:m + WORD_SIZE])
         return v
-        
-    ### Operations ###
+
+    # - Operations - #
 
     def nop(self):
         time.sleep(0.1)
@@ -89,37 +112,38 @@ class CPU():
     def mrm(self):
         v = self.get_next_gp()
         m = self.get_next_gp()
-        self.memory[m:m+4] = struct.pack(">I", v)
+        self.memory[m:m + WORD_SIZE] = struct.pack(">I", v)
 
     def mmr(self):
         a = self.get_next_gp()
-        (v,) = struct.unpack(">I", self.memory[a:a+4])
+        (v,) = struct.unpack(">I", self.memory[a:a + WORD_SIZE])
         self.set_next_gp(v)
-        
+
     def out(self):
-        l = self.get_next_gp()
-        self.pp[l].signal()
-        
+        line = self.get_next_gp()
+        self.pp[line].signal()
+
     def jgt(self):
         val = self.get_next_gp()
         addr = self.get_next_gp()
-        if(val > 0):
+
+        if val > 0:
             self.ip = addr
-    
+
     def opn(self):
         self.ii = 0
-    
+
     def cls(self):
         self.ii = 1
-    
+
     def ldr(self):
-        a = self.ip      
+        a = self.ip
         offset = self.next_signed()
         self.set_next_gp(a + offset)
-        
+
     def lsp(self):
         self.sp = self.get_next_gp()
-        
+
     def psh(self):
         val = self.get_next_gp()
         self.do_push(val)
@@ -127,142 +151,168 @@ class CPU():
     def pop(self):
         v = self.do_pop()
         self.set_next_gp(v)
-        
-    def int(self):
-        self.interrupt(0x00)
-        
+
     def cll(self):
-        ret_addr = self.ip + 4
+        ret_addr = self.ip + WORD_SIZE
         self.do_push(ret_addr)
         self.do_push(self.fp)
         self.fp = self.sp
         self.jmp()
-        
+
     def ret(self):
         self.fp = self.do_pop()
         addr = self.do_pop()
         self.ip = addr
-        
+
     def irx(self):
         self.fp = self.do_pop()
         for i in range(7, -1, -1):
             self.gp[i] = self.do_pop()
-            
+
         addr = self.do_pop()
         self.ip = addr
-        
+
         self.opn()
-        
+
     def ssp(self):
         self.set_next_gp(self.sp)
-        
+
     def mrr(self):
         val = self.get_next_gp()
         self.set_next_gp(val)
-        
+
     def lla(self):
         offset = self.next_unsigned()
         self.set_next_gp(self.fp + offset)
 
-    ### Arithmetic ###
+    def intzero(self):
+        self.interrupt(0x00)
+
+    # - Arithmetic - $
 
     def inv(self):
         a = self.get_next_gp()
         self.set_next_gp(~a)
 
-    def add(self): self.arithm_pair(lambda a, b: a + b)
-    def sub(self): self.arithm_pair(lambda a, b: a - b)
-    def mul(self): self.arithm_pair(lambda a, b: a * b)
-    def div(self): self.arithm_pair(lambda a, b: a // b)
-    def mod(self): self.arithm_pair(lambda a, b: a % b)
-    def rsh(self): self.arithm_pair(lambda a, b: a >> b)
-    def lsh(self): self.arithm_pair(lambda a, b: a << b)
-    def bor(self): self.arithm_pair(lambda a, b: a | b)
-    def xor(self): self.arithm_pair(lambda a, b: a ^ b)
-    def band(self): self.arithm_pair(lambda a, b: a % b)
-    
+    def add(self):
+        self.arithm_pair(lambda a, b: a + b)
+
+    def sub(self):
+        self.arithm_pair(lambda a, b: a - b)
+
+    def mul(self):
+        self.arithm_pair(lambda a, b: a * b)
+
+    def div(self):
+        self.arithm_pair(lambda a, b: a // b)
+
+    def mod(self):
+        self.arithm_pair(lambda a, b: a % b)
+
+    def rsh(self):
+        self.arithm_pair(lambda a, b: a >> b)
+
+    def lsh(self):
+        self.arithm_pair(lambda a, b: a << b)
+
+    def bor(self):
+        self.arithm_pair(lambda a, b: a | b)
+
+    def xor(self):
+        self.arithm_pair(lambda a, b: a ^ b)
+
+    def band(self):
+        self.arithm_pair(lambda a, b: a % b)
+
     def cpt(self):
         val = self.next_unsigned()
-        message = "CHECKPOINT {0}".format(val)
+        message = f'CHECKPOINT {val}'
         lg.debug(message)
+        self.debug_dump()
         # Write this to stdout so test engine can control execution
         print(message)
-        self.debug_dump()
-        
+
     def aeq(self):
         a = self.get_next_gp()
         b = self.next_unsigned()
-        
-        lg.info("ASSERTION {0} <> {1}".format(a, b))
-        
-        if a != b:        
+
+        lg.info(f'ASSERTION {a} <> {b} ({a == b})')
+
+        if a != b:
             raise Assert()
-            
-    handlers = {
-        ops.nop  : nop,
-        ops.hlt  : hlt,
-        ops.jmp  : jmp,
-        ops.ldc  : ldc,
-        ops.mrm  : mrm,
-        ops.mmr  : mmr,
-        ops.out  : out,
-        ops.jgt  : jgt,
-        ops.opn  : opn,
-        ops.cls  : cls,
-        ops.ldr  : ldr,
-        ops.lsp  : lsp,
-        ops.psh  : psh,
-        ops.pop  : pop,
-        ops.int  : int,
-        ops.cll  : cll,
-        ops.ret  : ret,
-        ops.irx  : irx,    
-        ops.ssp  : ssp,
-        ops.mrr  : mrr,
-        ops.lla  : lla,
-        
-        ops.inv  : inv,
-        ops.add  : add,
-        ops.sub  : sub,
-        ops.mul  : mul,
-        ops.div  : div,
-        ops.mod  : mod,
-        ops.rsh  : rsh,
-        ops.lsh  : lsh,
-        ops.bor  : bor,
-        ops.xor  : xor,
-        ops.band : band,
 
-        ops.cpt  : cpt,
-        ops.aeq  : aeq
+    HANDLERS = {
+        ops.nop: nop,
+        ops.hlt: hlt,
+        ops.jmp: jmp,
+        ops.ldc: ldc,
+        ops.mrm: mrm,
+        ops.mmr: mmr,
+        ops.out: out,
+        ops.jgt: jgt,
+        ops.opn: opn,
+        ops.cls: cls,
+        ops.ldr: ldr,
+        ops.lsp: lsp,
+        ops.psh: psh,
+        ops.pop: pop,
+        ops.int: intzero,
+        ops.cll: cll,
+        ops.ret: ret,
+        ops.irx: irx,
+        ops.ssp: ssp,
+        ops.mrr: mrr,
+        ops.lla: lla,
+
+        ops.inv: inv,
+        ops.add: add,
+        ops.sub: sub,
+        ops.mul: mul,
+        ops.div: div,
+        ops.mod: mod,
+        ops.rsh: rsh,
+        ops.lsh: lsh,
+        ops.bor: bor,
+        ops.xor: xor,
+        ops.band: band,
+
+        ops.cpt: cpt,
+        ops.aeq: aeq
     }
-            
-    ### Implementation ###
 
-    def interrupt(self, line):   
-        if(self.ii == 1):
+    # -- Implementation -- #
+
+    def interrupt(self, line: int):
+        if self.ii == 1:
             return
-        
-        #    lg.debug("INT {0}".format(line))
-        
+
+        # lg.debug("INT {0}".format(line))
+
         # Inhibit interrupts
         self.cls()
-        
-        # Save registers    
+
+        # Save registers
         self.do_push(self.ip)
+
         for i in range(0, 8, 1):
             self.do_push(self.gp[i])
+
         self.do_push(self.fp)
-        
+
         # Set handler's frame
         self.fp = self.sp
-        
+
         # Find and a call a handler
-        h_addr_inx = INT_VECT_BASE + line*4         # Interrupt handler address location
-        (handler_addr,) = struct.unpack(">I", self.memory[h_addr_inx:h_addr_inx+4])
+        h_addr_inx = INT_VECT_BASE + line * WORD_SIZE         # Interrupt handler address location
+
+        (handler_addr,) = struct.unpack(
+            '>I',
+            self.memory[h_addr_inx:h_addr_inx + WORD_SIZE]
+        )
+
         self.ip = handler_addr
-            
+
     def exec_next(self):
         op = self.next()
-        handler = self.handlers[op]
+        handler = self.HANDLERS[op]
         handler(self)

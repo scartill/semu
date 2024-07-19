@@ -1,22 +1,12 @@
 import semu.compile.asm as asm
+import semu.emulator as emulator
 
-
-SASM = '''
-CONST SERIAL_MM_BASE 64
-CLOAD SERIAL_MM_BASE a
-mrr a b
-.assert b 64
-CLOAD consts::SERIAL_MM_BASE d
-.assert d 64
-hlt
-'''
+import unit_utils
 
 
 def test_consts():
     item = asm.CompilationItem()
     item.namespace = 'consts'
-    item.contents = SASM
-
+    item.contents = unit_utils.load_sasm('consts/consts.sasm')
     binary = asm.compile_items([item])
-    print(binary)
-    assert False
+    emulator.execute(bytes(binary))

@@ -1,5 +1,6 @@
 from pathlib import Path
 import logging as lg
+from typing import Tuple
 
 import click
 
@@ -58,14 +59,18 @@ def compile_items(compile_items: list[CompilationItem]) -> bytearray:
 
 def compile_files(in_filenames: list[str], out_filename: str):
     in_items = collect_files(in_filenames)
-    bytestr = compile(in_items)
+    bytestr = compile_items(in_items)
     Path(out_filename).write_bytes(bytestr)
 
 
 @click.command()
 @click.argument('sources', nargs=-1)
 @click.argument('binary')
-def compile(sources: list[str], binary: str):
+def compile(sources: Tuple[str], binary: str):
     lg.basicConfig(level=lg.INFO)
     lg.info("SEMU ASM")
-    compile_files(sources, binary)
+    compile_files(list(sources), binary)
+
+
+if __name__ == "__main__":
+    compile()

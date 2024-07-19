@@ -4,7 +4,7 @@ import threading as th
 import struct
 import time
 import socket
-import sys
+from typing import Mapping
 
 import semu.compile.hwconf as hw
 
@@ -83,3 +83,6 @@ class Serial(Peripheral):
         buf = self.memory[addr:addr + 4]
         self.sock.sendto(buf, (hw.CTL_SER_UDP_IP, hw.CTL_SER_UDP_PORT))
         time.sleep(hw.SERIAL_DELAY)
+
+
+Peripherals = Mapping[int, Peripheral]
