@@ -41,31 +41,26 @@ def process_int_queue(pp: Peripherals, proc: cpu.CPU):
 
 
 def execute(rom: bytes):
-    pp = None
+    memory = bytearray(MEMORY_SIZE)
+
+    # PERIPHERALS: Line -> Device
+    pp = {
+        # 0 : loopback interrupt
+        SYSTIMER_LINE: SysTimer(memory),
+        SERIAL_LINE: Serial(memory)
+    }
 
     try:
-        memory = bytearray(MEMORY_SIZE)
-
-        # PERIPHERALS: Line -> Device
-        pp = {
-            # 0 : loopback interrupt
-            SYSTIMER_LINE: SysTimer(memory),
-            SERIAL_LINE: Serial(memory)
-        }
-
         proc = cpu.CPU(memory, pp)
-
-        start_pp(pp)
         init_memory(memory, rom)
+        start_pp(pp)
 
         while True:
             proc.exec_next()
             process_int_queue(pp, proc)
 
     finally:
-        # TODO: make peripherals' constructors finally-friendly
-        if pp is not None:
-            stop_pp(pp)
+        stop_pp(pp)
 
 
 @click.command()
