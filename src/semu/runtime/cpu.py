@@ -39,19 +39,14 @@ class CPU():
     # - Helpers - $
 
     def debug_dump(self):
-        gps = str()
-
         state = [f'{k}:{v:X}' for k, v in {
             'IP': self.ip,
             'SP': self.sp,
             'II': self.ii,
             'FP': self.fp
-        }]
+        }.items()]
 
-        state.extend([f'{k}:{v:X}' for k, v in enumerate(self.gp)])
-
-        for reg in self.gp:
-            gps += f'0x{reg:X} '
+        state.extend([f'{i}:{self.gp[i]:X}' for i in range(len(self.gp))])
 
         lg.debug(' '.join(state))
 

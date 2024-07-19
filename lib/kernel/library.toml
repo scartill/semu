@@ -1,0 +1,9 @@
+[library]
+
+sources = [
+    'startup.sasm',
+    'sync.sasm',
+    'threads.sasm',
+    'kernel.sasm',
+    'api.sasm'
+]
