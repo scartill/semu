@@ -52,6 +52,24 @@ class Function:
             [expr.emit() for expr in self.body]
         ])
 
+        
+@dataclass
+class Module:
+    functions: Dict[str, Function]
+    body: List[Expression]
+
+    def emit(self):
+        result: List[str] = []
+
+        for function in self.functions.values():
+            result.extend(function.emit())
+
+        for expr in self.body:
+            result.extend(expr.emit())
+
+        result.append('hlt')
+        return result
+
 
 def uint32const(ast_arg: ast.AST):
     if isinstance(ast_arg, ast.Constant) and isinstance(ast_arg.value, int):
@@ -78,13 +96,9 @@ STD_LIB_CALLS = {
 }
 
 
-class BaseTranslator:
-    pass
-
-
-class BodyTranslator(BaseTranslator):
-    def __init__(self, parent: BaseTranslator):
-        self.parent = parent
+class Translator:
+    def __init__(self):
+        self.functions: Dict[str, Function] = dict()
 
     def translate_std_call(self, std_name: str, ast_args: List[ast.expr]):
         if std_name not in STD_LIB_CALLS:
@@ -111,21 +125,16 @@ class BodyTranslator(BaseTranslator):
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
-    def translate(self, ast_body: List[ast.stmt]) -> List[Expression]:
-        def body_el(ast_element: ast.stmt):
-            if isinstance(ast_element, ast.Expr):
-                return self.translate_expr(ast_element)
-            else:
-                raise UserWarning(f'Unsupported element {ast_element}')
+    def translate_stmt(self, ast_element: ast.stmt):
+        if isinstance(ast_element, ast.Expr):
+            return self.translate_expr(ast_element)
+        else:
+            raise UserWarning(f'Unsupported element {ast_element}')
 
-        return list(map(body_el, ast_body))
+    def translate_body(self, ast_body: List[ast.stmt]) -> List[Expression]:
+        return list(map(self.translate_stmt, ast_body))
 
-
-class FunctionTranslator(BaseTranslator):
-    def __init__(self, parent: BaseTranslator):
-        self.parent = parent
-
-    def translate(self, ast_function: ast.FunctionDef) -> Function:
+    def translate_function(self, ast_function: ast.FunctionDef) -> Function:
         name = ast_function.name
         lg.debug(f'Function {name} found')
 
@@ -136,30 +145,26 @@ class FunctionTranslator(BaseTranslator):
             return ast_arg.arg
 
         args = [make_arg(ast_arg) for ast_arg in ast_function.args.args]
-        body = BodyTranslator(self).translate(ast_function.body)
+        body = self.translate_body(ast_function.body)
         return Function(name, args, body)
 
+    def translate_module(self, ast_module: ast.Module):
+        ast_module_body: List[ast.stmt] = []
 
-class Translator(BaseTranslator):
-    def __init__(self):
-        self.functions: Dict[str, Function] = dict()
-
-    def translate_source(self, input: str):
-        ast_tree = ast.parse(input)
-        result: List[str] = []
-
-        for ast_element in ast_tree.body:
+        for ast_element in ast_module.body:
             if isinstance(ast_element, ast.FunctionDef):
-                function = FunctionTranslator(self).translate(ast_element)
+                function = self.translate_function(ast_element)
                 self.functions[function.name] = function
+            else:
+                ast_module_body.append(ast_element)
 
-            lg.debug(f'Element {ast_element} not supported')
+        global_body = self.translate_body(ast_module_body)
+        return Module(self.functions, global_body)
 
-        for function in self.functions.values():
-            result.extend(function.emit())
-
-        result.append('hlt')
-
+    def translate(self, input: str):
+        ast_module = ast.parse(input)
+        module = self.translate_module(ast_module)
+        result = module.emit()
         return '\n'.join(result)
 
 
@@ -171,7 +176,7 @@ def translate(verbose: bool, input: Path, output: Path):
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
     lg.info(f'Translating {input} to {output}')
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(Translator().translate_source(input.read_text()))
+    output.write_text(Translator().translate(input.read_text()))
 
 
 if __name__ == '__main__':
