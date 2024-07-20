@@ -7,7 +7,7 @@ import ast
 import click
 
 from semu.pysemu.flatten import flatten
-from semu.pysemu.stdlib import checkpoint, assertion
+import semu.pysemu.stdlib as std
 
 
 REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -66,17 +66,8 @@ def uint32arg(ast_arg: ast.AST):
         raise UserWarning(f'Unsupported int argument {ast_arg}')
 
 
-def regarg(ast_arg: ast.AST):
-    if isinstance(ast_arg, ast.Constant) and isinstance(ast_arg.value, str):
-        if ast_arg.value in REGISTERS:
-            return ast_arg.value
-
-    raise UserWarning(f'Unsupported reg argument {ast_arg}')
-
-
 STD_LIB_CALLS = {
-    'checkpoint': (checkpoint, [uint32arg]),
-    'assertion': (assertion, [regarg, uint32arg])
+    'checkpoint': (std.checkpoint, [uint32arg])
 }
 
 
@@ -163,6 +154,8 @@ class Translator(BaseTranslator):
 
         for function in self.functions.values():
             result.extend(function.emit())
+
+        result.append('hlt')
 
         return '\n'.join(result)
 
