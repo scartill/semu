@@ -63,6 +63,7 @@ def compile(verbose: bool, hw: bool, library: Path, sources: Tuple[Path], binary
 
     items.extend(collect_files(list(sources)))
     bytestr = compile_items(items)
+    binary.parent.mkdir(parents=True, exist_ok=True)
     binary.write_bytes(bytestr)
 
 
