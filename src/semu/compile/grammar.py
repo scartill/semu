@@ -14,7 +14,7 @@ def g_cmd(literal, op):
 id = pp.Word(pp.alphas + '_')
 comment = pp.Suppress(pp.Literal('//') + pp.SkipTo('\n'))
 
-label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.on_label, r[0]))
+label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.issue_label, r))
 
 reg_indices = {
     'a': 0,
@@ -49,15 +49,15 @@ def g_cmd_3(literal, op):
     return g_cmd(literal, op) + reg_op + reg_op + reg_op
 
 
-us_dec_const = pp.Regex('[0-9]+').setParseAction(lambda r: (FPP.on_uconst, r))
+us_dec_const = pp.Regex('[0-9]+').setParseAction(lambda r: (FPP.issue_const, r))
 us_const = us_dec_const
-s_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.on_sconst, r))
+s_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.issue_sconst, r))
 
 refname = pp.Optional(id + pp.Suppress("::")) + id
 # Join into [namespace, name] or [name]
 refname.setParseAction(lambda r: [r])
 
-ref = (pp.Suppress('&') + refname).setParseAction(lambda r: (FPP.on_ref, r[0]))
+ref = (pp.Suppress('&') + refname).setParseAction(lambda r: (FPP.issue_ref, r))
 
 # Basic instructions
 hlt_cmd = g_cmd('hlt', ops.hlt)

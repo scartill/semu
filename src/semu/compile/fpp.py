@@ -51,11 +51,17 @@ class FPP:
         lg.debug(f'Issuing command 0x{op:X}')
         self.issue_usigned(op)
 
-    def on_uconst(self, tokens: Tokens):
+    def issue_label(self, tokens: Tokens):
+        self.on_label(tokens[0])
+
+    def issue_ref(self, tokens: Tokens):
+        self.on_ref(tokens[0])
+
+    def issue_const(self, tokens: Tokens):
         word = int(tokens[0])
         self.issue_usigned(word)
 
-    def on_sconst(self, tokens: Tokens):
+    def issue_sconst(self, tokens: Tokens):
         word = int(tokens[0])
         self.issue_signed(word)
 
