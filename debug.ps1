@@ -1,11 +1,13 @@
+$subject = "consts"
 $translator = "$PSScriptRoot/src/semu/pysemu/translator.py"
 $compiler = "$PSScriptRoot/src/semu/compile/compiler.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
-$example = "$PSScriptRoot/examples/pysemu/function.py"
-$sasm = "$PSScriptRoot/.build/function.sasm"
+
+$source = "$PSScriptRoot/examples/pysemu/$subject.py"
+$sasm = "$PSScriptRoot/.build/$subject.sasm"
 $rom = "$PSScriptRoot/roms/function.bin"
 
-python $translator $example -v $sasm
-Get-Content .build/function.sasm
+python $translator $source -v $sasm
+Get-Content $sasm
 python $compiler $sasm $rom
 python $emulator $rom

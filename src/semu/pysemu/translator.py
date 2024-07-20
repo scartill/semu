@@ -1,13 +1,12 @@
 from pathlib import Path
 import logging as lg
-from typing import List, Dict, Callable, cast
+from typing import List, Dict, cast
 from dataclasses import dataclass
 import ast
 
 import click
 
 from semu.pysemu.flatten import flatten
-import semu.pysemu.stdlib as std
 
 
 REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -24,11 +23,11 @@ class Expression(Element):
 
 
 @dataclass
-class CallStdLib(Expression):
-    what: Callable[[], str]
+class Checkpoint(Expression):
+    arg: int
 
     def emit(self) -> List[str]:
-        return [self.what()]
+        return [f'.check {self.arg}']
 
 
 @dataclass
@@ -54,7 +53,7 @@ class Function:
         ])
 
 
-def uint32arg(ast_arg: ast.AST):
+def uint32const(ast_arg: ast.AST):
     if isinstance(ast_arg, ast.Constant) and isinstance(ast_arg.value, int):
         value = ast_arg.value
 
@@ -63,11 +62,19 @@ def uint32arg(ast_arg: ast.AST):
 
         return value
     else:
-        raise UserWarning(f'Unsupported int argument {ast_arg}')
+        raise UserWarning(f'Unsupported const int argument {ast_arg}')
+
+
+def std_checkpoint(ast_args: List[ast.expr]):
+    if len(ast_args) != 1:
+        raise UserWarning(f'checkpoint expects 1 argument, got {len(ast_args)}')
+
+    arg = uint32const(ast_args[0])
+    return Checkpoint(arg)
 
 
 STD_LIB_CALLS = {
-    'checkpoint': (std.checkpoint, [uint32arg])
+    'checkpoint': std_checkpoint
 }
 
 
@@ -83,13 +90,7 @@ class BodyTranslator(BaseTranslator):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
 
-        std_func, std_args = STD_LIB_CALLS[std_name]
-
-        if len(ast_args) != len(std_args):
-            raise UserWarning(f'Wrong number of arguments for {std_name}')
-
-        args = [translator(ast_arg) for (ast_arg, translator) in zip(ast_args, std_args)]
-        return CallStdLib(lambda: std_func(*args))   # type: ignore
+        return STD_LIB_CALLS[std_name](ast_args)
 
     def translate_call(self, ast_call: ast.Call):
         ast_name = ast_call.func
