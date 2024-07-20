@@ -54,13 +54,14 @@ class Function:
         ])
 
 
-class BaseTranslator:
-    pass
-
-
-def intarg(ast_arg: ast.AST):
+def uint32arg(ast_arg: ast.AST):
     if isinstance(ast_arg, ast.Constant) and isinstance(ast_arg.value, int):
-        return ast_arg.value
+        value = ast_arg.value
+
+        if value < 0 or value > 0xFFFFFFFF:
+            raise UserWarning(f'Int argument {ast_arg} out of range')
+
+        return value
     else:
         raise UserWarning(f'Unsupported int argument {ast_arg}')
 
@@ -74,9 +75,13 @@ def regarg(ast_arg: ast.AST):
 
 
 STD_LIB_CALLS = {
-    'checkpoint': (checkpoint, [intarg]),
-    'assertion': (assertion, [regarg, intarg])
+    'checkpoint': (checkpoint, [uint32arg]),
+    'assertion': (assertion, [regarg, uint32arg])
 }
+
+
+class BaseTranslator:
+    pass
 
 
 class BodyTranslator(BaseTranslator):
@@ -93,7 +98,7 @@ class BodyTranslator(BaseTranslator):
             raise UserWarning(f'Wrong number of arguments for {std_name}')
 
         args = [translator(ast_arg) for (ast_arg, translator) in zip(ast_args, std_args)]
-        return CallStdLib(lambda: std_func(*args))
+        return CallStdLib(lambda: std_func(*args))   # type: ignore
 
     def translate_call(self, ast_call: ast.Call):
         ast_name = ast_call.func
