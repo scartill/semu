@@ -153,6 +153,8 @@ class Translator(BaseTranslator):
                 function = FunctionTranslator(self).translate(ast_element)
                 self.functions[function.name] = function
 
+            lg.debug(f'Element {ast_element} not supported')
+
         for function in self.functions.values():
             result.extend(function.emit())
 
