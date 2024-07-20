@@ -119,10 +119,10 @@ class MacroFPP(FPP):
         if not isinstance(func, Func):
             raise Exception('Unexpected RETURN macro')
 
-        # Go to <func-name>:prologue
-        pname = func.name + ':prologue'
+        # Go to <func-name>:epilogue
+        pname = func.name + ':epilogue'
 
-        # ldr &name:prologue h
+        # ldr &name:epilogue h
         self.issue_op(ops.ldr)
         self.on_ref([pname])
         self.on_reg(7)
@@ -140,7 +140,7 @@ class MacroFPP(FPP):
         if not isinstance(func, Func):
             raise Exception('Unexpected END macro')
 
-        pname = func.name + ':prologue'
+        pname = func.name + ':epilogue'
         self.on_label(pname)
 
         # pop h
