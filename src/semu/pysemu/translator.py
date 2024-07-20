@@ -13,13 +13,14 @@ REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 NUMBER_OF_REGISTERS = len(REGISTERS)
 
 
-class Element:
+class Expression:
     def emit(self) -> List[str]:
         raise NotImplementedError()
 
 
-class Expression(Element):
-    pass
+class VoidElement(Expression):
+    def emit(self):
+        return ['nop']
 
 
 @dataclass
@@ -31,7 +32,7 @@ class Checkpoint(Expression):
 
 
 @dataclass
-class Function:
+class Function(Expression):
     name: str
     args: List[str]
     body: List[Expression]
@@ -52,7 +53,7 @@ class Function:
             [expr.emit() for expr in self.body]
         ])
 
-        
+
 @dataclass
 class Module:
     functions: Dict[str, Function]
@@ -129,7 +130,8 @@ class Translator:
         if isinstance(ast_element, ast.Expr):
             return self.translate_expr(ast_element)
         else:
-            raise UserWarning(f'Unsupported element {ast_element}')
+            lg.warning(f'Unsupported element {ast_element}')
+            return VoidElement()
 
     def translate_body(self, ast_body: List[ast.stmt]) -> List[Expression]:
         return list(map(self.translate_stmt, ast_body))
@@ -161,11 +163,12 @@ class Translator:
         global_body = self.translate_body(ast_module_body)
         return Module(self.functions, global_body)
 
-    def translate(self, input: str):
-        ast_module = ast.parse(input)
-        module = self.translate_module(ast_module)
-        result = module.emit()
-        return '\n'.join(result)
+
+def translate_string(input: str):
+    ast_module = ast.parse(input)
+    module = Translator().translate_module(ast_module)
+    result = module.emit()
+    return '\n'.join(result)
 
 
 @click.command()
@@ -176,7 +179,7 @@ def translate(verbose: bool, input: Path, output: Path):
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
     lg.info(f'Translating {input} to {output}')
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(Translator().translate(input.read_text()))
+    output.write_text(translate_string(input.read_text()))
 
 
 if __name__ == '__main__':
