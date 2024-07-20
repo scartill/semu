@@ -60,7 +60,7 @@ class MacroFPP(FPP):
 
     # Macros
     def issue_dw(self, tokens: Tokens):
-        self.on_label([tokens[0]])
+        self.on_label(tokens[0])
 
         if len(tokens) == 2:
             multipicity = int(tokens[1])
@@ -88,7 +88,7 @@ class MacroFPP(FPP):
             raise Exception('Cannot define non-global FUNC {0}', qname)
 
         self.context = Func(name, self.context)
-        self.on_label(tokens)  # Does nothing fancy really
+        self.on_label(name)  # Does nothing fancy really
 
     # Inside FUNC:
     #   DW <var-name> <init_reg>
@@ -139,7 +139,7 @@ class MacroFPP(FPP):
             raise Exception('Unexpected END macro')
 
         pname = func.name + ':prologue'
-        self.on_label([pname])
+        self.on_label(pname)
 
         # pop h
         # ...
@@ -251,7 +251,7 @@ class MacroFPP(FPP):
             multipicity = 1
 
         words = s.size * multipicity
-        self.on_label([name])
+        self.on_label(name)
 
         # Issue placeholder-bytes
         for _ in range(words):
@@ -310,7 +310,7 @@ class MacroFPP(FPP):
 
     # DT <text-name> "<string>"
     def issue_dt(self, tokens: Tokens):
-        self.on_label([tokens[0]])
+        self.on_label(tokens[0])
         text = tokens[1]
         self.issue_usigned(len(text))
 

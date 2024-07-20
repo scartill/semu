@@ -14,7 +14,7 @@ def g_cmd(literal, op):
 id = pp.Word(pp.alphas + '_')
 comment = pp.Suppress(pp.Literal('//') + pp.SkipTo('\n'))
 
-label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.on_label, r))
+label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.on_label, r[0]))
 
 reg_indices = {
     'a': 0,

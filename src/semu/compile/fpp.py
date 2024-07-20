@@ -59,8 +59,7 @@ class FPP:
         word = int(tokens[0])
         self.issue_signed(word)
 
-    def on_label(self, tokens: Tokens):
-        labelname = tokens[0]
+    def on_label(self, labelname: str):
         qlabelname = self.get_qualified_name(labelname)
         self.label_dict[qlabelname] = self.offset
         lg.debug(f'Label {qlabelname} @ 0x{self.offset:X}')
