@@ -112,6 +112,7 @@ class MacroFPP(FPP):
 
     # Inside FUNC:
     #   RETURN
+    # Invalidates 'h'
     def func_return(self, tokens: Tokens):
         func = self.context
 
@@ -132,6 +133,7 @@ class MacroFPP(FPP):
 
     # Inside FUNC:
     #   END
+    # Invalidates 'h'
     def end_func(self, tokens: Tokens):
         func = self.context
 
