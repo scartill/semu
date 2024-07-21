@@ -6,5 +6,7 @@ b: int
 SERIAL_MM_BASE = 64
 a = 1
 b = SERIAL_MM_BASE
-# c = a
+
+c: int
+c = a
 #stdlib.assertion(a, SERIAL_MM_BASE)

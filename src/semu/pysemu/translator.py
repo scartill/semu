@@ -80,6 +80,22 @@ class Namespace:
     def create_variable(self, name: str, target_type: TargetType) -> None:
         raise NotImplementedError()
 
+    def load_variable(self, known_name: KnownName) -> Sequence[Element]:
+        raise NotImplementedError()
+
+
+@dataclass
+class GlobalVariableCreate(Element):
+    name: str
+
+    def emit(self):
+        return [
+            f'// Begin variable {self.name}',
+            f'{self.name}:',        # label
+            'nop',                  # placeholder
+            '// End variable',
+        ]
+
 
 @dataclass
 class GlobalVarAssignment(Element):
@@ -90,8 +106,22 @@ class GlobalVarAssignment(Element):
         return flatten([
             f'// Calculating {self.target.name}',
             flatten([expr.emit() for expr in self.body]),
+            f'// Storing {self.target.name}',
             f'ldr &{self.target.name} b',
             'mrm a b'
+        ])
+
+
+@dataclass
+class GlobalVariableLoad(Element):
+    name: str
+
+    def emit(self):
+        return flatten([
+            f'// Loading {self.name} address',
+            f'ldr &{self.name} b',
+            f'// Setting {self.name} to a',
+            'mmr b a'
         ])
 
 
@@ -139,15 +169,9 @@ class Module(Namespace, Element):
         self.functions = dict()
         self.body = list()
 
-    def emit_global_var(self, global_var: GlobalVar):
+    def create_global_var(self, global_var: GlobalVar):
         lg.debug(f'Defining a global variable placeholder {global_var.name}')
-
-        return [
-            f'// Begin variable {global_var.target_type}',
-            f'{global_var.name}:',  # label
-            'nop',                  # placeholder
-            '// End variable',
-        ]
+        return GlobalVariableCreate(global_var.name)
 
     def create_variable(self, name: str, target_type: TargetType) -> None:
         if name in self.names:
@@ -156,11 +180,15 @@ class Module(Namespace, Element):
         lg.debug(f'Creating a global variable {name}')
         self.names[name] = GlobalVar(name, target_type)
 
+    def load_variable(self, known_name: KnownName) -> Sequence[Element]:
+        return [GlobalVariableLoad(known_name.name)]
+
     def emit(self):
         result: Sequence[str] = []
 
         for global_var in filter(lambda n: isinstance(n, GlobalVar), self.names.values()):
-            result.extend(self.emit_global_var(cast(GlobalVar, global_var)))
+            element = self.create_global_var(cast(GlobalVar, global_var))
+            result.extend(element.emit())
 
         for function in self.functions.values():
             result.extend(function.emit())
@@ -259,7 +287,12 @@ class Translator:
         if not isinstance(known_name, Constant):
             raise UserWarning(f'Unsupported const reference {name}')
 
-        return ('uint32', [ConstantExpression(known_name.value)])
+        return (known_name.target_type, [ConstantExpression(known_name.value)])
+
+    def load_variable(self, name: str):
+        ''' Invalidates registers and stores the result in 'a' '''
+        known_name = self.resolve_name(name)
+        return (known_name.target_type, self.context.load_variable(known_name))
 
     def translate_expr(self, ast_expr: ast.expr):
         ''' Invalidates registers and stores the result in 'a' '''
@@ -274,6 +307,8 @@ class Translator:
         if isinstance(ast_expr, ast.Name):
             if ast_expr.id.isupper():
                 return self.load_const(ast_expr.id)
+            else:
+                return self.load_variable(ast_expr.id)
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
