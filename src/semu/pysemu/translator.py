@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Literal, Any, cast
+from typing import Sequence, Dict, Literal, Any, Tuple, cast
 from dataclasses import dataclass
 import ast
 
@@ -247,6 +247,7 @@ class Module(Namespace, Element):
         return '\n'.join(result)
 
 
+@dataclass
 class TopLevel(Namespace, Element):
     modules: Dict[str, Module]
 
@@ -267,6 +268,9 @@ class TopLevel(Namespace, Element):
             result.extend(module.emit())
 
         return flatten(result)
+
+    def __str__(self):
+        return '\n'.join([str(module) for module in self.modules.values()])
 
 
 def uint32const(ast_value: ast.AST):
@@ -298,7 +302,9 @@ class Translator:
     context: Namespace
 
     def __init__(self):
-        self.context = TopLevel()
+        top_level = TopLevel()
+        self.context = top_level
+        self._top = top_level
 
     def resolve_name(self, name: str) -> KnownName:
         known_name = self.context.get_name(name)
@@ -470,24 +476,47 @@ class Translator:
         self.context = cast(Namespace, module.parent)
         return module
 
+    def translate(self, name: str, ast_module: ast.Module):
+        module = self.translate_module(name, ast_module)
+        cast(TopLevel, self.context).modules[name] = module
+
+    def top(self) -> TopLevel:
+        return self._top
+
 
 def eprint(*args: Any, **kwargs: Any):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def translate_string(params: Dict[str, Any], module_name: str, input: str):
-    ast_module = ast.parse(input)
-    module = Translator().translate_module(module_name, ast_module)
-    result = '\n'.join(module.emit())
+def add_module(translator: Translator, module_name: str, input: str):
+    return translator.translate(module_name, ast.parse(input))
 
-    if params['verbose']:
-        eprint('------------ AST ---------------')
-        eprint(module)
-        eprint('------------ ASM ---------------')
-        eprint(result)
-        eprint('--------------------------------')
 
-    return result
+def emit(params: Dict[str, Any], translator: Translator):
+    top = translator.top()
+
+    results: Sequence[Tuple[str, str]] = []
+    for module_name, module in top.modules.items():
+        module_sasm = '\n'.join(module.emit())
+
+        if params['verbose']:
+            eprint(f'------------ AST {module_name} ---------------')
+            eprint(top)
+            eprint(f'------------ ASM {module_name} ---------------')
+            eprint(module_sasm)
+            eprint('-----------------------------------------------')
+
+        results.append((module_name, module_sasm))
+
+    return results
+
+
+def translate_single(params: Dict[str, Any], input: Path, output: Path):
+    translator = Translator()
+    add_module(translator, input.stem, input.read_text())
+    sasm = emit(params, translator)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(sasm[0][1])
 
 
 @click.command()
@@ -499,9 +528,9 @@ def translate(ctx: click.Context, verbose: bool, input: Path, output: Path):
     ctx.ensure_object(dict)
     ctx.obj['verbose'] = verbose
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
+
     lg.info(f'Translating {input} to {output}')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(translate_string(ctx.obj, input.stem, input.read_text()))
+    translate_single(ctx.obj, input, output)
 
 
 if __name__ == '__main__':

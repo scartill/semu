@@ -5,7 +5,7 @@ $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
 
 $source = "$PSScriptRoot/examples/pysemu/$subject.py"
 $sasm = "$PSScriptRoot/.build/$subject.sasm"
-$rom = "$PSScriptRoot/roms/function.bin"
+$rom = "$PSScriptRoot/roms/$subject.bin"
 
 python $translator $source -v $sasm
 
@@ -13,5 +13,6 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# TODO: disable macroprocessor
 python $compiler $sasm $rom
 python $emulator $rom
