@@ -73,10 +73,10 @@ class MacroFPP(FPP):
     # CALL <func-ref>
     # Invalidates 'h'
     def issue_call(self, tokens: Tokens):
-        self.issue_op(ops.ldr)
+        self.issue_op(ops.LDR)
         self.on_ref(tokens[0])
         self.on_reg(7)  # Using the last for routine address
-        self.issue_op(ops.cll)
+        self.issue_op(ops.CLL)
         self.on_reg(7)
 
     # FUNC <func-name>
@@ -107,7 +107,7 @@ class MacroFPP(FPP):
         func.locals.append(vname)
 
         # push <reg>
-        self.issue_op(ops.psh)
+        self.issue_op(ops.PSH)
         self.on_reg(reg)
 
     # Inside FUNC:
@@ -123,12 +123,12 @@ class MacroFPP(FPP):
         pname = func.name + ':epilogue'
 
         # ldr &name:epilogue h
-        self.issue_op(ops.ldr)
+        self.issue_op(ops.LDR)
         self.on_ref([pname])
         self.on_reg(7)
 
         # jmp h
-        self.issue_op(ops.jmp)
+        self.issue_op(ops.JMP)
         self.on_reg(7)
 
     # Inside FUNC:
@@ -148,10 +148,10 @@ class MacroFPP(FPP):
         # pop h
         # ret
         for _ in func.locals:
-            self.issue_op(ops.pop)
+            self.issue_op(ops.POP)
             self.on_reg(7)  # Dumping values to 'h'
 
-        self.issue_op(ops.ret)
+        self.issue_op(ops.RET)
 
         # Restore global context
         self.context = func.parent
@@ -172,10 +172,10 @@ class MacroFPP(FPP):
 
         # lla <var-offset> h
         # mrm <reg> h
-        self.issue_op(ops.lla)
+        self.issue_op(ops.LLA)
         self.issue_usigned(offset)
         self.on_reg(7)
-        self.issue_op(ops.mrm)
+        self.issue_op(ops.MRM)
         self.on_reg(reg)
         self.on_reg(7)
 
@@ -195,10 +195,10 @@ class MacroFPP(FPP):
 
         # lla <var-offset> h
         # mmr h <reg>
-        self.issue_op(ops.lla)
+        self.issue_op(ops.LLA)
         self.issue_usigned(offset)
         self.on_reg(7)
-        self.issue_op(ops.mmr)
+        self.issue_op(ops.MMR)
         self.on_reg(7)
         self.on_reg(reg)
 
@@ -262,7 +262,7 @@ class MacroFPP(FPP):
     # PTR <struct-address-reg> <struct-type-name>#<field-name> <target-reg>
     # Invalidates 'g', 'h'
     def issue_ptr_head(self, tokens: Tokens):
-        self.issue_op(ops.mrr)
+        self.issue_op(ops.MRR)
 
     # Invalidates g, h
     def issue_ptr_tail(self, tokens: Tokens):
@@ -274,10 +274,10 @@ class MacroFPP(FPP):
         offset = s.get_offset(fname)
 
         self.on_reg(7)  # Using the last ('h') for struct address
-        self.issue_op(ops.ldc)  # Loading the offset
+        self.issue_op(ops.LDC)  # Loading the offset
         self.issue_usigned(offset)
         self.on_reg(6)  # Using 'g' for field offset
-        self.issue_op(ops.add)  # Adding the offset
+        self.issue_op(ops.ADD)  # Adding the offset
         self.on_reg(7)
         self.on_reg(6)
         # <after>: target reg
@@ -294,18 +294,18 @@ class MacroFPP(FPP):
         width = s.size * WORD_SIZE
 
         # ldc <size> h
-        self.issue_op(ops.ldc)
+        self.issue_op(ops.LDC)
         self.issue_usigned(width)
         self.on_reg(7)
 
         # mul b h b
-        self.issue_op(ops.mul)
+        self.issue_op(ops.MUL)
         self.on_reg(1)
         self.on_reg(7)
         self.on_reg(1)
 
         # add a b a
-        self.issue_op(ops.add)
+        self.issue_op(ops.ADD)
         self.on_reg(0)
         self.on_reg(1)
         self.on_reg(0)
@@ -338,6 +338,6 @@ class MacroFPP(FPP):
         value = self.consts[qsname]
         reg = tokens[1]
         # ldc <const> <reg>
-        self.issue_op(ops.ldc)
+        self.issue_op(ops.LDC)
         self.issue_usigned(value)
         self.on_reg(reg)
