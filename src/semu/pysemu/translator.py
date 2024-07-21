@@ -129,6 +129,8 @@ class Translator:
     def translate_stmt(self, ast_element: ast.stmt):
         if isinstance(ast_element, ast.Expr):
             return self.translate_expr(ast_element)
+        elif isinstance(ast_element, ast.Pass):
+            return VoidElement()
         else:
             lg.warning(f'Unsupported element {ast_element}')
             return VoidElement()
