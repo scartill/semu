@@ -488,11 +488,10 @@ def eprint(*args: Any, **kwargs: Any):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def add_module(translator: Translator, module_name: str, input: str):
-    return translator.translate(module_name, ast.parse(input))
+Params = Dict[str, Any]
 
 
-def emit(params: Dict[str, Any], translator: Translator):
+def emit(params: Params, translator: Translator):
     top = translator.top()
 
     results: Sequence[Tuple[str, str]] = []
@@ -511,10 +510,20 @@ def emit(params: Dict[str, Any], translator: Translator):
     return results
 
 
-def translate_single(params: Dict[str, Any], input: Path, output: Path):
-    translator = Translator()
-    add_module(translator, input.stem, input.read_text())
+def add_module(translator: Translator, name: str, input: str):
+    ast_tree = ast.parse(input)
+    translator.translate(name, ast_tree)
+
+
+def compile_single(params: Params, translator: Translator, name: str, input: str):
+    add_module(translator, name, input)
     sasm = emit(params, translator)
+    return sasm
+
+
+def translate_single_file(params: Params, input: Path, output: Path):
+    translator = Translator()
+    sasm = compile_single(params, translator, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sasm[0][1])
 
@@ -530,7 +539,7 @@ def translate(ctx: click.Context, verbose: bool, input: Path, output: Path):
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
 
     lg.info(f'Translating {input} to {output}')
-    translate_single(ctx.obj, input, output)
+    translate_single_file(ctx.obj, input, output)
 
 
 if __name__ == '__main__':
