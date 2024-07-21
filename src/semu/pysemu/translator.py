@@ -143,7 +143,7 @@ class Function(Namespace, Element):
         self.args = list()
         self.body = list()
 
-    def _emit_args(self, inx: int):
+    def _emit_arg(self, inx: int):
         arg = self.args[inx]
         reg = REGISTERS[inx]
 
@@ -155,7 +155,7 @@ class Function(Namespace, Element):
     def emit(self) -> Sequence[str]:
         return flatten([
             f'// function {self.name}',
-            [self._emit_args(i) for i in range(len(self.args))],
+            [self._emit_arg(i) for i in range(len(self.args))],
             [expr.emit() for expr in self.body]
         ])
 
