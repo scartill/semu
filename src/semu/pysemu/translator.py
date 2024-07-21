@@ -31,11 +31,25 @@ class Checkpoint(Expression):
         return [f'.check {self.arg}']
 
 
-@dataclass
-class Function(Expression):
+class Namespace(Expression):
+    def __init__(self, name: str, parent: 'Namespace | None'):
+        self.name = name
+        self.parent = parent
+
+    def namespace(self) -> str:
+        parent_name = self.parent.namespace() if self.parent else ''
+        return f'{parent_name}.{self.name}'
+
+
+class Function(Namespace):
     name: str
     args: List[str]
     body: List[Expression]
+
+    def __init__(self, name: str, parent: Namespace):
+        super().__init__(name, parent)
+        self.args = list()
+        self.body = list()
 
     def _emit_args(self, inx: int):
         arg = self.args[inx]
@@ -54,10 +68,14 @@ class Function(Expression):
         ])
 
 
-@dataclass
-class Module:
+class Module(Namespace):
     functions: Dict[str, Function]
     body: List[Expression]
+
+    def __init__(self, name: str, parent: Namespace):
+        super().__init__(name, parent)
+        self.functions = dict()
+        self.body = list()
 
     def emit(self):
         result: List[str] = []
@@ -72,16 +90,32 @@ class Module:
         return result
 
 
-def uint32const(ast_arg: ast.AST):
-    if isinstance(ast_arg, ast.Constant) and isinstance(ast_arg.value, int):
-        value = ast_arg.value
+class TopLevel(Namespace):
+    modules: Dict[str, Module]
+
+    def __init__(self):
+        super().__init__('::', None)
+        self.modules = dict()
+
+    def emit(self):
+        result: List[str] = []
+
+        for module in self.modules.values():
+            result.extend(module.emit())
+
+        return result
+
+
+def uint32const(ast_value: ast.AST):
+    if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, int):
+        value = ast_value.value
 
         if value < 0 or value > 0xFFFFFFFF:
-            raise UserWarning(f'Int argument {ast_arg} out of range')
+            raise UserWarning(f'Int argument {ast_value} out of range')
 
         return value
     else:
-        raise UserWarning(f'Unsupported const int argument {ast_arg}')
+        raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
 def std_checkpoint(ast_args: List[ast.expr]):
@@ -98,8 +132,10 @@ STD_LIB_CALLS = {
 
 
 class Translator:
+    context: Namespace
+
     def __init__(self):
-        self.functions: Dict[str, Function] = dict()
+        self.context = TopLevel()
 
     def translate_std_call(self, std_name: str, ast_args: List[ast.expr]):
         if std_name not in STD_LIB_CALLS:
@@ -126,11 +162,26 @@ class Translator:
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
+    def translate_assign(self, ast_assign: ast.Assign):
+        if len(ast_assign.targets) != 1:
+            raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
+
+        ast_target = ast_assign.targets[0]
+        ast_value = ast_assign.value
+
+        if isinstance(ast_value, ast.Constant):
+            value = uint32const(ast_value)
+        else:
+            raise UserWarning(f'Unsupported assign value {ast_value}')
+        raise UserWarning(f'Unsupported assign value {ast_value}')
+
     def translate_stmt(self, ast_element: ast.stmt):
         if isinstance(ast_element, ast.Expr):
             return self.translate_expr(ast_element)
         elif isinstance(ast_element, ast.Pass):
             return VoidElement()
+        elif isinstance(ast_element, ast.Assign):
+            return self.translate_assign(ast_element)
         else:
             lg.warning(f'Unsupported element {ast_element}')
             return VoidElement()
@@ -141,6 +192,8 @@ class Translator:
     def translate_function(self, ast_function: ast.FunctionDef) -> Function:
         name = ast_function.name
         lg.debug(f'Function {name} found')
+        function = Function(name, self.context)
+        self.context = function
 
         if len(ast_function.args.args) > NUMBER_OF_REGISTERS:
             raise UserWarning(f'Function {name} has too many arguments')
@@ -148,27 +201,32 @@ class Translator:
         def make_arg(ast_arg: ast.arg):
             return ast_arg.arg
 
-        args = [make_arg(ast_arg) for ast_arg in ast_function.args.args]
-        body = self.translate_body(ast_function.body)
-        return Function(name, args, body)
+        function.args = [make_arg(ast_arg) for ast_arg in ast_function.args.args]
+        function.body = self.translate_body(ast_function.body)
+        self.context = cast(Namespace, function.parent)
+        return function
 
-    def translate_module(self, ast_module: ast.Module):
+    def translate_module(self, name: str, ast_module: ast.Module):
+        module = Module(name, self.context)
+        self.context = module
+
         ast_module_body: List[ast.stmt] = []
 
         for ast_element in ast_module.body:
             if isinstance(ast_element, ast.FunctionDef):
                 function = self.translate_function(ast_element)
-                self.functions[function.name] = function
+                module.functions[function.name] = function
             else:
                 ast_module_body.append(ast_element)
 
-        global_body = self.translate_body(ast_module_body)
-        return Module(self.functions, global_body)
+        module.body = self.translate_body(ast_module_body)
+        self.context = cast(Namespace, module.parent)
+        return module
 
 
-def translate_string(input: str):
+def translate_string(module_name: str, input: str):
     ast_module = ast.parse(input)
-    module = Translator().translate_module(ast_module)
+    module = Translator().translate_module(module_name, ast_module)
     result = module.emit()
     return '\n'.join(result)
 
@@ -181,7 +239,7 @@ def translate(verbose: bool, input: Path, output: Path):
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
     lg.info(f'Translating {input} to {output}')
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(translate_string(input.read_text()))
+    output.write_text(translate_string(input.stem, input.read_text()))
 
 
 if __name__ == '__main__':
