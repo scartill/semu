@@ -18,9 +18,12 @@ class Element:
         raise NotImplementedError()
 
 
+@dataclass
 class VoidElement(Element):
+    comment: str
+
     def emit(self):
-        return ['nop']
+        return [f'// {self.comment}']
 
 
 @dataclass
@@ -36,12 +39,23 @@ TargetType = Literal['uint32']
 
 @dataclass
 class KnownName:
-    type: TargetType
+    name: str
+    target_type: TargetType
 
 
 @dataclass
 class Constant(KnownName):
     value: Any
+
+
+@dataclass
+class GlobalVar(KnownName):
+    pass
+
+
+@dataclass
+class LocalVar(KnownName):
+    pass
 
 
 class Namespace(Element):
@@ -62,6 +76,9 @@ class Namespace(Element):
     def get_name(self, name: str) -> KnownName | None:
         lg.debug(f'Looking up {name} in {self.namespace()}')
         return self.names.get(name)
+
+    def create_variable(self, name: str, target_type: TargetType) -> None:
+        raise NotImplementedError()
 
 
 class Function(Namespace):
@@ -100,8 +117,28 @@ class Module(Namespace):
         self.functions = dict()
         self.body = list()
 
+    def emit_global_var(self, global_var: GlobalVar):
+        lg.debug(f'Defining a global variable placeholder {global_var.name}')
+
+        return [
+            f'// Begin variable {global_var.target_type}',
+            f'{global_var.name}:',  # label
+            'nop',                  # placeholder
+            '// End variable',
+        ]
+
+    def create_variable(self, name: str, target_type: TargetType) -> None:
+        if name in self.names:
+            raise UserWarning(f'Redefinition of the name {name}')
+
+        lg.debug(f'Creating a global variable {name}')
+        self.names[name] = GlobalVar(name, target_type)
+
     def emit(self):
         result: List[str] = []
+
+        for global_var in filter(lambda n: isinstance(n, GlobalVar), self.names.values()):
+            result.extend(self.emit_global_var(cast(GlobalVar, global_var)))
 
         for function in self.functions.values():
             result.extend(function.emit())
@@ -110,7 +147,7 @@ class Module(Namespace):
             result.extend(expr.emit())
 
         result.append('hlt')
-        return result
+        return flatten(result)
 
 
 class TopLevel(Namespace):
@@ -132,7 +169,7 @@ class TopLevel(Namespace):
         for module in self.modules.values():
             result.extend(module.emit())
 
-        return result
+        return flatten(result)
 
 
 def uint32const(ast_value: ast.AST):
@@ -199,37 +236,60 @@ class Translator:
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
+    def translate_const_assign(self, name: str, ast_value: ast.AST):
+        value = uint32const(ast_value)
+        self.context.names[name] = Constant(name, 'uint32', value)
+        return VoidElement(f'Const {name} = {value}')
+
+    def translate_var_assign(self, target_name: str, source: ast.expr):
+        # target = self.resolve_name(target_name)
+        return VoidElement('tbd')
+
     def translate_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
         ast_target = ast_assign.targets[0]
-        ast_value = ast_assign.value
 
         if isinstance(ast_target, ast.Name):
             name = ast_target.id
         else:
             raise UserWarning(f'Unsupported assign target {ast_target}')
 
+        ast_value = ast_assign.value
+
         if isinstance(ast_value, ast.Constant):
-            value = uint32const(ast_value)
-            self.context.names[name] = Constant('uint32', value)
-            return VoidElement()
-        if isinstance(ast_value, ast.Name):
-            known_name = self.resolve_name(ast_value.id)
+            return self.translate_const_assign(name, ast_value)
         else:
-            raise UserWarning(f'Unsupported assign value {ast_value}')
+            return self.translate_var_assign(name, ast_value)
+
+    def translate_ann_assign(self, assign: ast.AnnAssign):
+        if assign.simple != 1:
+            raise UserWarning('Only simple type declarations are supported')
+
+        name = cast(ast.Name, assign.target).id
+        type_name = cast(ast.Name, assign.annotation).id
+
+        if type_name == 'int':
+            target_type = 'uint32'
+        else:
+            raise UserWarning('Only "int" type is supported')
+
+        self.context.create_variable(name, target_type)
+        return VoidElement(f'Declare var {name}')
 
     def translate_stmt(self, ast_element: ast.stmt):
         if isinstance(ast_element, ast.Expr):
             return self.translate_expr(ast_element)
         elif isinstance(ast_element, ast.Pass):
-            return VoidElement()
+            return VoidElement('pass')
         elif isinstance(ast_element, ast.Assign):
             return self.translate_assign(ast_element)
+        elif isinstance(ast_element, ast.AnnAssign):
+            return self.translate_ann_assign(ast_element)
         else:
             lg.warning(f'Unsupported element {ast_element}')
-            return VoidElement()
+            return VoidElement('unsupported')
 
     def translate_body(self, ast_body: List[ast.stmt]) -> List[Element]:
         return list(map(self.translate_stmt, ast_body))
@@ -273,7 +333,7 @@ def translate_string(module_name: str, input: str):
     ast_module = ast.parse(input)
     module = Translator().translate_module(module_name, ast_module)
     result = module.emit()
-    return '\n'.join(result)
+    return '\n'.join(filter(lambda s: s != '\n', result))
 
 
 @click.command()
