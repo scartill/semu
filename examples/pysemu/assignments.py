@@ -1,8 +1,10 @@
 # type: ignore
 
 a: int
+b: int
 
 SERIAL_MM_BASE = 64
-pass
-a = SERIAL_MM_BASE
+a = 1
+b = SERIAL_MM_BASE
+# c = a
 #stdlib.assertion(a, SERIAL_MM_BASE)

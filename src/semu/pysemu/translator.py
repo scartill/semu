@@ -1,6 +1,6 @@
 from pathlib import Path
 import logging as lg
-from typing import List, Dict, Literal, Any, cast
+from typing import Sequence, Dict, Literal, Any, cast
 from dataclasses import dataclass
 import ast
 
@@ -14,7 +14,7 @@ NUMBER_OF_REGISTERS = len(REGISTERS)
 
 
 class Element:
-    def emit(self) -> List[str]:
+    def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
 
@@ -30,11 +30,11 @@ class VoidElement(Element):
 class Checkpoint(Element):
     arg: int
 
-    def emit(self) -> List[str]:
+    def emit(self) -> Sequence[str]:
         return [f'.check {self.arg}']
 
 
-TargetType = Literal['uint32']
+TargetType = Literal['unit', 'uint32']
 
 
 @dataclass
@@ -58,7 +58,7 @@ class LocalVar(KnownName):
     pass
 
 
-class Namespace(Element):
+class Namespace:
     names: Dict[str, KnownName]
 
     def __init__(self, name: str, parent: 'Namespace | None'):
@@ -81,10 +81,32 @@ class Namespace(Element):
         raise NotImplementedError()
 
 
-class Function(Namespace):
+@dataclass
+class GlobalVarAssignment(Element):
+    target: KnownName
+    body: Sequence[Element]
+
+    def emit(self):
+        return flatten([
+            f'// Calculating {self.target.name}',
+            flatten([expr.emit() for expr in self.body]),
+            f'ldr &{self.target.name} b',
+            'mrm a b'
+        ])
+
+
+@dataclass
+class ConstantExpression(Element):
+    value: int
+
+    def emit(self):
+        return f'ldc {self.value} a'
+
+
+class Function(Namespace, Element):
     name: str
-    args: List[str]
-    body: List[Element]
+    args: Sequence[str]
+    body: Sequence[Element]
 
     def __init__(self, name: str, parent: Namespace):
         super().__init__(name, parent)
@@ -100,7 +122,7 @@ class Function(Namespace):
             f'push {reg}'
         ]
 
-    def emit(self) -> List[str]:
+    def emit(self) -> Sequence[str]:
         return flatten([
             f'// function {self.name}',
             [self._emit_args(i) for i in range(len(self.args))],
@@ -108,9 +130,9 @@ class Function(Namespace):
         ])
 
 
-class Module(Namespace):
+class Module(Namespace, Element):
     functions: Dict[str, Function]
-    body: List[Element]
+    body: Sequence[Element]
 
     def __init__(self, name: str, parent: Namespace):
         super().__init__(name, parent)
@@ -135,7 +157,7 @@ class Module(Namespace):
         self.names[name] = GlobalVar(name, target_type)
 
     def emit(self):
-        result: List[str] = []
+        result: Sequence[str] = []
 
         for global_var in filter(lambda n: isinstance(n, GlobalVar), self.names.values()):
             result.extend(self.emit_global_var(cast(GlobalVar, global_var)))
@@ -150,7 +172,7 @@ class Module(Namespace):
         return flatten(result)
 
 
-class TopLevel(Namespace):
+class TopLevel(Namespace, Element):
     modules: Dict[str, Module]
 
     def __init__(self):
@@ -164,7 +186,7 @@ class TopLevel(Namespace):
         return self.namespace()
 
     def emit(self):
-        result: List[str] = []
+        result: Sequence[str] = []
 
         for module in self.modules.values():
             result.extend(module.emit())
@@ -184,12 +206,12 @@ def uint32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def std_checkpoint(ast_args: List[ast.expr]):
+def std_checkpoint(ast_args: Sequence[ast.expr]):
     if len(ast_args) != 1:
         raise UserWarning(f'checkpoint expects 1 argument, got {len(ast_args)}')
 
     arg = uint32const(ast_args[0])
-    return Checkpoint(arg)
+    return ('unit', [Checkpoint(arg)])
 
 
 STD_LIB_CALLS = {
@@ -211,7 +233,7 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(self, std_name: str, ast_args: List[ast.expr]):
+    def translate_std_call(self, std_name: str, ast_args: Sequence[ast.expr]):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
 
@@ -230,20 +252,51 @@ class Translator:
         else:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
 
-    def translate_expr(self, ast_expr: ast.Expr):
-        if isinstance(ast_expr.value, ast.Call):
-            return self.translate_call(ast_expr.value)
+    def load_const(self, name: str):
+        ''' Invalidates registers and stores the result in 'a' '''
+        known_name = self.resolve_name(name)
+
+        if not isinstance(known_name, Constant):
+            raise UserWarning(f'Unsupported const reference {name}')
+
+        return ('uint32', [ConstantExpression(known_name.value)])
+
+    def translate_expr(self, ast_expr: ast.expr):
+        ''' Invalidates registers and stores the result in 'a' '''
+
+        if isinstance(ast_expr, ast.Constant):
+            return ('uint32', [ConstantExpression(uint32const(ast_expr))])
+
+        if isinstance(ast_expr, ast.Expr):
+            if isinstance(ast_expr.value, ast.Call):
+                return self.translate_call(ast_expr.value)
+
+        if isinstance(ast_expr, ast.Name):
+            if ast_expr.id.isupper():
+                return self.load_const(ast_expr.id)
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
     def translate_const_assign(self, name: str, ast_value: ast.AST):
         value = uint32const(ast_value)
         self.context.names[name] = Constant(name, 'uint32', value)
-        return VoidElement(f'Const {name} = {value}')
+        return [VoidElement(f'Const {name} = {value}')]
 
     def translate_var_assign(self, target_name: str, source: ast.expr):
-        # target = self.resolve_name(target_name)
-        return VoidElement('tbd')
+        ''' Invalidates registers and stores the result in 'a' '''
+        target = self.resolve_name(target_name)
+
+        if isinstance(target, GlobalVar):
+            expr_target_type, expr_body = self.translate_expr(source)
+
+            if target.target_type != expr_target_type:
+                raise UserWarning(
+                    f'Expression type mismath {expr_target_type} in not {target.target_type}'
+                )
+
+            return [GlobalVarAssignment(target, expr_body)]
+        else:
+            raise UserWarning(f'Unsupported assignment {target}')
 
     def translate_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
@@ -258,10 +311,15 @@ class Translator:
 
         ast_value = ast_assign.value
 
-        if isinstance(ast_value, ast.Constant):
+        if name.isupper():
+            if not isinstance(ast_value, ast.Constant):
+                raise UserWarning(f'Only const assignments are supported for {name}')
+
             return self.translate_const_assign(name, ast_value)
-        else:
+        elif name.islower():
             return self.translate_var_assign(name, ast_value)
+        else:
+            raise UserWarning(f'Unsupported name {name}')
 
     def translate_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
@@ -276,23 +334,25 @@ class Translator:
             raise UserWarning('Only "int" type is supported')
 
         self.context.create_variable(name, target_type)
-        return VoidElement(f'Declare var {name}')
+        return [VoidElement(f'Declare var {name}')]
 
-    def translate_stmt(self, ast_element: ast.stmt):
-        if isinstance(ast_element, ast.Expr):
-            return self.translate_expr(ast_element)
+    def translate_stmt(self, ast_element: ast.stmt) -> Sequence[Element]:
+        if isinstance(ast_element, ast.expr):
+            target_type, body = self.translate_expr(ast_element)
+            lg.debug(f'Expression target type {target_type} ignored')
+            return body
         elif isinstance(ast_element, ast.Pass):
-            return VoidElement('pass')
+            return [VoidElement('pass')]
         elif isinstance(ast_element, ast.Assign):
             return self.translate_assign(ast_element)
         elif isinstance(ast_element, ast.AnnAssign):
             return self.translate_ann_assign(ast_element)
         else:
             lg.warning(f'Unsupported element {ast_element}')
-            return VoidElement('unsupported')
+            return [VoidElement('unsupported')]
 
-    def translate_body(self, ast_body: List[ast.stmt]) -> List[Element]:
-        return list(map(self.translate_stmt, ast_body))
+    def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[Element]:
+        return flatten(list(map(self.translate_stmt, ast_body)))
 
     def translate_function(self, ast_function: ast.FunctionDef) -> Function:
         name = ast_function.name
@@ -315,7 +375,7 @@ class Translator:
         module = Module(name, self.context)
         self.context = module
 
-        ast_module_body: List[ast.stmt] = []
+        ast_module_body: Sequence[ast.stmt] = []
 
         for ast_element in ast_module.body:
             if isinstance(ast_element, ast.FunctionDef):

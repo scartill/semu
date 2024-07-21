@@ -1,4 +1,4 @@
-$subject = "consts"
+$subject = "assignments"
 $translator = "$PSScriptRoot/src/semu/pysemu/translator.py"
 $compiler = "$PSScriptRoot/src/semu/compile/compiler.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"

@@ -1,10 +1,10 @@
 # type: ignore
-from typing import List, Any
+from typing import Sequence, Any
 
-DeepList = List[Any]
+DeepList = Sequence[Any]
 
 
-def flatten(deeplist: DeepList) -> List[Any]:
+def flatten(deeplist: DeepList) -> Sequence[Any]:
     def _flatten(lst):
         for el in lst:
             if isinstance(el, list):
