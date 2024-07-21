@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 import logging as lg
 from typing import Sequence, Dict, Literal, Any, cast
@@ -41,6 +42,9 @@ TargetType = Literal['unit', 'uint32']
 class KnownName:
     name: str
     target_type: TargetType
+
+    def __str__(self) -> str:
+        return f'{self.name}: {self.target_type}'
 
 
 @dataclass
@@ -159,7 +163,21 @@ class Function(Namespace, Element):
             [expr.emit() for expr in self.body]
         ])
 
+    def __str__(self) -> str:
+        result = [f'Function {self.namespace()}']
 
+        result.append('Arguments:')
+        for arg in self.args:
+            result.append(f'\t{arg}')
+
+        result.extend(['Body:'])
+        for expr in self.body:
+            result.append(str(expr))
+
+        return '\n'.join(result)
+
+
+@dataclass
 class Module(Namespace, Element):
     functions: Dict[str, Function]
     body: Sequence[Element]
@@ -170,7 +188,6 @@ class Module(Namespace, Element):
         self.body = list()
 
     def create_global_var(self, global_var: GlobalVar):
-        lg.debug(f'Defining a global variable placeholder {global_var.name}')
         return GlobalVariableCreate(global_var.name)
 
     def create_variable(self, name: str, target_type: TargetType) -> None:
@@ -198,6 +215,36 @@ class Module(Namespace, Element):
 
         result.append('hlt')
         return flatten(result)
+
+    def __str__(self) -> str:
+        result = ['Module[', f'\tname={self.name}']
+
+        if self.names:
+            result.append('\tKnownNames=[')
+
+            for known_name in self.names.values():
+                result.append(f'\t\t{str(known_name)}')
+
+            result.append('\t]')
+
+        if self.functions:
+            result.append('\tFunctions=[')
+
+            for function in self.functions.values():
+                result.append(f'\t\t{str(function)}')
+
+            result.append('\t]')
+
+        if self.body:
+            result.append('\tBody=[')
+
+            for statement in self.body:
+                result.append(f'\t\t{str(statement)}')
+
+            result.append('\t]')
+
+        result.append(']')
+        return '\n'.join(result)
 
 
 class TopLevel(Namespace, Element):
@@ -424,22 +471,37 @@ class Translator:
         return module
 
 
-def translate_string(module_name: str, input: str):
+def eprint(*args: Any, **kwargs: Any):
+    print(*args, file=sys.stderr, **kwargs)
+
+
+def translate_string(params: Dict[str, Any], module_name: str, input: str):
     ast_module = ast.parse(input)
     module = Translator().translate_module(module_name, ast_module)
-    result = module.emit()
-    return '\n'.join(filter(lambda s: s != '\n', result))
+    result = '\n'.join(module.emit())
+
+    if params['verbose']:
+        eprint('------------ AST ---------------')
+        eprint(module)
+        eprint('------------ ASM ---------------')
+        eprint(result)
+        eprint('--------------------------------')
+
+    return result
 
 
 @click.command()
+@click.pass_context
 @click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
 @click.argument('input', type=Path)
 @click.argument('output', type=Path)
-def translate(verbose: bool, input: Path, output: Path):
+def translate(ctx: click.Context, verbose: bool, input: Path, output: Path):
+    ctx.ensure_object(dict)
+    ctx.obj['verbose'] = verbose
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
     lg.info(f'Translating {input} to {output}')
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(translate_string(input.stem, input.read_text()))
+    output.write_text(translate_string(ctx.obj, input.stem, input.read_text()))
 
 
 if __name__ == '__main__':

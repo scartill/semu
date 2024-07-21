@@ -13,6 +13,5 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Get-Content $sasm
 python $compiler $sasm $rom
 python $emulator $rom
