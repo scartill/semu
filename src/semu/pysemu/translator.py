@@ -1,6 +1,6 @@
 from pathlib import Path
 import logging as lg
-from typing import List, Dict, cast
+from typing import List, Dict, Literal, Any, cast
 from dataclasses import dataclass
 import ast
 
@@ -13,38 +13,61 @@ REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 NUMBER_OF_REGISTERS = len(REGISTERS)
 
 
-class Expression:
+class Element:
     def emit(self) -> List[str]:
         raise NotImplementedError()
 
 
-class VoidElement(Expression):
+class VoidElement(Element):
     def emit(self):
         return ['nop']
 
 
 @dataclass
-class Checkpoint(Expression):
+class Checkpoint(Element):
     arg: int
 
     def emit(self) -> List[str]:
         return [f'.check {self.arg}']
 
 
-class Namespace(Expression):
+TargetType = Literal['uint32']
+
+
+@dataclass
+class KnownName:
+    type: TargetType
+
+
+@dataclass
+class Constant(KnownName):
+    value: Any
+
+
+class Namespace(Element):
+    names: Dict[str, KnownName]
+
     def __init__(self, name: str, parent: 'Namespace | None'):
         self.name = name
         self.parent = parent
+        self.names = dict()
 
     def namespace(self) -> str:
-        parent_name = self.parent.namespace() if self.parent else ''
-        return f'{parent_name}.{self.name}'
+        prefix = self.parent.parent_prefix() if self.parent else ''
+        return f'{prefix}{self.name}'
+
+    def parent_prefix(self) -> str:
+        return f'{self.namespace()}.'
+
+    def get_name(self, name: str) -> KnownName | None:
+        lg.debug(f'Looking up {name} in {self.namespace()}')
+        return self.names.get(name)
 
 
 class Function(Namespace):
     name: str
     args: List[str]
-    body: List[Expression]
+    body: List[Element]
 
     def __init__(self, name: str, parent: Namespace):
         super().__init__(name, parent)
@@ -70,7 +93,7 @@ class Function(Namespace):
 
 class Module(Namespace):
     functions: Dict[str, Function]
-    body: List[Expression]
+    body: List[Element]
 
     def __init__(self, name: str, parent: Namespace):
         super().__init__(name, parent)
@@ -96,6 +119,12 @@ class TopLevel(Namespace):
     def __init__(self):
         super().__init__('::', None)
         self.modules = dict()
+
+    def namespace(self) -> str:
+        return '::'
+
+    def parent_prefix(self) -> str:
+        return self.namespace()
 
     def emit(self):
         result: List[str] = []
@@ -137,6 +166,14 @@ class Translator:
     def __init__(self):
         self.context = TopLevel()
 
+    def resolve_name(self, name: str) -> KnownName:
+        known_name = self.context.get_name(name)
+
+        if known_name is None:
+            raise UserWarning(f'Unknown reference {name}')
+
+        return known_name
+
     def translate_std_call(self, std_name: str, ast_args: List[ast.expr]):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
@@ -169,11 +206,19 @@ class Translator:
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
 
+        if isinstance(ast_target, ast.Name):
+            name = ast_target.id
+        else:
+            raise UserWarning(f'Unsupported assign target {ast_target}')
+
         if isinstance(ast_value, ast.Constant):
             value = uint32const(ast_value)
+            self.context.names[name] = Constant('uint32', value)
+            return VoidElement()
+        if isinstance(ast_value, ast.Name):
+            known_name = self.resolve_name(ast_value.id)
         else:
             raise UserWarning(f'Unsupported assign value {ast_value}')
-        raise UserWarning(f'Unsupported assign value {ast_value}')
 
     def translate_stmt(self, ast_element: ast.stmt):
         if isinstance(ast_element, ast.Expr):
@@ -186,7 +231,7 @@ class Translator:
             lg.warning(f'Unsupported element {ast_element}')
             return VoidElement()
 
-    def translate_body(self, ast_body: List[ast.stmt]) -> List[Expression]:
+    def translate_body(self, ast_body: List[ast.stmt]) -> List[Element]:
         return list(map(self.translate_stmt, ast_body))
 
     def translate_function(self, ast_function: ast.FunctionDef) -> Function:
