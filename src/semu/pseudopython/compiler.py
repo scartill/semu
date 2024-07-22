@@ -7,7 +7,7 @@ import ast
 
 import click
 
-from semu.pysemu.flatten import flatten
+from semu.pseudopython.flatten import flatten
 
 
 REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -515,15 +515,15 @@ def add_module(translator: Translator, name: str, input: str):
     translator.translate(name, ast_tree)
 
 
-def compile_single(params: Params, translator: Translator, name: str, input: str):
+def compile_single_str(params: Params, name: str, input: str):
+    translator = Translator()
     add_module(translator, name, input)
     sasm = emit(params, translator)
     return sasm
 
 
-def translate_single_file(params: Params, input: Path, output: Path):
-    translator = Translator()
-    sasm = compile_single(params, translator, input.stem, input.read_text())
+def compile_single_file(params: Params, input: Path, output: Path):
+    sasm = compile_single_str(params, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sasm[0][1])
 
@@ -533,7 +533,7 @@ def translate_single_file(params: Params, input: Path, output: Path):
 @click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
 @click.argument('input', type=Path)
 @click.argument('output', type=Path, required=False)
-def translate(ctx: click.Context, verbose: bool, input: Path, output: Path | None):
+def compile(ctx: click.Context, verbose: bool, input: Path, output: Path | None):
     ctx.ensure_object(dict)
     ctx.obj['verbose'] = verbose
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
@@ -542,8 +542,8 @@ def translate(ctx: click.Context, verbose: bool, input: Path, output: Path | Non
         output = input.with_suffix('.sasm')
 
     lg.info(f'Translating {input} to {output}')
-    translate_single_file(ctx.obj, input, output)
+    compile_single_file(ctx.obj, input, output)
 
 
 if __name__ == '__main__':
-    translate()
+    compile()

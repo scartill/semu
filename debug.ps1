@@ -1,13 +1,13 @@
 $subject = "assignments"
-$translator = "$PSScriptRoot/src/semu/pysemu/translator.py"
+$compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $compiler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
 
-$source = "$PSScriptRoot/examples/pysemu/$subject.py"
+$source = "$PSScriptRoot/examples/pseudopython/$subject.py"
 $sasm = "$PSScriptRoot/.build/$subject.sasm"
 $rom = "$PSScriptRoot/.build/$subject.bin"
 
-python $translator -v $source $sasm
+python $compiler -v $source $sasm
 
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE

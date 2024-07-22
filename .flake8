@@ -2,4 +2,4 @@
 max-line-length = 160
 ignore = E731
 exclude = 
-    examples/pysemu/*.py
+    examples/pseudopython/*.py
