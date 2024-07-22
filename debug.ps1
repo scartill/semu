@@ -1,6 +1,6 @@
 $subject = "assignments"
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
-$compiler = "$PSScriptRoot/src/semu/sasm/masm.py"
+$assembler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
 
 $source = "$PSScriptRoot/examples/pseudopython/$subject.py"
@@ -14,5 +14,5 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # TODO: disable macroprocessor
-python $compiler $sasm $rom
+python $assembler $sasm $rom
 python $emulator $rom
