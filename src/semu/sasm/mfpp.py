@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from semu.common.hwconf import WORD_SIZE
 import semu.common.ops as ops
-from semu.compile.fpp import FPP, Tokens
+from semu.sasm.fpp import FPP, Tokens
 
 
 class Context:

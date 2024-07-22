@@ -2,8 +2,8 @@
 import pytest
 from pathlib import Path
 
-import semu.compile.hwc as hwc
-import semu.compile.compiler as compiler
+import semu.sasm.hwc as hwc
+import semu.sasm.masm as masm
 
 
 @pytest.fixture
@@ -16,5 +16,5 @@ def with_kernel(with_hardware):
     base_dir = Path(__file__).parent.parent
     kernel_lib = base_dir / 'lib' / 'kernel'
     items = [with_hardware]
-    items.extend(compiler.collect_library(kernel_lib))
+    items.extend(masm.collect_library(kernel_lib))
     yield items

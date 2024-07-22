@@ -1,6 +1,6 @@
 $subject = "assignments"
 $translator = "$PSScriptRoot/src/semu/pysemu/translator.py"
-$compiler = "$PSScriptRoot/src/semu/compile/compiler.py"
+$compiler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
 
 $source = "$PSScriptRoot/examples/pysemu/$subject.py"

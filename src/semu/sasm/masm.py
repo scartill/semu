@@ -5,8 +5,8 @@ import tomllib
 
 import click
 
-from semu.compile.asm import CompilationItem, compile_items
-import semu.compile.hwc as hwc
+from semu.sasm.asm import CompilationItem, compile_items
+import semu.sasm.hwc as hwc
 
 
 def namespace(src_filepath: Path) -> str:

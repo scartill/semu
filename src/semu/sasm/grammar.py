@@ -4,7 +4,7 @@
 import pyparsing as pp
 
 import semu.common.ops as ops
-from semu.compile.fpp import FPP
+from semu.sasm.fpp import FPP
 
 
 def g_cmd(literal, op):

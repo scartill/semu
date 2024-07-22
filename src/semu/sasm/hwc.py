@@ -1,5 +1,5 @@
 import semu.common.hwconf as hw
-from semu.compile.compiler import CompilationItem
+from semu.sasm.masm import CompilationItem
 
 
 def configure_param(param: str) -> str:

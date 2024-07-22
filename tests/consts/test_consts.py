@@ -1,6 +1,6 @@
 import pytest
 
-import semu.compile.asm as asm
+import semu.sasm.asm as asm
 import semu.runtime.emulator as emulator
 import semu.runtime.cpu as cpu
 

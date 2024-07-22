@@ -3,9 +3,9 @@
 
 import pyparsing as pp
 
-from semu.compile.mfpp import MacroFPP as MFPP
+from semu.sasm.mfpp import MacroFPP as MFPP
 
-from semu.compile.grammar import (
+from semu.sasm.grammar import (
     id,
     refname,
     comment,
