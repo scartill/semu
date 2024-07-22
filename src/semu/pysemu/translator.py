@@ -532,11 +532,14 @@ def translate_single_file(params: Params, input: Path, output: Path):
 @click.pass_context
 @click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
 @click.argument('input', type=Path)
-@click.argument('output', type=Path)
-def translate(ctx: click.Context, verbose: bool, input: Path, output: Path):
+@click.argument('output', type=Path, required=False)
+def translate(ctx: click.Context, verbose: bool, input: Path, output: Path | None):
     ctx.ensure_object(dict)
     ctx.obj['verbose'] = verbose
     lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
+
+    if not output:
+        output = input.with_suffix('.sasm')
 
     lg.info(f'Translating {input} to {output}')
     translate_single_file(ctx.obj, input, output)

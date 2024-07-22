@@ -5,9 +5,9 @@ $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
 
 $source = "$PSScriptRoot/examples/pysemu/$subject.py"
 $sasm = "$PSScriptRoot/.build/$subject.sasm"
-$rom = "$PSScriptRoot/roms/$subject.bin"
+$rom = "$PSScriptRoot/.build/$subject.bin"
 
-python $translator $source -v $sasm
+python $translator -v $source $sasm
 
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
