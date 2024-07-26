@@ -42,10 +42,22 @@ class Expression(Element):
 class Checkpoint(Expression):
     arg: int
 
-    def __init__(self, arg: int):
+    def __init__(self, args: Sequence[Expression]):
+        lg.debug(f'Checkpoint {args}')
+
+        if len(args) != 1:
+            raise UserWarning(f"'checkpoint' expects 1 argument, got {len(args)}")
+
+        arg = args[0]
+
+        if not isinstance(arg, ConstantExpression):
+            raise UserWarning(f"'checkpoint' expects a constant argument, got {arg}")
+
         self.target_type = 'unit'
         self.target = None
-        self.arg = arg
+
+        # Inlining the checkpoint number
+        self.arg = arg.value
 
     def emit(self) -> Sequence[str]:
         return [f'.check {self.arg}']
@@ -303,24 +315,8 @@ def uint32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def std_checkpoint(args: Sequence[Expression]):
-    lg.debug('Checkpoint')
-    if len(args) != 1:
-        raise UserWarning(f'checkpoint expects 1 argument, got {len(args)}')
-
-    arg = args[0]
-
-    if not isinstance(arg, ast.Constant):
-        raise UserWarning(f'checkpoint expects a constant argument, got {arg}')
-
-    return Checkpoint(arg.value)
-
-
-# def std_assertion(ast_args: Sequence[ast.expr]):
-
-
 STD_LIB_CALLS = {
-    'checkpoint': std_checkpoint,
+    'checkpoint': Checkpoint,
 }
 
 
@@ -346,11 +342,10 @@ class Translator:
 
         return STD_LIB_CALLS[std_name](args)
 
-    def translate_arg(self, ast_arg: ast.Expression, target: Register):
+    def translate_arg(self, ast_arg: ast.AST, target: Register):
         return self.translate_source(ast_arg, target)
 
     def translate_call(self, ast_call: ast.Call):
-        lg.debug('Call')
         ast_name = ast_call.func
 
         if not isinstance(ast_name, ast.Attribute):
@@ -366,9 +361,6 @@ class Translator:
         args_expressions: Sequence[Expression] = []
         for i in range(len(ast_args)):
             ast_arg = ast_args[i]
-            if not isinstance(ast_arg, ast.Expression):
-                raise UserWarning(f'Unsupported argument {ast_arg}')
-
             target = cast(Register, REGISTERS[i])
             lg.debug(f'Adding argument of type {type(ast_arg)} to {target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
@@ -507,10 +499,14 @@ class Translator:
         return VoidElement(f'Declare var {name}')
 
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
+        lg.debug(f'Stmt {type(ast_element)}')
+
         if isinstance(ast_element, ast.Expr):
             if isinstance(ast_element.value, ast.Expression):
                 expression = self.translate_expr(ast_element.value, DEFAULT_REGISTER)
                 return expression
+            if isinstance(ast_element.value, ast.Call):
+                return self.translate_call(ast_element.value)
             else:
                 lg.debug(f'Statements of type {type(ast_element.value)} are ignored')
                 return VoidElement('ignored')

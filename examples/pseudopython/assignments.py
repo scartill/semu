@@ -1,11 +1,10 @@
 # type: ignore
 
-# stdlib.checkpoint(1)
+stdlib.checkpoint(1)
+pass
 
 a: int
 b: int
-
-pass
 
 SERIAL_MM_BASE = 64
 a = 1
