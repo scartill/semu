@@ -13,7 +13,7 @@ def with_hardware():
 
 @pytest.fixture
 def with_kernel(with_hardware):
-    base_dir = Path(__file__).parent.parent
+    base_dir = Path(__file__).parents[2]
     kernel_lib = base_dir / 'lib' / 'kernel'
     items = [with_hardware]
     items.extend(masm.collect_library(kernel_lib))
