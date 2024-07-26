@@ -60,7 +60,51 @@ class Checkpoint(Expression):
         self.arg = arg.value
 
     def emit(self) -> Sequence[str]:
-        return [f'.check {self.arg}']
+        return [
+            '// Checkpoint',
+            f'.check {self.arg}'
+        ]
+
+
+@dataclass
+class Assertion(Expression):
+    source: Expression
+    value: int
+
+    def __init__(self, args: Sequence[Expression]):
+        lg.debug(f'Assertion {args}')
+
+        if len(args) != 2:
+            raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
+
+        self.source = args[0]
+        value_expr = args[1]
+
+        if not isinstance(value_expr, ConstantExpression):
+            raise UserWarning(f"'assertion' expects a constant value, got {value_expr}")
+
+        if self.source.target_type != 'uint32':
+            raise UserWarning(
+                f"'assertion' expects a uint32 source, got {self.source.target_type}"
+            )
+
+        if value_expr.target_type != 'uint32':
+            raise UserWarning(
+                f"'assertion' expects a uint32 value, got {value_expr.target_type}"
+            )
+
+        self.target_type = 'unit'
+        self.target = None
+
+        # Inlining the value
+        self.value = value_expr.value
+
+    def emit(self) -> Sequence[str]:
+        return flatten([
+            '// Assertion',
+            self.source.emit(),
+            f'.assert {self.source.target} {self.value}'
+        ])
 
 
 @dataclass
@@ -317,6 +361,7 @@ def uint32const(ast_value: ast.AST):
 
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
+    'assertion': Assertion
 }
 
 

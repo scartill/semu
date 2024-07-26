@@ -12,4 +12,8 @@ b = SERIAL_MM_BASE
 
 c: int
 c = a
-# stdlib.assertion(a, SERIAL_MM_BASE)
+
+stdlib.assertion(1, 1)
+stdlib.assertion(a, 1)
+stdlib.assertion(b, SERIAL_MM_BASE)
+stdlib.assertion(c, 1)
