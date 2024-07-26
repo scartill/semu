@@ -12,6 +12,8 @@ from semu.pseudopython.flatten import flatten
 
 REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 NUMBER_OF_REGISTERS = len(REGISTERS)
+DEFAULT_REGISTER = 'a'
+Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] | None
 
 
 class Element:
@@ -27,15 +29,26 @@ class VoidElement(Element):
         return [f'// {self.comment}']
 
 
+TargetType = Literal['unit', 'uint32']
+
+
 @dataclass
-class Checkpoint(Element):
+class Expression(Element):
+    target_type: TargetType
+    target: Register
+
+
+@dataclass
+class Checkpoint(Expression):
     arg: int
+
+    def __init__(self, arg: int):
+        self.target_type = 'unit'
+        self.target = None
+        self.arg = arg
 
     def emit(self) -> Sequence[str]:
         return [f'.check {self.arg}']
-
-
-TargetType = Literal['unit', 'uint32']
 
 
 @dataclass
@@ -84,7 +97,7 @@ class Namespace:
     def create_variable(self, name: str, target_type: TargetType) -> None:
         raise NotImplementedError()
 
-    def load_variable(self, known_name: KnownName) -> Sequence[Element]:
+    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
         raise NotImplementedError()
 
 
@@ -102,39 +115,40 @@ class GlobalVariableCreate(Element):
 
 
 @dataclass
+class ConstantExpression(Expression):
+    value: int
+
+    def emit(self):
+        return f'ldc {self.value} {self.target}'
+
+
+@dataclass
 class GlobalVarAssignment(Element):
     target: KnownName
-    body: Sequence[Element]
+    expr: Expression
+    source: Register = DEFAULT_REGISTER
 
     def emit(self):
         return flatten([
-            f'// Calculating {self.target.name}',
-            flatten([expr.emit() for expr in self.body]),
+            f"// Calculating {self.target.name} into {self.source}",
+            self.expr.emit(),
             f'// Storing {self.target.name}',
             f'ldr &{self.target.name} b',
-            'mrm a b'
+            f'mrm {self.source} b'
         ])
 
 
 @dataclass
-class GlobalVariableLoad(Element):
+class GlobalVariableLoad(Expression):
     name: str
 
     def emit(self):
         return flatten([
             f'// Loading {self.name} address',
             f'ldr &{self.name} b',
-            f'// Setting {self.name} to a',
-            'mmr b a'
+            f'// Setting {self.name} to {self.target}',
+            f'mmr b {self.target}'
         ])
-
-
-@dataclass
-class ConstantExpression(Element):
-    value: int
-
-    def emit(self):
-        return f'ldc {self.value} a'
 
 
 class Function(Namespace, Element):
@@ -197,8 +211,12 @@ class Module(Namespace, Element):
         lg.debug(f'Creating a global variable {name}')
         self.names[name] = GlobalVar(name, target_type)
 
-    def load_variable(self, known_name: KnownName) -> Sequence[Element]:
-        return [GlobalVariableLoad(known_name.name)]
+    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
+        return GlobalVariableLoad(
+            name=known_name.name,
+            target_type=known_name.target_type,
+            target=target
+        )
 
     def emit(self):
         result: Sequence[str] = []
@@ -285,16 +303,24 @@ def uint32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def std_checkpoint(ast_args: Sequence[ast.expr]):
-    if len(ast_args) != 1:
-        raise UserWarning(f'checkpoint expects 1 argument, got {len(ast_args)}')
+def std_checkpoint(args: Sequence[Expression]):
+    lg.debug('Checkpoint')
+    if len(args) != 1:
+        raise UserWarning(f'checkpoint expects 1 argument, got {len(args)}')
 
-    arg = uint32const(ast_args[0])
-    return ('unit', [Checkpoint(arg)])
+    arg = args[0]
+
+    if not isinstance(arg, ast.Constant):
+        raise UserWarning(f'checkpoint expects a constant argument, got {arg}')
+
+    return Checkpoint(arg.value)
+
+
+# def std_assertion(ast_args: Sequence[ast.expr]):
 
 
 STD_LIB_CALLS = {
-    'checkpoint': std_checkpoint
+    'checkpoint': std_checkpoint,
 }
 
 
@@ -314,13 +340,17 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(self, std_name: str, ast_args: Sequence[ast.expr]):
+    def translate_std_call(self, std_name: str, args: Sequence[Expression]):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
 
-        return STD_LIB_CALLS[std_name](ast_args)
+        return STD_LIB_CALLS[std_name](args)
+
+    def translate_arg(self, ast_arg: ast.Expression, target: Register):
+        return self.translate_source(ast_arg, target)
 
     def translate_call(self, ast_call: ast.Call):
+        lg.debug('Call')
         ast_name = ast_call.func
 
         if not isinstance(ast_name, ast.Attribute):
@@ -328,65 +358,117 @@ class Translator:
 
         ast_name_name = cast(ast.Name, ast_name.value)
 
+        ast_args = ast_call.args
+
+        if len(ast_args) > NUMBER_OF_REGISTERS:
+            raise UserWarning(f'Function call {ast_name_name.id} has too many arguments')
+
+        args_expressions: Sequence[Expression] = []
+        for i in range(len(ast_args)):
+            ast_arg = ast_args[i]
+            if not isinstance(ast_arg, ast.Expression):
+                raise UserWarning(f'Unsupported argument {ast_arg}')
+
+            target = cast(Register, REGISTERS[i])
+            lg.debug(f'Adding argument of type {type(ast_arg)} to {target}')
+            args_expressions.append(self.translate_arg(ast_arg, target))
+
         if ast_name_name.id == 'stdlib':
-            return self.translate_std_call(ast_name.attr, ast_call.args)
+            return self.translate_std_call(ast_name.attr, args_expressions)
         else:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
 
-    def load_const(self, name: str):
-        ''' Invalidates registers and stores the result in 'a' '''
+    def load_const(self, name: str, target: Register):
+        ''' Invalidates registers and stores the result in '<target>' '''
         known_name = self.resolve_name(name)
 
         if not isinstance(known_name, Constant):
             raise UserWarning(f'Unsupported const reference {name}')
 
-        return (known_name.target_type, [ConstantExpression(known_name.value)])
+        return ConstantExpression(
+            target_type=known_name.target_type,
+            value=known_name.value,
+            target=target
+        )
 
-    def load_variable(self, name: str):
-        ''' Invalidates registers and stores the result in 'a' '''
+    def load_variable(self, name: str, target: Register):
+        ''' Invalidates registers and stores the result in '<target>' '''
         known_name = self.resolve_name(name)
-        return (known_name.target_type, self.context.load_variable(known_name))
+        return self.context.load_variable(known_name, target)
 
-    def translate_expr(self, ast_expr: ast.expr):
-        ''' Invalidates registers and stores the result in 'a' '''
+    def translate_expr(self, ast_expr: ast.Expression, target: Register) -> Expression:
+        ''' Invalidates registers and stores the result in '<target>' '''
 
         if isinstance(ast_expr, ast.Constant):
-            return ('uint32', [ConstantExpression(uint32const(ast_expr))])
+            lg.debug('Constant expression')
 
-        if isinstance(ast_expr, ast.Expr):
-            if isinstance(ast_expr.value, ast.Call):
-                return self.translate_call(ast_expr.value)
+            return ConstantExpression(
+                target_type='uint32',
+                value=uint32const(ast_expr),
+                target=target
+            )
+
+        if isinstance(ast_expr, ast.Call):
+            lg.debug('Call expression')
+            return self.translate_call(ast_expr)
 
         if isinstance(ast_expr, ast.Name):
             if ast_expr.id.isupper():
-                return self.load_const(ast_expr.id)
+                return self.load_const(ast_expr.id, target)
             else:
-                return self.load_variable(ast_expr.id)
+                return self.load_variable(ast_expr.id, target)
 
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
-    def translate_const_assign(self, name: str, ast_value: ast.AST):
+    def translate_const_assign(self, name: str, ast_value: ast.Constant):
         value = uint32const(ast_value)
         self.context.names[name] = Constant(name, 'uint32', value)
-        return [VoidElement(f'Const {name} = {value}')]
+        return VoidElement(f'Const {name} = {value}')
 
-    def translate_var_assign(self, target_name: str, source: ast.expr):
-        ''' Invalidates registers and stores the result in 'a' '''
+    def translate_source(self, source: ast.AST, target: Register):
+        lg.debug('Source')
+
+        if isinstance(source, ast.Expression):
+            return self.translate_expr(source, target)
+
+        if isinstance(source, ast.Constant):
+            return ConstantExpression(
+                target_type='uint32',
+                value=uint32const(source),
+                target=target
+            )
+
+        if isinstance(source, ast.Name):
+            if source.id.isupper():
+                return self.load_const(source.id, target)
+            else:
+                return self.load_variable(source.id, target)
+
+        raise UserWarning(f'Unsupported assignment source {source}')
+
+    def translate_var_assign(self, target_name: str, source: ast.AST):
+        ''' Invalidates registers and stores the result in
+            the register `GlobalVarAssignment.source`
+        '''
         target = self.resolve_name(target_name)
 
         if isinstance(target, GlobalVar):
-            expr_target_type, expr_body = self.translate_expr(source)
+            expression = self.translate_source(source, GlobalVarAssignment.source)
+            t_type = target.target_type
+            e_type = expression.target_type
 
-            if target.target_type != expr_target_type:
+            if t_type != e_type:
                 raise UserWarning(
-                    f'Expression type mismath {expr_target_type} in not {target.target_type}'
+                    f'Expression type mismath {e_type} in not {t_type}'
                 )
 
-            return [GlobalVarAssignment(target, expr_body)]
+            return GlobalVarAssignment(target, expression)
         else:
             raise UserWarning(f'Unsupported assignment {target}')
 
     def translate_assign(self, ast_assign: ast.Assign):
+        lg.debug('Assign')
+
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
@@ -422,25 +504,28 @@ class Translator:
             raise UserWarning('Only "int" type is supported')
 
         self.context.create_variable(name, target_type)
-        return [VoidElement(f'Declare var {name}')]
+        return VoidElement(f'Declare var {name}')
 
-    def translate_stmt(self, ast_element: ast.stmt) -> Sequence[Element]:
-        if isinstance(ast_element, ast.expr):
-            target_type, body = self.translate_expr(ast_element)
-            lg.debug(f'Expression target type {target_type} ignored')
-            return body
+    def translate_stmt(self, ast_element: ast.stmt) -> Element:
+        if isinstance(ast_element, ast.Expr):
+            if isinstance(ast_element.value, ast.Expression):
+                expression = self.translate_expr(ast_element.value, DEFAULT_REGISTER)
+                return expression
+            else:
+                lg.debug(f'Statements of type {type(ast_element.value)} are ignored')
+                return VoidElement('ignored')
         elif isinstance(ast_element, ast.Pass):
-            return [VoidElement('pass')]
+            return VoidElement('pass')
         elif isinstance(ast_element, ast.Assign):
             return self.translate_assign(ast_element)
         elif isinstance(ast_element, ast.AnnAssign):
             return self.translate_ann_assign(ast_element)
         else:
-            lg.warning(f'Unsupported element {ast_element}')
-            return [VoidElement('unsupported')]
+            lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
+            return VoidElement('unsupported')
 
     def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[Element]:
-        return flatten(list(map(self.translate_stmt, ast_body)))
+        return list(map(self.translate_stmt, ast_body))
 
     def translate_function(self, ast_function: ast.FunctionDef) -> Function:
         name = ast_function.name
