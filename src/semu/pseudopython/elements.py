@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Literal, Sequence, Any, List
+from typing import Literal, Sequence, Any, List, Set
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
@@ -42,6 +42,15 @@ class Element:
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
+    def _get_available_registers(self, used: List[Register]) -> Set[Register]:
+        available = set(REGISTERS.copy())
+        available.difference_update(used)
+        return available
+
+    def _get_temp(self, used: List[Register]) -> Register:
+        available = self._get_available_registers(used)
+        temp = available.pop()
+        return temp
 
 @dataclass
 class VoidElement(Element):
@@ -154,16 +163,18 @@ class GlobalVarAssignment(Element):
     source: Register = DEFAULT_REGISTER
 
     def emit(self):
+        temp = self._get_temp([self.source])
+
         return flatten([
-            '// Saving reg:b',
-            'push b',
+            f'// Saving reg:{temp}',
+            f'push {temp}',
             f"// Calculating var:{self.target.name} into reg:{self.source}",
             self.expr.emit(),
             f'// Storing var:{self.target.name}',
-            f'ldr &{self.target.name} b',
-            f'mrm {self.source} b',
-            '// Restoring reg:b',
-            'pop b'
+            f'ldr &{self.target.name} {temp}',
+            f'mrm {self.source} {temp}',
+            f'// Restoring reg:{temp}',
+            f'pop {temp}'
         ])
 
 
@@ -172,13 +183,15 @@ class GlobalVariableLoad(Expression):
     name: str
 
     def emit(self):
+        temp = self._get_temp([self.target])
+
         return flatten([
-            '// Saving reg:b',
-            'push b',
+            f'// Saving reg:{temp}',
+            f'push {temp}',
             f'// Loading var:{self.name} address',
             f'ldr &{self.name} b',
             f'// Setting var:{self.name} to reg:{self.target}',
             f'mmr b {self.target}',
-            '// Restoring reg:b',
-            'pop b'
+            f'// Restoring reg:{temp}',
+            f'pop {temp}'
         ])

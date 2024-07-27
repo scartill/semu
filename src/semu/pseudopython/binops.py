@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression, REGISTERS
+from semu.pseudopython.elements import Expression
 
 
 @dataclass
@@ -16,12 +16,12 @@ class BinOp(Expression):
 @dataclass
 class UIntBinOp(BinOp):
     def emit(self):
-        print(self)
-        available = set(REGISTERS.copy())
-        available.discard(self.target)
-        available.discard(self.left.target)
-        available.discard(self.right.target)
-        print('AV', available)
+        available = self._get_available_registers([
+            self.target,
+            self.left.target,
+            self.right.target
+        ])
+
         left_temp = available.pop()
         right_temp = available.pop()
 
@@ -62,6 +62,7 @@ class Mul(UIntBinOp):
 class Div(UIntBinOp):
     def op(self):
         return 'div'
+
 
 @dataclass
 class Mod(UIntBinOp):
