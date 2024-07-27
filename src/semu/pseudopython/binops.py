@@ -55,7 +55,7 @@ class Sub(UIntBinOp):
 @dataclass
 class Mul(UIntBinOp):
     def op(self):
-        return 'sub'
+        return 'mul'
 
 
 @dataclass

@@ -52,6 +52,7 @@ class Element:
         temp = available.pop()
         return temp
 
+
 @dataclass
 class VoidElement(Element):
     comment: str
