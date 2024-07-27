@@ -18,6 +18,8 @@ from semu.pseudopython.elements import (
     Checkpoint, Assertion
 )
 
+import semu.pseudopython.binops as binops
+
 
 class Namespace:
     names: Dict[str, KnownName]
@@ -197,6 +199,32 @@ def uint32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
+def create_binop(left: Expression, right: Expression, op: ast.AST, target: Register):
+    if left.target_type != right.target_type:
+        raise UserWarning(f'Type mismatch {left.target_type} != {right.target_type}')
+
+    target_type = left.target_type
+
+    if target_type != 'uint32':
+        raise UserWarning(f'Unsupported binop type {target_type}')
+
+    Op = None
+
+    if isinstance(op, ast.Add):
+        Op = binops.Add
+
+    if isinstance(op, ast.Sub):
+        Op = binops.Sub
+
+    if isinstance(op, ast.Mult):
+        Op = binops.Mul
+
+    if Op is None:
+        raise UserWarning(f'Unsupported binop {op}')
+
+    return Op(target_type, target, left, right)
+
+
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
     'assert_eq': Assertion
@@ -235,6 +263,7 @@ class Translator:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
 
         ast_name_name = cast(ast.Name, ast_name.value)
+        lg.debug(f'Call {ast_name_name.id}.{ast_name.attr}')
 
         ast_args = ast_call.args
 
@@ -244,8 +273,8 @@ class Translator:
         args_expressions: Sequence[Expression] = []
         for i in range(len(ast_args)):
             ast_arg = ast_args[i]
-            target = cast(Register, REGISTERS[i])
-            lg.debug(f'Adding argument of type {type(ast_arg)} to {target}')
+            target = REGISTERS[i]
+            lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
 
         if ast_name_name.id == 'std':
@@ -254,7 +283,6 @@ class Translator:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
 
     def load_const(self, name: str, target: Register):
-        ''' Invalidates registers and stores the result in '<target>' '''
         known_name = self.resolve_name(name)
 
         if not isinstance(known_name, Constant):
@@ -267,13 +295,10 @@ class Translator:
         )
 
     def load_variable(self, name: str, target: Register):
-        ''' Invalidates registers and stores the result in '<target>' '''
         known_name = self.resolve_name(name)
         return self.context.load_variable(known_name, target)
 
     def translate_expr(self, ast_expr: ast.Expression, target: Register) -> Expression:
-        ''' Invalidates registers and stores the result in '<target>' '''
-
         if isinstance(ast_expr, ast.Constant):
             lg.debug('Constant expression')
 
@@ -300,9 +325,7 @@ class Translator:
         self.context.names[name] = Constant(name, 'uint32', value)
         return VoidElement(f'Const {name} = {value}')
 
-    def translate_source(self, source: ast.AST, target: Register):
-        lg.debug('Source')
-
+    def translate_source(self, source: ast.AST, target: Register) -> Expression:
         if isinstance(source, ast.Expression):
             return self.translate_expr(source, target)
 
@@ -319,11 +342,16 @@ class Translator:
             else:
                 return self.load_variable(source.id, target)
 
+        if isinstance(source, ast.BinOp):
+            left = self.translate_source(source.left, REGISTERS[0])
+            right = self.translate_source(source.right, REGISTERS[1])
+            return create_binop(left, right, source.op, target)
+
         raise UserWarning(f'Unsupported assignment source {source}')
 
     def translate_var_assign(self, target_name: str, source: ast.AST):
-        ''' Invalidates registers and stores the result in
-            the register `GlobalVarAssignment.source`
+        '''
+            Stores the result the `GlobalVarAssignment.source` register
         '''
         target = self.resolve_name(target_name)
 
@@ -342,8 +370,6 @@ class Translator:
             raise UserWarning(f'Unsupported assignment {target}')
 
     def translate_assign(self, ast_assign: ast.Assign):
-        lg.debug('Assign')
-
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
@@ -382,6 +408,10 @@ class Translator:
         return VoidElement(f'Declare var {name}')
 
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
+        ''' NB: Statement execution invalidates all registers.
+            Within a statement, each element is responsible for keeping
+            its own registers consistent.
+        '''
         lg.debug(f'Stmt {type(ast_element)}')
 
         if isinstance(ast_element, ast.Expr):

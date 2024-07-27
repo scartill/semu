@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Literal, Sequence, Any
+from typing import Literal, Sequence, Any, List
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
@@ -9,7 +9,7 @@ Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] | None
 TargetType = Literal['unit', 'uint32']
 
 
-REGISTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+REGISTERS: List[Register] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 NUMBER_OF_REGISTERS = len(REGISTERS)
 DEFAULT_REGISTER = 'a'
 
@@ -155,11 +155,15 @@ class GlobalVarAssignment(Element):
 
     def emit(self):
         return flatten([
-            f"// Calculating {self.target.name} into {self.source}",
+            '// Saving reg:b',
+            'push b',
+            f"// Calculating var:{self.target.name} into reg:{self.source}",
             self.expr.emit(),
-            f'// Storing {self.target.name}',
+            f'// Storing var:{self.target.name}',
             f'ldr &{self.target.name} b',
-            f'mrm {self.source} b'
+            f'mrm {self.source} b',
+            '// Restoring reg:b',
+            'pop b'
         ])
 
 
@@ -169,8 +173,12 @@ class GlobalVariableLoad(Expression):
 
     def emit(self):
         return flatten([
-            f'// Loading {self.name} address',
+            '// Saving reg:b',
+            'push b',
+            f'// Loading var:{self.name} address',
             f'ldr &{self.name} b',
-            f'// Setting {self.name} to {self.target}',
-            f'mmr b {self.target}'
+            f'// Setting var:{self.name} to reg:{self.target}',
+            f'mmr b {self.target}',
+            '// Restoring reg:b',
+            'pop b'
         ])
