@@ -1,7 +1,5 @@
 # type: ignore
 
-stdlib.checkpoint(1)
-pass
 
 a: int
 b: int
@@ -13,7 +11,7 @@ b = SERIAL_MM_BASE
 c: int
 c = a
 
-stdlib.assertion(1, 1)
-stdlib.assertion(a, 1)
-stdlib.assertion(b, SERIAL_MM_BASE)
-stdlib.assertion(c, 1)
+std.assert_eq(1, 1)
+std.assert_eq(a, 1)
+std.assert_eq(b, SERIAL_MM_BASE)
+std.assert_eq(c, 1)

@@ -199,7 +199,7 @@ def uint32const(ast_value: ast.AST):
 
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
-    'assertion': Assertion
+    'assert_eq': Assertion
 }
 
 
@@ -248,7 +248,7 @@ class Translator:
             lg.debug(f'Adding argument of type {type(ast_arg)} to {target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
 
-        if ast_name_name.id == 'stdlib':
+        if ast_name_name.id == 'std':
             return self.translate_std_call(ast_name.attr, args_expressions)
         else:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
