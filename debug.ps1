@@ -1,4 +1,5 @@
-$subject = "expressions"
+$subject = "booleans"
+# $subject = "assignments"
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $assembler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"

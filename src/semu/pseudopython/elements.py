@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 
 
 Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] | None
-TargetType = Literal['unit', 'uint32']
+TargetType = Literal['unit', 'uint32', 'bool32']
 
 
 REGISTERS: List[Register] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -151,10 +151,20 @@ class GlobalVariableCreate(Element):
 
 @dataclass
 class ConstantExpression(Expression):
-    value: int
+    value: int | bool
+
+    def _convert_value(self) -> int:
+        if self.target_type == 'uint32':
+            return self.value
+
+        if self.target_type == 'bool32':
+            return 1 if self.value else 0
+
+        raise NotImplementedError()
 
     def emit(self):
-        return f'ldc {self.value} {self.target}'
+        value = self._convert_value()
+        return f'ldc {value} {self.target}'
 
 
 @dataclass

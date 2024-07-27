@@ -187,6 +187,16 @@ class TopLevel(Namespace, Element):
         return '\n'.join([str(module) for module in self.modules.values()])
 
 
+def get_constant_type(ast_const: ast.Constant):
+    if isinstance(ast_const.value, bool):
+        return 'bool32'
+
+    if isinstance(ast_const.value, int):
+        return 'uint32'
+
+    raise UserWarning(f'Unsupported constant type {type(ast_const.value)}')
+
+
 def uint32const(ast_value: ast.AST):
     if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, int):
         value = ast_value.value
@@ -197,6 +207,24 @@ def uint32const(ast_value: ast.AST):
         return value
     else:
         raise UserWarning(f'Unsupported const int argument {ast_value}')
+
+
+def bool32const(ast_value: ast.AST):
+    if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, bool):
+        value = ast_value.value
+        return value
+    else:
+        raise UserWarning(f'Unsupported const int argument {ast_value}')
+
+
+def get_constant_value(target_type: TargetType, source: ast.AST):
+    if target_type == 'uint32':
+        return uint32const(source)
+
+    if target_type == 'bool32':
+        return bool32const(source)
+
+    raise UserWarning(f'Unsupported constant type {target_type}')
 
 
 def create_binop(left: Expression, right: Expression, op: ast.AST, target: Register):
@@ -327,22 +355,31 @@ class Translator:
 
     def translate_source(self, source: ast.AST, target: Register) -> Expression:
         if isinstance(source, ast.Expression):
+            lg.debug('Source from expression')
             return self.translate_expr(source, target)
 
         if isinstance(source, ast.Constant):
+            lg.debug(f'Source from constant (type {type(source.value)})')
+            target_type = get_constant_type(source)
+            lg.debug(f'Detected target type = {target_type}')
+            value = get_constant_value(target_type, source)
+
             return ConstantExpression(
-                target_type='uint32',
-                value=uint32const(source),
+                target_type=target_type,
+                value=value,
                 target=target
             )
 
         if isinstance(source, ast.Name):
+            lg.debug('Source from name')
+
             if source.id.isupper():
                 return self.load_const(source.id, target)
             else:
                 return self.load_variable(source.id, target)
 
         if isinstance(source, ast.BinOp):
+            lg.debug('Source from binop')
             left = self.translate_source(source.left, REGISTERS[0])
             right = self.translate_source(source.right, REGISTERS[1])
             return create_binop(left, right, source.op, target)
@@ -401,11 +438,13 @@ class Translator:
 
         if type_name == 'int':
             target_type = 'uint32'
+        elif type_name == 'bool':
+            target_type = 'bool32'
         else:
-            raise UserWarning('Only "int" type is supported')
+            raise UserWarning(f'Unsupported type found ({type_name})')
 
         self.context.create_variable(name, target_type)
-        return VoidElement(f'Declare var {name}')
+        return VoidElement(f'Declare var {name}: {target_type}')
 
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
         ''' NB: Statement execution invalidates all registers.
