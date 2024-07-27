@@ -71,8 +71,11 @@ class Expression(Element):
 class Checkpoint(Expression):
     arg: int
 
-    def __init__(self, args: Sequence[Expression]):
+    def __init__(self, args: Sequence[Expression], target: Register):
         lg.debug(f'Checkpoint {args}')
+
+        self.target_type = 'unit'
+        self.target = None
 
         if len(args) != 1:
             raise UserWarning(f"'checkpoint' expects 1 argument, got {len(args)}")
@@ -100,8 +103,11 @@ class Assertion(Expression):
     source: Expression
     value: int
 
-    def __init__(self, args: Sequence[Expression]):
+    def __init__(self, args: Sequence[Expression], target: Register):
         lg.debug(f'Assertion {args}')
+
+        self.target_type = 'unit'
+        self.target = None
 
         if len(args) != 2:
             raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
@@ -134,6 +140,32 @@ class Assertion(Expression):
             self.source.emit(),
             f'.assert {self.source.target} {self.value}'
         ])
+
+
+@dataclass
+class BoolToInt(Expression):
+    source: Expression
+
+    def __init__(self, args: Sequence[Expression], target: Register):
+        # TODO: More structurally correct would be have these in helpers
+        lg.debug(f'BoolToInt {args}')
+
+        self.target_type = 'uint32'
+        self.target = target
+
+        if len(args) != 1:
+            raise UserWarning(f"'bool_to_int' expects 1 argument, got {len(args)}")
+
+        self.source = args[0]
+
+        if self.source.target_type != 'bool32':
+            raise UserWarning(
+                f"'bool_to_int' expects a bool32 source, got {self.source.target_type}"
+            )
+
+    def emit(self) -> Sequence[str]:
+        # Does nothing on the assembly level
+        return self.source.emit()
 
 
 @dataclass

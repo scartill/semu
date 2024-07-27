@@ -15,7 +15,7 @@ from semu.pseudopython.elements import (
     KnownName, Constant, GlobalVar,
     Element, VoidElement, Expression, ConstantExpression,
     GlobalVariableCreate, GlobalVarAssignment, GlobalVariableLoad,
-    Checkpoint, Assertion
+    Checkpoint, Assertion, BoolToInt
 )
 
 import semu.pseudopython.binops as binops
@@ -255,7 +255,8 @@ def create_binop(left: Expression, right: Expression, op: ast.AST, target: Regis
 
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
-    'assert_eq': Assertion
+    'assert_eq': Assertion,
+    'bool_to_int': BoolToInt
 }
 
 
@@ -275,16 +276,19 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(self, std_name: str, args: Sequence[Expression]):
+    def translate_std_call(
+            self, std_name: str, 
+            args: Sequence[Expression], target: Register
+    ):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
 
-        return STD_LIB_CALLS[std_name](args)
+        return STD_LIB_CALLS[std_name](args, target)
 
     def translate_arg(self, ast_arg: ast.AST, target: Register):
         return self.translate_source(ast_arg, target)
 
-    def translate_call(self, ast_call: ast.Call):
+    def translate_call(self, ast_call: ast.Call, target: Register):
         ast_name = ast_call.func
 
         if not isinstance(ast_name, ast.Attribute):
@@ -306,7 +310,7 @@ class Translator:
             args_expressions.append(self.translate_arg(ast_arg, target))
 
         if ast_name_name.id == 'std':
-            return self.translate_std_call(ast_name.attr, args_expressions)
+            return self.translate_std_call(ast_name.attr, args_expressions, target)
         else:
             raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
 
@@ -338,7 +342,7 @@ class Translator:
 
         if isinstance(ast_expr, ast.Call):
             lg.debug('Call expression')
-            return self.translate_call(ast_expr)
+            return self.translate_call(ast_expr, target)
 
         if isinstance(ast_expr, ast.Name):
             if ast_expr.id.isupper():
@@ -383,6 +387,10 @@ class Translator:
             left = self.translate_source(source.left, REGISTERS[0])
             right = self.translate_source(source.right, REGISTERS[1])
             return create_binop(left, right, source.op, target)
+
+        if isinstance(source, ast.Call):
+            lg.debug('Source from a call')
+            return self.translate_call(source, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
@@ -458,7 +466,7 @@ class Translator:
                 expression = self.translate_expr(ast_element.value, DEFAULT_REGISTER)
                 return expression
             if isinstance(ast_element.value, ast.Call):
-                return self.translate_call(ast_element.value)
+                return self.translate_call(ast_element.value, DEFAULT_REGISTER)
             else:
                 lg.debug(f'Statements of type {type(ast_element.value)} are ignored')
                 return VoidElement('ignored')
