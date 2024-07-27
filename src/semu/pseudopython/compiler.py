@@ -277,7 +277,7 @@ class Translator:
         return known_name
 
     def translate_std_call(
-            self, std_name: str, 
+            self, std_name: str,
             args: Sequence[Expression], target: Register
     ):
         if std_name not in STD_LIB_CALLS:

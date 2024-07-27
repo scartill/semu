@@ -232,9 +232,9 @@ class GlobalVariableLoad(Expression):
             f'// Saving reg:{temp}',
             f'push {temp}',
             f'// Loading var:{self.name} address',
-            f'ldr &{self.name} b',
+            f'ldr &{self.name} {temp}',
             f'// Setting var:{self.name} to reg:{self.target}',
-            f'mmr b {self.target}',
+            f'mmr {temp} {self.target}',
             f'// Restoring reg:{temp}',
             f'pop {temp}'
         ])
