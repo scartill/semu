@@ -18,7 +18,8 @@ from semu.pseudopython.elements import (
     Checkpoint, Assertion, BoolToInt
 )
 
-import semu.pseudopython.binops as binops
+import semu.pseudopython.intops as intops
+import semu.pseudopython.boolops as boolops
 
 
 class Namespace:
@@ -228,29 +229,52 @@ def get_constant_value(target_type: TargetType, source: ast.AST):
 
 
 def create_binop(left: Expression, right: Expression, op: ast.AST, target: Register):
+    required_type = None
+    Op = None
+
+    if isinstance(op, ast.Add):
+        required_type = 'uint32'
+        Op = intops.Add
+
+    if isinstance(op, ast.Sub):
+        required_type = 'uint32'
+        Op = intops.Sub
+
+    if isinstance(op, ast.Mult):
+        required_type = 'uint32'
+        Op = intops.Mul
+
+    if Op is None:
+        raise UserWarning(f'Unsupported binop {op}')
+
     if left.target_type != right.target_type:
         raise UserWarning(f'Type mismatch {left.target_type} != {right.target_type}')
 
     target_type = left.target_type
 
-    if target_type != 'uint32':
+    if target_type != required_type:
         raise UserWarning(f'Unsupported binop type {target_type}')
 
+    return Op(target_type, target, left, right)
+
+
+def create_unary(right: Expression, op: ast.AST, target: Register):
+    required_type = None
     Op = None
 
-    if isinstance(op, ast.Add):
-        Op = binops.Add
-
-    if isinstance(op, ast.Sub):
-        Op = binops.Sub
-
-    if isinstance(op, ast.Mult):
-        Op = binops.Mul
+    if isinstance(op, ast.Not):
+        required_type = 'bool32'
+        Op = boolops.Not
 
     if Op is None:
-        raise UserWarning(f'Unsupported binop {op}')
+        raise UserWarning(f'Unsupported unary op {op}')
 
-    return Op(target_type, target, left, right)
+    target_type = right.target_type
+
+    if target_type != required_type:
+        raise UserWarning(f'Unsupported binop type {target_type}')
+
+    return Op(target_type, target, right)
 
 
 STD_LIB_CALLS = {
@@ -391,6 +415,11 @@ class Translator:
         if isinstance(source, ast.Call):
             lg.debug('Source from a call')
             return self.translate_call(source, target)
+
+        if isinstance(source, ast.UnaryOp):
+            lg.debug('Source from a unary op')
+            right = self.translate_source(source.operand, REGISTERS[0])
+            return create_unary(right, source.op, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
