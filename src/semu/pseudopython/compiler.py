@@ -193,12 +193,12 @@ def get_constant_type(ast_const: ast.Constant):
         return 'bool32'
 
     if isinstance(ast_const.value, int):
-        return 'uint32'
+        return 'int32'
 
     raise UserWarning(f'Unsupported constant type {type(ast_const.value)}')
 
 
-def uint32const(ast_value: ast.AST):
+def int32const(ast_value: ast.AST):
     if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, int):
         value = ast_value.value
 
@@ -219,8 +219,8 @@ def bool32const(ast_value: ast.AST):
 
 
 def get_constant_value(target_type: TargetType, source: ast.AST):
-    if target_type == 'uint32':
-        return uint32const(source)
+    if target_type == 'int32':
+        return int32const(source)
 
     if target_type == 'bool32':
         return bool32const(source)
@@ -233,15 +233,15 @@ def create_binop(left: Expression, right: Expression, op: ast.AST, target: Regis
     Op = None
 
     if isinstance(op, ast.Add):
-        required_type = 'uint32'
+        required_type = 'int32'
         Op = intops.Add
 
     if isinstance(op, ast.Sub):
-        required_type = 'uint32'
+        required_type = 'int32'
         Op = intops.Sub
 
     if isinstance(op, ast.Mult):
-        required_type = 'uint32'
+        required_type = 'int32'
         Op = intops.Mul
 
     if Op is None:
@@ -359,8 +359,8 @@ class Translator:
             lg.debug('Constant expression')
 
             return ConstantExpression(
-                target_type='uint32',
-                value=uint32const(ast_expr),
+                target_type='int32',
+                value=int32const(ast_expr),
                 target=target
             )
 
@@ -377,8 +377,8 @@ class Translator:
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
     def translate_const_assign(self, name: str, ast_value: ast.Constant):
-        value = uint32const(ast_value)
-        self.context.names[name] = Constant(name, 'uint32', value)
+        value = int32const(ast_value)
+        self.context.names[name] = Constant(name, 'int32', value)
         return VoidElement(f'Const {name} = {value}')
 
     def translate_source(self, source: ast.AST, target: Register) -> Expression:
@@ -474,7 +474,7 @@ class Translator:
         type_name = cast(ast.Name, assign.annotation).id
 
         if type_name == 'int':
-            target_type = 'uint32'
+            target_type = 'int32'
         elif type_name == 'bool':
             target_type = 'bool32'
         else:

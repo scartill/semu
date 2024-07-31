@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 
 
 Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] | None
-TargetType = Literal['unit', 'uint32', 'bool32']
+TargetType = Literal['unit', 'int32', 'bool32']
 
 
 REGISTERS: List[Register] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -118,14 +118,14 @@ class Assertion(Expression):
         if not isinstance(value_expr, ConstantExpression):
             raise UserWarning(f"'assertion' expects a constant value, got {value_expr}")
 
-        if self.source.target_type != 'uint32':
+        if self.source.target_type != 'int32':
             raise UserWarning(
-                f"'assertion' expects a uint32 source, got {self.source.target_type}"
+                f"'assertion' expects a int32 source, got {self.source.target_type}"
             )
 
-        if value_expr.target_type != 'uint32':
+        if value_expr.target_type != 'int32':
             raise UserWarning(
-                f"'assertion' expects a uint32 value, got {value_expr.target_type}"
+                f"'assertion' expects a int32 value, got {value_expr.target_type}"
             )
 
         self.target_type = 'unit'
@@ -150,7 +150,7 @@ class BoolToInt(Expression):
         # TODO: More structurally correct would be have these in helpers
         lg.debug(f'BoolToInt {args}')
 
-        self.target_type = 'uint32'
+        self.target_type = 'int32'
         self.target = target
 
         if len(args) != 1:
@@ -186,7 +186,7 @@ class ConstantExpression(Expression):
     value: int | bool
 
     def _convert_value(self) -> int:
-        if self.target_type == 'uint32':
+        if self.target_type == 'int32':
             return self.value
 
         if self.target_type == 'bool32':
