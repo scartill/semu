@@ -101,17 +101,17 @@ class CPU():
         self.ip = addr
 
     def ldc(self):
-        a = self.next()
+        a = self.next_signed()
         self.set_next_gp(a)
 
     def mrm(self):
         v = self.get_next_gp()
         m = self.get_next_gp()
-        self.memory[m:m + WORD_SIZE] = struct.pack(">I", v)
+        self.memory[m:m + WORD_SIZE] = struct.pack(">i", v)
 
     def mmr(self):
         a = self.get_next_gp()
-        (v,) = struct.unpack(">I", self.memory[a:a + WORD_SIZE])
+        (v,) = struct.unpack(">i", self.memory[a:a + WORD_SIZE])
         self.set_next_gp(v)
 
     def out(self):

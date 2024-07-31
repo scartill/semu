@@ -51,7 +51,8 @@ def g_cmd_3(literal, op):
 
 us_dec_const = pp.Regex('[0-9]+').setParseAction(lambda r: (FPP.issue_const, r))
 us_const = us_dec_const
-s_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.issue_sconst, r))
+s_dec_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.issue_sconst, r))
+s_const = s_dec_const
 
 refname = pp.Optional(id + pp.Suppress("::")) + id
 # Join into [namespace, name] or [name]
@@ -63,7 +64,7 @@ ref = (pp.Suppress('&') + refname).setParseAction(lambda r: (FPP.issue_ref, r))
 hlt_cmd = g_cmd('hlt', ops.HLT)
 nop_cmd = g_cmd('nop', ops.NOP)
 jmp_cmd = g_cmd_1('jmp', ops.JMP)
-ldc_cmd = g_cmd('ldc', ops.LDC) + us_dec_const + reg_op
+ldc_cmd = g_cmd('ldc', ops.LDC) + s_dec_const + reg_op
 mrm_cmd = g_cmd_2('mrm', ops.MRM)
 mmr_cmd = g_cmd_2('mmr', ops.MMR)
 out_cmd = g_cmd_1('out', ops.OUT)

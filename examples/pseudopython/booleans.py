@@ -1,5 +1,7 @@
 # type: ignore
 
+i: int
+
 a: bool
 b: bool
 
@@ -7,11 +9,12 @@ a = True
 b = False
 
 a = not a
+i = std.bool_to_int(a)
+std.assert_eq(i, 0)
 
 # c: bool
 # c = a and b or True
 
-# i: int
 # i = std.bool_to_int(a)
 # std.assert_eq(i, 1)
 
