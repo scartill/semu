@@ -12,6 +12,10 @@ a = not a
 i = std.bool_to_int(a)
 std.assert_eq(i, 0)
 
+b = not b
+i = std.bool_to_int(b)
+std.assert_eq(i, 1)
+
 # c: bool
 # c = a and b or True
 
