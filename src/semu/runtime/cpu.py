@@ -185,10 +185,6 @@ class CPU():
 
     # - Arithmetic - $
 
-    def inv(self):
-        a = self.get_next_gp()
-        self.set_next_gp(~a)
-
     def add(self):
         self.arithm_pair(lambda a, b: a + b)
 
@@ -259,7 +255,6 @@ class CPU():
         ops.MRR: mrr,
         ops.LLA: lla,
 
-        ops.INV: inv,
         ops.ADD: add,
         ops.SUB: sub,
         ops.MUL: mul,

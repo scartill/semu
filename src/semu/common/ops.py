@@ -22,7 +22,6 @@ MRR = 0x14  # R1 -> R2
 LLA = 0x15  # FP + R1 -> R2
 
 # Arithmetic
-INV = 0x20  # ~R1 -> R2
 ADD = 0x21  # R1 +  R2 -> R3
 SUB = 0x22  # R1 -  R2 -> R3
 MUL = 0x23  # R1 *  R2 -> R3

@@ -84,7 +84,6 @@ mrr_cmd = g_cmd_2('mrr', ops.MRR)
 lla_cmd = g_cmd('lla', ops.LLA) + us_dec_const + reg_op
 
 # Arithmetic
-inv_cmd = g_cmd_2('inv', ops.INV)
 add_cmd = g_cmd_3('add', ops.ADD)
 sub_cmd = g_cmd_3('sub', ops.SUB)
 mul_cmd = g_cmd_3('mul', ops.MUL)
@@ -119,7 +118,6 @@ asm_cmd = hlt_cmd \
     ^ ret_cmd \
     ^ irx_cmd \
     ^ ssp_cmd \
-    ^ inv_cmd \
     ^ add_cmd \
     ^ sub_cmd \
     ^ mul_cmd \
