@@ -530,26 +530,29 @@ class Translator:
         '''
         lg.debug(f'Stmt {type(ast_element)}')
 
-        if isinstance(ast_element, ast.Expr):
-            if isinstance(ast_element.value, ast.Expression):
-                expression = self.translate_expr(ast_element.value, DEFAULT_REGISTER)
-                return expression
-            if isinstance(ast_element.value, ast.Call):
-                return self.translate_call(ast_element.value, DEFAULT_REGISTER)
-            else:
-                lg.debug(f'Statements of type {type(ast_element.value)} are ignored')
-                return VoidElement('ignored')
-        elif isinstance(ast_element, ast.Pass):
-            return VoidElement('pass')
-        elif isinstance(ast_element, ast.Assign):
-            return self.translate_assign(ast_element)
-        elif isinstance(ast_element, ast.AnnAssign):
-            return self.translate_ann_assign(ast_element)
-        elif isinstance(ast_element, ast.If):
-            return self.translate_if(ast_element)
-        else:
-            lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
-            return VoidElement('unsupported')
+        match type(ast_element):
+            case ast.Expr:
+                value = cast(ast.Expr, ast_element).value
+
+                if isinstance(value, ast.Expression):
+                    expression = self.translate_expr(value, DEFAULT_REGISTER)
+                    return expression
+                if isinstance(value, ast.Call):
+                    return self.translate_call(value, DEFAULT_REGISTER)
+                else:
+                    lg.debug(f'Statements of type {type(value)} are ignored')
+                    return VoidElement('ignored')
+            case ast.Pass:
+                return VoidElement('pass')
+            case ast.Assign:
+                return self.translate_assign(cast(ast.Assign, ast_element))
+            case ast.AnnAssign:
+                return self.translate_ann_assign(cast(ast.AnnAssign, ast_element))
+            case ast.If:
+                return self.translate_if(cast(ast.If, ast_element))
+
+        lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
+        return VoidElement('unsupported')
 
     def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[Element]:
         return list(map(self.translate_stmt, ast_body))
