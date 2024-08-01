@@ -20,6 +20,7 @@ from semu.pseudopython.elements import (
 
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
+import semu.pseudopython.flow as flow
 
 
 class Namespace:
@@ -508,6 +509,20 @@ class Translator:
         self.context.create_variable(name, target_type)
         return VoidElement(f'Declare var {name}: {target_type}')
 
+    def translate_if(self, ast_if: ast.If):
+        test = self.translate_source(ast_if.test, DEFAULT_REGISTER)
+        true_body = self.translate_body(ast_if.body)
+
+        if test.target_type != 'bool32':
+            raise UserWarning(f'If test must be of type bool32, got {test.target_type}')
+
+        if ast_if.orelse:
+            false_body = self.translate_body(ast_if.orelse)
+        else:
+            false_body = [VoidElement('no else')]
+
+        return flow.If(test, true_body, false_body)
+
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
         ''' NB: Statement execution invalidates all registers.
             Within a statement, each element is responsible for keeping
@@ -530,6 +545,8 @@ class Translator:
             return self.translate_assign(ast_element)
         elif isinstance(ast_element, ast.AnnAssign):
             return self.translate_ann_assign(ast_element)
+        elif isinstance(ast_element, ast.If):
+            return self.translate_if(ast_element)
         else:
             lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
             return VoidElement('unsupported')

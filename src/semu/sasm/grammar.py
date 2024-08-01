@@ -11,7 +11,7 @@ def g_cmd(literal, op):
     return pp.Literal(literal).setParseAction(lambda _: (FPP.issue_op, op))
 
 
-id = pp.Word(pp.alphas + '_')
+id = pp.Word(pp.alphas + '_', pp.alphanums + '_')
 comment = pp.Suppress(pp.Literal('//') + pp.SkipTo('\n'))
 
 label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.issue_label, r))
