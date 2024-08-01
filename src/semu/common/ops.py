@@ -2,7 +2,7 @@
 HLT = 0x00
 NOP = 0x01
 JMP = 0x03  # goto R1
-LDC = 0x04  # U1 -> R2
+LDC = 0x04  # R1 -> R2
 MRM = 0x05  # R1 -> M[R2]
 MMR = 0x06  # M[R1] -> R2
 OUT = 0x07  # signal L[R1]

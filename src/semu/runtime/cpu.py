@@ -213,7 +213,7 @@ class CPU():
         self.arithm_pair(lambda a, b: a ^ b)
 
     def band(self):
-        self.arithm_pair(lambda a, b: a % b)
+        self.arithm_pair(lambda a, b: a & b)
 
     def cpt(self):
         val = self.next_unsigned()

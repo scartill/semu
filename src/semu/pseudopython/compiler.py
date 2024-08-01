@@ -277,6 +277,22 @@ def create_unary(right: Expression, op: ast.AST, target: Register):
     return Op(target_type, target, right)
 
 
+def create_boolop(args: Sequence[Expression], op: ast.AST, target: Register):
+    target_type = 'bool32'
+
+    for arg in args:
+        if arg.target_type != 'bool32':
+            raise UserWarning(f'Unsupported boolop type {arg.target_type}')
+
+    if isinstance(op, ast.And):
+        return boolops.And(target_type, target, args)
+
+    if isinstance(op, ast.Or):
+        return boolops.Or(target_type, target, args)
+
+    raise UserWarning(f'Unsupported boolop {op}')
+
+
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
     'assert_eq': Assertion,
@@ -381,6 +397,11 @@ class Translator:
         self.context.names[name] = Constant(name, 'int32', value)
         return VoidElement(f'Const {name} = {value}')
 
+    def translate_boolop(self, source: ast.BoolOp, target: Register):
+        values = source.values
+        args = [self.translate_source(value, DEFAULT_REGISTER) for value in values]
+        return create_boolop(args, source.op, target)
+
     def translate_source(self, source: ast.AST, target: Register) -> Expression:
         if isinstance(source, ast.Expression):
             lg.debug('Source from expression')
@@ -420,6 +441,10 @@ class Translator:
             lg.debug('Source from a unary op')
             right = self.translate_source(source.operand, REGISTERS[0])
             return create_unary(right, source.op, target)
+
+        if isinstance(source, ast.BoolOp):
+            lg.debug('Source from a bool op')
+            return self.translate_boolop(source, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
 

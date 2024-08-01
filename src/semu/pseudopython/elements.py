@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from semu.pseudopython.flatten import flatten
 
 
-Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] | None
+Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 TargetType = Literal['unit', 'int32', 'bool32']
 
 
@@ -74,9 +74,6 @@ class Checkpoint(Expression):
     def __init__(self, args: Sequence[Expression], target: Register):
         lg.debug(f'Checkpoint {args}')
 
-        self.target_type = 'unit'
-        self.target = None
-
         if len(args) != 1:
             raise UserWarning(f"'checkpoint' expects 1 argument, got {len(args)}")
 
@@ -86,7 +83,7 @@ class Checkpoint(Expression):
             raise UserWarning(f"'checkpoint' expects a constant argument, got {arg}")
 
         self.target_type = 'unit'
-        self.target = None
+        self.target = target  # Checkpoints don't have a actual target
 
         # Inlining the checkpoint number
         self.arg = arg.value
@@ -105,9 +102,6 @@ class Assertion(Expression):
 
     def __init__(self, args: Sequence[Expression], target: Register):
         lg.debug(f'Assertion {args}')
-
-        self.target_type = 'unit'
-        self.target = None
 
         if len(args) != 2:
             raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
@@ -129,7 +123,7 @@ class Assertion(Expression):
             )
 
         self.target_type = 'unit'
-        self.target = None
+        self.target = target  # Assertions don't have an actual target
 
         # Inlining the value
         self.value = value_expr.value
