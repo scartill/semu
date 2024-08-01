@@ -30,8 +30,8 @@ class If(Flow):
     false_body: Sequence[Element]
 
     def __init__(
-            self, test: Expression, 
-            true_body: Sequence[Element], 
+            self, test: Expression,
+            true_body: Sequence[Element],
             false_body: Sequence[Element]
     ):
         super().__init__()
