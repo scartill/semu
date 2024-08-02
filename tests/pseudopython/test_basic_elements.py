@@ -5,6 +5,11 @@ import semu.runtime.cpu as cpu
 from unit_utils import execute_single_pp_source, load_file
 
 
+def test_expressions():
+    with pytest.raises(cpu.Halt):
+        execute_single_pp_source('testdata/pseudopython/expressions.py')
+
+
 def test_assignments():
     with pytest.raises(cpu.Halt):
         execute_single_pp_source('testdata/pseudopython/assignments.py')
