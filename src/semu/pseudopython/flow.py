@@ -46,3 +46,39 @@ class If(Element):
             f'pop {temp}',
             '// end if block',
         ])
+
+
+@dataclass
+class While(Element):
+    test: Expression
+    body: Sequence[Element]
+
+    def __init__(self, test: Expression, body: Sequence[Element]):
+        super().__init__()
+        self.test = test
+        self.body = body
+
+    def emit(self) -> Sequence[str]:
+        start_label = self._make_label('start')
+        body_label = self._make_label('body')
+        end_label = self._make_label('end')
+
+        temp = self._get_temp([self.test.target])
+
+        return flatten([
+            '// while block',
+            f'{start_label}:',
+            f'push {temp}',
+            self.test.emit(),
+            f'ldr &{body_label} {temp}',
+            f'jgt {self.test.target} {temp}',
+            f'ldr &{end_label} {temp}',
+            f'jmp {temp}',
+            f'{body_label}:',
+            [statement.emit() for statement in self.body],
+            f'ldr &{start_label} {temp}',
+            f'jmp {temp}',
+            f'{end_label}:',
+            f'pop {temp}',
+            '// end while block',
+        ])

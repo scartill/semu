@@ -432,6 +432,15 @@ class Translator:
 
         return flow.If(test, true_body, false_body)
 
+    def translate_while(self, ast_while: ast.While):
+        test = self.translate_source(ast_while.test, DEFAULT_REGISTER)
+        body = self.translate_body(ast_while.body)
+
+        if test.target_type != 'bool32':
+            raise UserWarning(f'While test must be of type bool32, got {test.target_type}')
+
+        return flow.While(test, body)
+
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
         ''' NB: Statement execution invalidates all registers.
             Within a statement, each element is responsible for keeping
@@ -459,6 +468,8 @@ class Translator:
                 return self.translate_ann_assign(cast(ast.AnnAssign, ast_element))
             case ast.If:
                 return self.translate_if(cast(ast.If, ast_element))
+            case ast.While:
+                return self.translate_while(cast(ast.While, ast_element))
 
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
         return VoidElement('unsupported')

@@ -165,6 +165,7 @@ class Compare(Expression):
         return flatten([
             '// Compare',
             f'push {address}',
+            f'push {temp}',
             self.left.emit(),
             self.right.emit(),
             self.op.emit(l_target, r_target, address, temp, label_true, label_false),
@@ -175,6 +176,7 @@ class Compare(Expression):
             f'{label_true}:',
             f'ldc 1 {self.target}',
             f'{label_end}:',
+            f'pop {temp}',
             f'pop {address}',
             '// End Compare'
         ])
