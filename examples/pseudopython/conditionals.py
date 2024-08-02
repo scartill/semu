@@ -40,8 +40,21 @@ if i <= 1:
 else:
     std.checkpoint(11)  # No reach
 
-# while i < 10:
-#     i = i + 1
-#     std.checkpoint(4)
+if i == 1:
+    std.checkpoint(12)  # Reach
 
-# std.checkpoint(5)
+if i != 1:
+    std.checkpoint(13)  # No reach
+
+if i == 0:
+    std.checkpoint(14)  # No reach
+
+j: int
+
+j = 3
+
+if i == 1 and j == 3:
+    std.checkpoint(15)  # Reach
+
+if i != 1 or j == 3:
+    std.checkpoint(16)  # Reach

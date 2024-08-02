@@ -16,11 +16,41 @@ class CompareOp(Element):
 
 
 class Eq(CompareOp):
-    pass
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
+        return [
+            '// Equal',
+            f'sub {left} {right} {temp}',
+            f'ldr &{label_false} {address}',
+            f'jgt {temp} {address}',
+            f'ldc -1 {left}',
+            f'mul {temp} {left} {temp}',
+            f'jgt {temp} {address}',
+            f'ldr &{label_true} {address}',
+            f'jmp {address}'
+        ]
 
 
 class NotEq(CompareOp):
-    pass
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
+        return [
+            '// Equal',
+            f'sub {left} {right} {temp}',
+            f'ldr &{label_true} {address}',
+            f'jgt {temp} {address}',
+            f'ldc -1 {left}',
+            f'mul {temp} {left} {temp}',
+            f'jgt {temp} {address}',
+            f'ldr &{label_false} {address}',
+            f'jmp {address}'
+        ]
 
 
 class Lt(CompareOp):
