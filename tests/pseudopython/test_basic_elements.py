@@ -36,3 +36,12 @@ def test_conditionals(capsys):
     with capsys.disabled():
         output = load_file('testdata/pseudopython/conditionals.log')
         assert capsys.readouterr().out == output
+
+
+def test_whileloop(capsys):
+    with pytest.raises(cpu.Halt):
+        execute_single_pp_source('testdata/pseudopython/whileloop.py')
+
+    with capsys.disabled():
+        output = load_file('testdata/pseudopython/whileloop.log')
+        assert capsys.readouterr().out == output
