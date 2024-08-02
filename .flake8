@@ -3,3 +3,4 @@ max-line-length = 160
 ignore = E731
 exclude = 
     examples/pseudopython/*.py
+    tests/testdata/*.py

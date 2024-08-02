@@ -15,9 +15,9 @@ from semu.pseudopython.elements import (
     KnownName, Constant, GlobalVar,
     Element, VoidElement, Expression, ConstantExpression,
     GlobalVariableCreate, GlobalVarAssignment, GlobalVariableLoad,
-    Checkpoint, Assertion, BoolToInt
 )
 
+import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as helpers
 
@@ -189,9 +189,9 @@ class TopLevel(Namespace, Element):
 
 
 STD_LIB_CALLS = {
-    'checkpoint': Checkpoint,
-    'assert_eq': Assertion,
-    'bool_to_int': BoolToInt
+    'checkpoint': builtins.Checkpoint,
+    'assert_eq': builtins.Assertion,
+    'bool_to_int': builtins.BoolToInt
 }
 
 
@@ -550,17 +550,17 @@ def add_module(translator: Translator, name: str, input: str):
     translator.translate(name, ast_tree)
 
 
-def compile_single_str(params: Params, name: str, input: str):
+def compile_single_string(params: Params, name: str, input: str):
     translator = Translator()
     add_module(translator, name, input)
     sasm = emit(params, translator)
-    return sasm
+    return sasm[0][1]
 
 
 def compile_single_file(params: Params, input: Path, output: Path):
-    sasm = compile_single_str(params, input.stem, input.read_text())
+    sasm = compile_single_string(params, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(sasm[0][1])
+    output.write_text(sasm)
 
 
 @click.command()

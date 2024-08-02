@@ -1,6 +1,5 @@
 # type: ignore
 
-
 a: int
 b: int
 
