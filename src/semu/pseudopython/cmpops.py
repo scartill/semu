@@ -58,9 +58,9 @@ class Compare(Expression):
         ])
 
         address = available.pop()
-        label_true = self._make_label()
-        label_false = self._make_label()
-        label_end = self._make_label()
+        label_true = self._make_label('true')
+        label_false = self._make_label('false')
+        label_end = self._make_label('end')
 
         return flatten([
             '// Compare',

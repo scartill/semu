@@ -45,11 +45,11 @@ class Element:
     def __init__(self):
         self.labels = set()
 
-    def _make_label(self) -> str:
-        label = f'__label_{randint(1_000_000, 9_000_000)}'
+    def _make_label(self, description) -> str:
+        label = f'_label_{description}_{randint(1_000_000, 9_000_000)}'
 
         if label in self.labels:
-            return self._make_label()
+            return self._make_label(description)
         else:
             self.labels.add(label)
             return label

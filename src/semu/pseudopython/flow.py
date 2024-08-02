@@ -22,9 +22,9 @@ class If(Element):
         self.false_body = false_body
 
     def emit(self) -> Sequence[str]:
-        true_label = self._make_label()
-        false_label = self._make_label()
-        end_label = self._make_label()
+        true_label = self._make_label('true')
+        false_label = self._make_label('false')
+        end_label = self._make_label('end')
 
         temp = self._get_temp([self.test.target])
 
