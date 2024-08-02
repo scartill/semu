@@ -5,6 +5,30 @@ from semu.pseudopython.elements import Expression
 
 
 @dataclass
+class UOp(Expression):
+    operand: Expression
+
+
+@dataclass
+class Neg(UOp):
+    def emit(self):
+        temp = self._get_temp([
+            self.target,
+            self.operand.target
+        ])
+
+        return flatten([
+            f'// UOp begin to reg:{self.target}',
+            f'push {temp}',
+            self.operand.emit(),
+            f'ldc -1 {temp}',
+            f'mul {temp} {self.operand.target} {self.target}',
+            f'pop {temp}',
+            '// UOp end'
+        ])
+
+
+@dataclass
 class BinOp(Expression):
     left: Expression
     right: Expression
@@ -14,7 +38,7 @@ class BinOp(Expression):
 
 
 @dataclass
-class UIntBinOp(BinOp):
+class IntBinOp(BinOp):
     def emit(self):
         available = self._get_available_registers([
             self.target,
@@ -41,30 +65,30 @@ class UIntBinOp(BinOp):
 
 
 @dataclass
-class Add(UIntBinOp):
+class Add(IntBinOp):
     def op(self):
         return 'add'
 
 
 @dataclass
-class Sub(UIntBinOp):
+class Sub(IntBinOp):
     def op(self):
         return 'sub'
 
 
 @dataclass
-class Mul(UIntBinOp):
+class Mul(IntBinOp):
     def op(self):
         return 'mul'
 
 
 @dataclass
-class Div(UIntBinOp):
+class Div(IntBinOp):
     def op(self):
         return 'div'
 
 
 @dataclass
-class Mod(UIntBinOp):
+class Mod(IntBinOp):
     def op(self):
         return 'mod'

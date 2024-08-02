@@ -1,30 +1,12 @@
 from dataclasses import dataclass
-from typing import Sequence, Set
-from random import randint
+from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import Expression, Element
 
 
 @dataclass
-class Flow(Element):
-    labels: Set[str]
-
-    def __init__(self):
-        self.labels = set()
-
-    def _make_label(self) -> str:
-        label = f'__label_{randint(1_000_000, 9_000_000)}'
-
-        if label in self.labels:
-            return self._make_label()
-        else:
-            self.labels.add(label)
-            return label
-
-
-@dataclass
-class If(Flow):
+class If(Element):
     test: Expression
     true_body: Sequence[Element]
     false_body: Sequence[Element]

@@ -18,9 +18,8 @@ from semu.pseudopython.elements import (
     Checkpoint, Assertion, BoolToInt
 )
 
-import semu.pseudopython.intops as intops
-import semu.pseudopython.boolops as boolops
 import semu.pseudopython.flow as flow
+import semu.pseudopython.helpers as helpers
 
 
 class Namespace:
@@ -189,111 +188,6 @@ class TopLevel(Namespace, Element):
         return '\n'.join([str(module) for module in self.modules.values()])
 
 
-def get_constant_type(ast_const: ast.Constant):
-    if isinstance(ast_const.value, bool):
-        return 'bool32'
-
-    if isinstance(ast_const.value, int):
-        return 'int32'
-
-    raise UserWarning(f'Unsupported constant type {type(ast_const.value)}')
-
-
-def int32const(ast_value: ast.AST):
-    if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, int):
-        value = ast_value.value
-
-        if value < 0 or value > 0xFFFFFFFF:
-            raise UserWarning(f'Int argument {ast_value} out of range')
-
-        return value
-    else:
-        raise UserWarning(f'Unsupported const int argument {ast_value}')
-
-
-def bool32const(ast_value: ast.AST):
-    if isinstance(ast_value, ast.Constant) and isinstance(ast_value.value, bool):
-        value = ast_value.value
-        return value
-    else:
-        raise UserWarning(f'Unsupported const int argument {ast_value}')
-
-
-def get_constant_value(target_type: TargetType, source: ast.AST):
-    if target_type == 'int32':
-        return int32const(source)
-
-    if target_type == 'bool32':
-        return bool32const(source)
-
-    raise UserWarning(f'Unsupported constant type {target_type}')
-
-
-def create_binop(left: Expression, right: Expression, op: ast.AST, target: Register):
-    required_type = None
-    Op = None
-
-    if isinstance(op, ast.Add):
-        required_type = 'int32'
-        Op = intops.Add
-
-    if isinstance(op, ast.Sub):
-        required_type = 'int32'
-        Op = intops.Sub
-
-    if isinstance(op, ast.Mult):
-        required_type = 'int32'
-        Op = intops.Mul
-
-    if Op is None:
-        raise UserWarning(f'Unsupported binop {op}')
-
-    if left.target_type != right.target_type:
-        raise UserWarning(f'Type mismatch {left.target_type} != {right.target_type}')
-
-    target_type = left.target_type
-
-    if target_type != required_type:
-        raise UserWarning(f'Unsupported binop type {target_type}')
-
-    return Op(target_type, target, left, right)
-
-
-def create_unary(right: Expression, op: ast.AST, target: Register):
-    required_type = None
-    Op = None
-
-    if isinstance(op, ast.Not):
-        required_type = 'bool32'
-        Op = boolops.Not
-
-    if Op is None:
-        raise UserWarning(f'Unsupported unary op {op}')
-
-    target_type = right.target_type
-
-    if target_type != required_type:
-        raise UserWarning(f'Unsupported binop type {target_type}')
-
-    return Op(target_type, target, right)
-
-
-def create_boolop(args: Sequence[Expression], op: ast.AST, target: Register):
-    target_type = 'bool32'
-
-    for arg in args:
-        if arg.target_type != 'bool32':
-            raise UserWarning(f'Unsupported boolop type {arg.target_type}')
-
-    if isinstance(op, ast.And):
-        return boolops.And(target_type, target, args)
-
-    if isinstance(op, ast.Or):
-        return boolops.Or(target_type, target, args)
-
-    raise UserWarning(f'Unsupported boolop {op}')
-
-
 STD_LIB_CALLS = {
     'checkpoint': Checkpoint,
     'assert_eq': Assertion,
@@ -377,7 +271,7 @@ class Translator:
 
             return ConstantExpression(
                 target_type='int32',
-                value=int32const(ast_expr),
+                value=helpers.int32const(ast_expr),
                 target=target
             )
 
@@ -394,14 +288,14 @@ class Translator:
         raise UserWarning(f'Unsupported expression {ast_expr}')
 
     def translate_const_assign(self, name: str, ast_value: ast.Constant):
-        value = int32const(ast_value)
+        value = helpers.int32const(ast_value)
         self.context.names[name] = Constant(name, 'int32', value)
         return VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: Register):
         values = source.values
         args = [self.translate_source(value, DEFAULT_REGISTER) for value in values]
-        return create_boolop(args, source.op, target)
+        return helpers.create_boolop(args, source.op, target)
 
     def translate_source(self, source: ast.AST, target: Register) -> Expression:
         if isinstance(source, ast.Expression):
@@ -410,9 +304,9 @@ class Translator:
 
         if isinstance(source, ast.Constant):
             lg.debug(f'Source from constant (type {type(source.value)})')
-            target_type = get_constant_type(source)
+            target_type = helpers.get_constant_type(source)
             lg.debug(f'Detected target type = {target_type}')
-            value = get_constant_value(target_type, source)
+            value = helpers.get_constant_value(target_type, source)
 
             return ConstantExpression(
                 target_type=target_type,
@@ -432,7 +326,7 @@ class Translator:
             lg.debug('Source from binop')
             left = self.translate_source(source.left, REGISTERS[0])
             right = self.translate_source(source.right, REGISTERS[1])
-            return create_binop(left, right, source.op, target)
+            return helpers.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
             lg.debug('Source from a call')
@@ -441,11 +335,26 @@ class Translator:
         if isinstance(source, ast.UnaryOp):
             lg.debug('Source from a unary op')
             right = self.translate_source(source.operand, REGISTERS[0])
-            return create_unary(right, source.op, target)
+            return helpers.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
             lg.debug('Source from a bool op')
             return self.translate_boolop(source, target)
+
+        if isinstance(source, ast.Compare):
+            lg.debug('Source from a compare')
+            left = self.translate_source(source.left, REGISTERS[0])
+            ops = source.ops
+
+            if len(source.comparators) != 1:
+                raise UserWarning(
+                    f'Unsupported number of comparators {len(source.comparators)}'
+                )
+
+            assert len(ops) == 1
+
+            right = self.translate_source(source.comparators[0], REGISTERS[1])
+            return helpers.create_compare(left, ops[0], right, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
 

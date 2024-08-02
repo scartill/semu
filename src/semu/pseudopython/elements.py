@@ -1,6 +1,7 @@
 import logging as lg
 from typing import Literal, Sequence, Any, List, Set
 from dataclasses import dataclass
+from random import randint
 
 from semu.pseudopython.flatten import flatten
 
@@ -39,6 +40,20 @@ class LocalVar(KnownName):
 
 
 class Element:
+    labels: Set[str]
+
+    def __init__(self):
+        self.labels = set()
+
+    def _make_label(self) -> str:
+        label = f'__label_{randint(1_000_000, 9_000_000)}'
+
+        if label in self.labels:
+            return self._make_label()
+        else:
+            self.labels.add(label)
+            return label
+
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
@@ -65,6 +80,11 @@ class VoidElement(Element):
 class Expression(Element):
     target_type: TargetType
     target: Register
+
+    def __init__(self, target_type: TargetType, target: Register):
+        super().__init__()
+        self.target_type = target_type
+        self.target = target
 
 
 @dataclass
