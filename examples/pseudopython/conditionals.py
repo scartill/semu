@@ -30,6 +30,16 @@ if i >= 1:
 if i >= 2:
     std.checkpoint(7)   # No reach
 
+if i < 2:
+    std.checkpoint(8)   # Reach
+else:
+    std.checkpoint(9)   # No reach
+
+if i <= 1:
+    std.checkpoint(10)  # Reach
+else:
+    std.checkpoint(11)  # No reach
+
 # while i < 10:
 #     i = i + 1
 #     std.checkpoint(4)

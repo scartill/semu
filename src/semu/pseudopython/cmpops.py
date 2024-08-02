@@ -24,7 +24,22 @@ class NotEq(CompareOp):
 
 
 class Lt(CompareOp):
-    pass
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
+        return [
+            '// Less Than',
+            f'ldc -1 {temp}',
+            f'mul {left} {temp} {left}',
+            f'mul {right} {temp} {right}',
+            f'sub {left} {right} {left}',
+            f'ldr &{label_true} {address}',
+            f'jgt {left} {address}',
+            f'ldr &{label_false} {address}',
+            f'jmp {address}',
+        ]
 
 
 class LtE(CompareOp):
@@ -35,6 +50,9 @@ class LtE(CompareOp):
     ):
         return [
             '// Less Than or Equal',
+            f'ldc -1 {temp}',
+            f'mul {left} {temp} {left}',
+            f'mul {right} {temp} {right}',
             f'sub {left} {right} {temp}',
             f'ldr &{label_true} {address}',
             f'jgt {temp} {address}',
@@ -55,7 +73,7 @@ class Gt(CompareOp):
             label_true: str, label_false: str
     ):
         return [
-            '// Less Than or Equal',
+            '// Greater Than',
             f'sub {left} {right} {left}',
             f'ldr &{label_true} {address}',
             f'jgt {left} {address}',
@@ -71,7 +89,7 @@ class GtE(CompareOp):
             label_true: str, label_false: str
     ):
         return [
-            '// Less Than or Equal',
+            '// Greater Than or Equal',
             f'sub {left} {right} {temp}',
             f'ldr &{label_true} {address}',
             f'jgt {temp} {address}',
