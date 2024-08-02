@@ -24,8 +24,8 @@ if i > 2:
 if i > 0:
     std.checkpoint(5)   # Reach
 
-# if i >= 1:
-#     std.checkpoint(6)
+if i >= 1:
+    std.checkpoint(6)
 
 # while i < 10:
 #     i = i + 1

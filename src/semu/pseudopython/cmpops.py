@@ -6,7 +6,11 @@ from semu.pseudopython.elements import Expression, Register
 
 
 class CompareOp:
-    def prepare(self, left: Register, right: Register):
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
         raise NotImplementedError()
 
 
@@ -27,10 +31,16 @@ class LtE(CompareOp):
 
 
 class Gt(CompareOp):
-    def prepare(self, left: Register, right: Register):
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
         return [
             '// Greater Than',
-            f'sub {left} {right} {left}',
+            f'sub {left} {right} {temp}',
+            f'ldr &{label_true} {address}',
+            f'jgt {temp} {address}',
         ]
 
 
@@ -58,18 +68,21 @@ class Compare(Expression):
         ])
 
         address = available.pop()
+        temp = available.pop()
+
         label_true = self._make_label('true')
         label_false = self._make_label('false')
         label_end = self._make_label('end')
+
+        l_target = self.left.target
+        r_target = self.right.target
 
         return flatten([
             '// Compare',
             f'push {address}',
             self.left.emit(),
             self.right.emit(),
-            self.op.prepare(self.left.target, self.right.target),
-            f'ldr &{label_true} {address}',
-            f'jgt {self.left.target} {address}',
+            self.op.emit(l_target, r_target, address, temp, label_true, label_false),
             f'{label_false}:',
             f'ldc 0 {self.target}',
             f'ldr &{label_end} {address}',
