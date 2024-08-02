@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression, Register
+from semu.pseudopython.elements import Element, Expression, Register
 
 
-class CompareOp:
+@dataclass
+class CompareOp(Element):
     def emit(
             self,
             left: Register, right: Register, address: Register, temp: Register,
@@ -27,9 +28,26 @@ class Lt(CompareOp):
 
 
 class LtE(CompareOp):
-    pass
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
+        return [
+            '// Less Than or Equal',
+            f'sub {left} {right} {temp}',
+            f'ldr &{label_true} {address}',
+            f'jgt {temp} {address}',
+            f'ldc -1 {left}',
+            f'mul {temp} {left} {temp}',
+            f'ldr &{label_false} {address}',
+            f'jgt {temp} {address}',
+            f'ldr &{label_true} {address}',
+            f'jmp {address}',
+        ]
 
 
+@dataclass
 class Gt(CompareOp):
     def emit(
             self,
@@ -37,15 +55,33 @@ class Gt(CompareOp):
             label_true: str, label_false: str
     ):
         return [
-            '// Greater Than',
-            f'sub {left} {right} {temp}',
+            '// Less Than or Equal',
+            f'sub {left} {right} {left}',
             f'ldr &{label_true} {address}',
-            f'jgt {temp} {address}',
+            f'jgt {left} {address}',
+            f'ldr &{label_false} {address}',
+            f'jmp {address}',
         ]
 
 
 class GtE(CompareOp):
-    pass
+    def emit(
+            self,
+            left: Register, right: Register, address: Register, temp: Register,
+            label_true: str, label_false: str
+    ):
+        return [
+            '// Less Than or Equal',
+            f'sub {left} {right} {temp}',
+            f'ldr &{label_true} {address}',
+            f'jgt {temp} {address}',
+            f'ldc -1 {left}',
+            f'mul {temp} {left} {temp}',
+            f'ldr &{label_false} {address}',
+            f'jgt {temp} {address}',
+            f'ldr &{label_true} {address}',
+            f'jmp {address}',
+        ]
 
 
 @dataclass
@@ -61,10 +97,14 @@ class Compare(Expression):
         self.right = right
 
     def emit(self) -> Sequence[str]:
+        l_target = self.left.target
+        r_target = self.right.target
+        assert l_target != r_target
+
         available = self._get_available_registers([
             self.target,
-            self.left.target,
-            self.right.target
+            l_target,
+            r_target
         ])
 
         address = available.pop()
@@ -73,9 +113,6 @@ class Compare(Expression):
         label_true = self._make_label('true')
         label_false = self._make_label('false')
         label_end = self._make_label('end')
-
-        l_target = self.left.target
-        r_target = self.right.target
 
         return flatten([
             '// Compare',
