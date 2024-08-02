@@ -5,43 +5,39 @@ import semu.runtime.cpu as cpu
 from unit_utils import execute_single_pp_source, load_file
 
 
-def test_expressions():
+def simple_test(name: str):
     with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/expressions.py')
+        execute_single_pp_source(f'testdata/pseudopython/{name}.py')
+
+
+def simple_with_capture(name: str, capsys):
+    with pytest.raises(cpu.Halt):
+        execute_single_pp_source(f'testdata/pseudopython/{name}.py')
+
+    with capsys.disabled():
+        output = load_file(f'testdata/pseudopython/{name}.log')
+        assert capsys.readouterr().out == output
+
+
+def test_expressions():
+    simple_test('expressions')
 
 
 def test_assignments():
-    with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/assignments.py')
+    simple_test('assignments')
 
 
 def test_booleans():
-    with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/booleans.py')
+    simple_test('booleans')
 
 
 def test_checkpoints(capsys):
-    with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/checkpoints.py')
-
-    with capsys.disabled():
-        output = load_file('testdata/pseudopython/checkpoints.log')
-        assert capsys.readouterr().out == output
+    simple_with_capture('checkpoints', capsys)
 
 
 def test_conditionals(capsys):
-    with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/conditionals.py')
-
-    with capsys.disabled():
-        output = load_file('testdata/pseudopython/conditionals.log')
-        assert capsys.readouterr().out == output
+    simple_with_capture('conditionals', capsys)
 
 
 def test_whileloop(capsys):
-    with pytest.raises(cpu.Halt):
-        execute_single_pp_source('testdata/pseudopython/whileloop.py')
-
-    with capsys.disabled():
-        output = load_file('testdata/pseudopython/whileloop.log')
-        assert capsys.readouterr().out == output
+    simple_with_capture('whileloop', capsys)

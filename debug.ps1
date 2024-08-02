@@ -1,8 +1,4 @@
 $subject = "whileloop"
-# $subject = "conditionals"
-# $subject = "booleans"
-# $subject = "assignments"
-# $subject = "expressions"
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $assembler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
