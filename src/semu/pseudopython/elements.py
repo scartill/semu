@@ -101,6 +101,9 @@ class Expression(Element):
         self.target = target
 
 
+Expressions = Sequence[Expression]
+
+
 @dataclass
 class GlobalVariableCreate(Element):
     name: KnownName

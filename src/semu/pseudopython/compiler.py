@@ -9,7 +9,8 @@ import click
 from semu.pseudopython.elements import (
     REGISTERS, DEFAULT_REGISTER, Register,
     KnownName, Constant, GlobalVar,
-    Element, VoidElement, Expression, ConstantExpression, GlobalVarAssignment
+    Element, VoidElement, Expression, Expressions,
+    ConstantExpression, GlobalVarAssignment
 )
 
 import semu.pseudopython.builtins as builtins
@@ -33,7 +34,11 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
-    def resolve_name(self, name: str) -> KnownName:
+    def resolve_name(self, ast_name: ast.AST) -> KnownName:
+        if not isinstance(ast_name, ast.Name):
+            raise UserWarning(f'Unsupported name {ast_name}')
+
+        name = ast_name.id
         known_name = self.context.get_name(name)
 
         if known_name is None:
@@ -41,30 +46,33 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(
-            self, std_name: str,
-            args: Sequence[Expression], target: Register
-    ):
+    def translate_std_call(self, std_name: str, args: Expressions, target: Register):
         if std_name not in STD_LIB_CALLS:
             raise UserWarning(f'Unknown stdlib call {std_name}')
 
         return STD_LIB_CALLS[std_name](args, target)
+
+    def translate_real_call(self, name: ast.AST, args: Expressions, target: Register):
+        known_name = self.resolve_name(name)
+        raise NotImplementedError()
+        return helpers.make_call(known_name, args, target)
 
     def translate_arg(self, ast_arg: ast.AST, target: Register):
         return self.translate_source(ast_arg, target)
 
     def translate_call(self, ast_call: ast.Call, target: Register):
         ast_name = ast_call.func
+        lg.debug(f'Raw call {ast_name}')
 
         if not isinstance(ast_name, ast.Attribute):
-            raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
+            raise UserWarning(f'Unsupported function name {ast_call} {ast_name}')
 
         ast_name_name = cast(ast.Name, ast_name.value)
         lg.debug(f'Call {ast_name_name.id}.{ast_name.attr}')
 
         ast_args = ast_call.args
 
-        args_expressions: Sequence[Expression] = []
+        args_expressions: Expressions = []
         for i in range(len(ast_args)):
             ast_arg = ast_args[i]
             target = REGISTERS[i]
@@ -74,9 +82,9 @@ class Translator:
         if ast_name_name.id == 'std':
             return self.translate_std_call(ast_name.attr, args_expressions, target)
         else:
-            raise UserWarning(f'Unsupported call {ast_call} {ast_name}')
+            return self.translate_real_call(ast_name_name, args_expressions, target)
 
-    def load_const(self, name: str, target: Register):
+    def load_const(self, name: ast.AST, target: Register):
         known_name = self.resolve_name(name)
 
         if not isinstance(known_name, Constant):
@@ -87,32 +95,12 @@ class Translator:
             target=target
         )
 
-    def load_variable(self, name: str, target: Register):
-        known_name = self.resolve_name(name)
-        return self.context.load_variable(known_name, target)
-
-    def translate_expr(self, ast_expr: ast.Expression, target: Register) -> Expression:
-        if isinstance(ast_expr, ast.Constant):
-            lg.debug('Constant expression')
-
-            return ConstantExpression(
-                target_type='int32', value=helpers.int32const(ast_expr),
-                target=target
+    def translate_const_assign(self, name: str, ast_value: ast.AST):
+        if not isinstance(ast_value, ast.Constant):
+            raise UserWarning(
+                f'Only const assignments are supported for {name}'
             )
 
-        if isinstance(ast_expr, ast.Call):
-            lg.debug('Call expression')
-            return self.translate_call(ast_expr, target)
-
-        if isinstance(ast_expr, ast.Name):
-            if ast_expr.id.isupper():
-                return self.load_const(ast_expr.id, target)
-            else:
-                return self.load_variable(ast_expr.id, target)
-
-        raise UserWarning(f'Unsupported expression {ast_expr}')
-
-    def translate_const_assign(self, name: str, ast_value: ast.Constant):
         value = helpers.int32const(ast_value)
         self.context.names[name] = Constant(name, 'int32', value)
         return VoidElement(f'Const {name} = {value}')
@@ -123,10 +111,6 @@ class Translator:
         return helpers.create_boolop(args, source.op, target)
 
     def translate_source(self, source: ast.AST, target: Register) -> Expression:
-        if isinstance(source, ast.Expression):
-            lg.debug('Source from expression')
-            return self.translate_expr(source, target)
-
         if isinstance(source, ast.Constant):
             lg.debug(f'Source from constant (type {type(source.value)})')
             target_type = helpers.get_constant_type(source)
@@ -138,13 +122,17 @@ class Translator:
                 target=target
             )
 
-        if isinstance(source, ast.Name):
+        if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
             lg.debug('Source from name')
+            known_name = self.resolve_name(source)
 
-            if source.id.isupper():
-                return self.load_const(source.id, target)
-            else:
-                return self.load_variable(source.id, target)
+            if isinstance(known_name, Constant):
+                return self.load_const(source, target)
+
+            if isinstance(known_name, GlobalVar):
+                return self.context.load_variable(known_name, target)
+
+            raise UserWarning(f'Unsupported name {source}')
 
         if isinstance(source, ast.BinOp):
             lg.debug('Source from binop')
@@ -182,55 +170,47 @@ class Translator:
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
-    def translate_var_assign(self, target_name: str, source: ast.AST):
+    def translate_global_var_assign(self, target: GlobalVar, source: ast.AST):
         '''
             Stores the result the `GlobalVarAssignment.source` register
         '''
-        target = self.resolve_name(target_name)
+        expression = self.translate_source(source, GlobalVarAssignment.source)
+        t_type = target.target_type
+        e_type = expression.target_type
 
-        if isinstance(target, GlobalVar):
-            expression = self.translate_source(source, GlobalVarAssignment.source)
-            t_type = target.target_type
-            e_type = expression.target_type
+        if t_type != e_type:
+            raise UserWarning(
+                f'Expression type mismath {e_type} in not {t_type}'
+            )
 
-            if t_type != e_type:
-                raise UserWarning(
-                    f'Expression type mismath {e_type} in not {t_type}'
-                )
-
-            return GlobalVarAssignment(target, expression)
-        else:
-            raise UserWarning(f'Unsupported assignment {target}')
+        return GlobalVarAssignment(target, expression)
 
     def translate_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
         ast_target = ast_assign.targets[0]
-
-        if isinstance(ast_target, ast.Name):
-            name = ast_target.id
-        else:
-            raise UserWarning(f'Unsupported assign target {ast_target}')
-
         ast_value = ast_assign.value
+        known_name = self.resolve_name(ast_target)
 
-        if name.isupper():
-            if not isinstance(ast_value, ast.Constant):
-                raise UserWarning(f'Only const assignments are supported for {name}')
-
-            return self.translate_const_assign(name, ast_value)
-        elif name.islower():
-            return self.translate_var_assign(name, ast_value)
+        if isinstance(known_name, GlobalVar):
+            return self.translate_global_var_assign(known_name, ast_value)
         else:
-            raise UserWarning(f'Unsupported name {name}')
+            raise UserWarning(f'Unsupported assignment target {known_name}')
 
     def translate_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
             raise UserWarning('Only simple type declarations are supported')
 
-        name = cast(ast.Name, assign.target).id
-        type_name = cast(ast.Name, assign.annotation).id
+        if not isinstance(assign.target, ast.Name):
+            raise UserWarning('Unsupported type declaration')
+
+        name = assign.target.id
+
+        if not isinstance(assign.annotation, ast.Name):
+            raise UserWarning('External types are not supported')
+
+        type_name = assign.annotation.id
 
         if type_name == 'int':
             target_type = 'int32'
@@ -265,6 +245,21 @@ class Translator:
 
         return flow.While(test, body)
 
+    def translate_free_is(self, ast_is: ast.Compare):
+        if len(ast_is.ops) != 1:
+            raise UserWarning(f'Unsupported number of compare ops {len(ast_is.ops)}')
+
+        op = ast_is.ops[0]
+
+        if not isinstance(op, ast.Is):
+            raise UserWarning(f'Unsupported free op {op}')
+
+        if not isinstance(ast_is.left, ast.Name):
+            raise UserWarning(f'Unsupported free left {ast_is.left}')
+
+        name = ast_is.left.id
+        return self.translate_const_assign(name, ast_is.comparators[0])
+
     def translate_stmt(self, ast_element: ast.stmt) -> Element:
         ''' NB: Statement execution invalidates all registers.
             Within a statement, each element is responsible for keeping
@@ -277,10 +272,12 @@ class Translator:
                 value = cast(ast.Expr, ast_element).value
 
                 if isinstance(value, ast.Expression):
-                    expression = self.translate_expr(value, DEFAULT_REGISTER)
+                    expression = self.translate_source(value, DEFAULT_REGISTER)
                     return expression
                 if isinstance(value, ast.Call):
                     return self.translate_call(value, DEFAULT_REGISTER)
+                if isinstance(value, ast.Compare):
+                    return self.translate_free_is(value)
                 else:
                     lg.debug(f'Statements of type {type(value)} are ignored')
                     return VoidElement('ignored')

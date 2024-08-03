@@ -1,8 +1,11 @@
 import ast
-from typing import Sequence
 import logging as lg
 
-from semu.pseudopython.elements import Expression, Register, TargetType
+from semu.pseudopython.elements import (
+    Register, TargetType,
+    Expression, Expressions
+)
+
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
@@ -102,7 +105,7 @@ def create_unary(right: Expression, op: ast.AST, target: Register):
     return Op(target_type, target, right)
 
 
-def create_boolop(args: Sequence[Expression], op: ast.AST, target: Register):
+def create_boolop(args: Expressions, op: ast.AST, target: Register):
     target_type = 'bool32'
 
     for arg in args:
@@ -155,3 +158,8 @@ def create_function(
 
     function.args = []
     return function
+
+
+def make_call(known_name: ns.KnownName, args: Expressions, target: Register):
+    if not isinstance(known_name, ns.Function):
+        raise UserWarning(f'{known_name.name} is not callable')
