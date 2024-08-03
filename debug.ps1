@@ -1,4 +1,5 @@
-$subject = "whileloop"
+$subject = "functions"
+
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $assembler = "$PSScriptRoot/src/semu/sasm/masm.py"
 $emulator = "$PSScriptRoot/src/semu/runtime/emulator.py"
@@ -15,4 +16,9 @@ if ($LASTEXITCODE -ne 0) {
 
 # TODO: disable macroprocessor
 python $assembler $sasm $rom
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 python $emulator $rom

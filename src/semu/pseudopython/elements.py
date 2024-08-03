@@ -14,23 +14,38 @@ NUMBER_OF_REGISTERS = len(REGISTERS)
 DEFAULT_REGISTER = 'a'
 
 
-@dataclass
 class KnownName:
     name: str
     target_type: TargetType
 
+    def __init__(self, name: str, target_type: TargetType):
+        self.name = name
+        self.target_type = target_type
+
     def __str__(self) -> str:
         return f'{self.name}: {self.target_type}'
 
+    def label_name(self) -> str:
+        raise NotImplementedError()
 
-@dataclass
+
 class Constant(KnownName):
     value: Any
 
+    def __init__(self, name: str, target_type: TargetType, value: Any):
+        super().__init__(name, target_type)
+        self.value = value
 
-@dataclass
+    def __str__(self) -> str:
+        return f'{self.name}: {self.target_type} = {self.value}'
+
+
 class GlobalVar(KnownName):
-    pass
+    def __init__(self, name: str, target_type: TargetType):
+        super().__init__(name, target_type)
+
+    def label_name(self) -> str:
+        return f'_global_{self.name}'
 
 
 @dataclass
@@ -88,12 +103,14 @@ class Expression(Element):
 
 @dataclass
 class GlobalVariableCreate(Element):
-    name: str
+    name: KnownName
 
     def emit(self):
+        label = self.name.label_name()
+
         return [
             f'// Begin variable {self.name}',
-            f'{self.name}:',        # label
+            f'{label}:',        # label
             'nop',                  # placeholder
             '// End variable',
         ]
@@ -125,6 +142,7 @@ class GlobalVarAssignment(Element):
 
     def emit(self):
         temp = self._get_temp([self.source])
+        label = self.target.label_name()
 
         return flatten([
             f'// Saving reg:{temp}',
@@ -132,7 +150,7 @@ class GlobalVarAssignment(Element):
             f"// Calculating var:{self.target.name} into reg:{self.source}",
             self.expr.emit(),
             f'// Storing var:{self.target.name}',
-            f'ldr &{self.target.name} {temp}',
+            f'ldr &{label} {temp}',
             f'mrm {self.source} {temp}',
             f'// Restoring reg:{temp}',
             f'pop {temp}'
@@ -141,16 +159,21 @@ class GlobalVarAssignment(Element):
 
 @dataclass
 class GlobalVariableLoad(Expression):
-    name: str
+    name: KnownName
+
+    def __init__(self, name: KnownName, target: Register):
+        super().__init__(name.target_type, target)
+        self.name = name
 
     def emit(self):
         temp = self._get_temp([self.target])
+        label = self.name.label_name()
 
         return flatten([
             f'// Saving reg:{temp}',
             f'push {temp}',
             f'// Loading var:{self.name} address',
-            f'ldr &{self.name} {temp}',
+            f'ldr &{label} {temp}',
             f'// Setting var:{self.name} to reg:{self.target}',
             f'mmr {temp} {self.target}',
             f'// Restoring reg:{temp}',

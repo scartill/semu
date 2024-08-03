@@ -2,190 +2,20 @@ import sys
 from pathlib import Path
 import logging as lg
 from typing import Sequence, Dict, Any, Tuple, cast
-from dataclasses import dataclass
 import ast
 
 import click
 
-from semu.pseudopython.flatten import flatten
-
 from semu.pseudopython.elements import (
-    REGISTERS, DEFAULT_REGISTER, NUMBER_OF_REGISTERS,
-    TargetType, Register,
+    REGISTERS, DEFAULT_REGISTER, Register,
     KnownName, Constant, GlobalVar,
-    Element, VoidElement, Expression, ConstantExpression,
-    GlobalVariableCreate, GlobalVarAssignment, GlobalVariableLoad,
+    Element, VoidElement, Expression, ConstantExpression, GlobalVarAssignment
 )
 
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as helpers
-
-
-class Namespace:
-    names: Dict[str, KnownName]
-
-    def __init__(self, name: str, parent: 'Namespace | None'):
-        self.name = name
-        self.parent = parent
-        self.names = dict()
-
-    def namespace(self) -> str:
-        prefix = self.parent.parent_prefix() if self.parent else ''
-        return f'{prefix}{self.name}'
-
-    def parent_prefix(self) -> str:
-        return f'{self.namespace()}.'
-
-    def get_name(self, name: str) -> KnownName | None:
-        lg.debug(f'Looking up {name} in {self.namespace()}')
-        return self.names.get(name)
-
-    def create_variable(self, name: str, target_type: TargetType) -> None:
-        raise NotImplementedError()
-
-    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
-        raise NotImplementedError()
-
-
-class Function(Namespace, Element):
-    name: str
-    args: Sequence[str]
-    body: Sequence[Element]
-
-    def __init__(self, name: str, parent: Namespace):
-        super().__init__(name, parent)
-        self.args = list()
-        self.body = list()
-
-    def _emit_arg(self, inx: int):
-        arg = self.args[inx]
-        reg = REGISTERS[inx]
-
-        return [
-            f'// {arg}',
-            f'push {reg}'
-        ]
-
-    def emit(self) -> Sequence[str]:
-        return flatten([
-            f'// function {self.name}',
-            [self._emit_arg(i) for i in range(len(self.args))],
-            [expr.emit() for expr in self.body]
-        ])
-
-    def __str__(self) -> str:
-        result = [f'Function {self.namespace()}']
-
-        result.append('Arguments:')
-        for arg in self.args:
-            result.append(f'\t{arg}')
-
-        result.extend(['Body:'])
-        for expr in self.body:
-            result.append(str(expr))
-
-        return '\n'.join(result)
-
-
-@dataclass
-class Module(Namespace, Element):
-    functions: Dict[str, Function]
-    body: Sequence[Element]
-
-    def __init__(self, name: str, parent: Namespace):
-        super().__init__(name, parent)
-        self.functions = dict()
-        self.body = list()
-
-    def create_global_var(self, global_var: GlobalVar):
-        return GlobalVariableCreate(global_var.name)
-
-    def create_variable(self, name: str, target_type: TargetType) -> None:
-        if name in self.names:
-            raise UserWarning(f'Redefinition of the name {name}')
-
-        lg.debug(f'Creating a global variable {name}')
-        self.names[name] = GlobalVar(name, target_type)
-
-    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
-        return GlobalVariableLoad(
-            name=known_name.name,
-            target_type=known_name.target_type,
-            target=target
-        )
-
-    def emit(self):
-        result: Sequence[str] = []
-
-        for global_var in filter(lambda n: isinstance(n, GlobalVar), self.names.values()):
-            element = self.create_global_var(cast(GlobalVar, global_var))
-            result.extend(element.emit())
-
-        for function in self.functions.values():
-            result.extend(function.emit())
-
-        for expr in self.body:
-            result.extend(expr.emit())
-
-        result.append('hlt')
-        return flatten(result)
-
-    def __str__(self) -> str:
-        result = ['Module[', f'\tname={self.name}']
-
-        if self.names:
-            result.append('\tKnownNames=[')
-
-            for known_name in self.names.values():
-                result.append(f'\t\t{str(known_name)}')
-
-            result.append('\t]')
-
-        if self.functions:
-            result.append('\tFunctions=[')
-
-            for function in self.functions.values():
-                result.append(f'\t\t{str(function)}')
-
-            result.append('\t]')
-
-        if self.body:
-            result.append('\tBody=[')
-
-            for statement in self.body:
-                result.append(f'\t\t{str(statement)}')
-
-            result.append('\t]')
-
-        result.append(']')
-        return '\n'.join(result)
-
-
-@dataclass
-class TopLevel(Namespace, Element):
-    modules: Dict[str, Module]
-
-    def __init__(self):
-        super().__init__('::', None)
-        self.modules = dict()
-
-    def namespace(self) -> str:
-        return '::'
-
-    def parent_prefix(self) -> str:
-        return self.namespace()
-
-    def emit(self):
-        result: Sequence[str] = []
-
-        for module in self.modules.values():
-            result.extend(module.emit())
-
-        return flatten(result)
-
-    def __str__(self):
-        return '\n'.join([str(module) for module in self.modules.values()])
+import semu.pseudopython.namespaces as ns
 
 
 STD_LIB_CALLS = {
@@ -196,10 +26,10 @@ STD_LIB_CALLS = {
 
 
 class Translator:
-    context: Namespace
+    context: ns.Namespace
 
     def __init__(self):
-        top_level = TopLevel()
+        top_level = ns.TopLevel()
         self.context = top_level
         self._top = top_level
 
@@ -234,9 +64,6 @@ class Translator:
 
         ast_args = ast_call.args
 
-        if len(ast_args) > NUMBER_OF_REGISTERS:
-            raise UserWarning(f'Function call {ast_name_name.id} has too many arguments')
-
         args_expressions: Sequence[Expression] = []
         for i in range(len(ast_args)):
             ast_arg = ast_args[i]
@@ -256,8 +83,7 @@ class Translator:
             raise UserWarning(f'Unsupported const reference {name}')
 
         return ConstantExpression(
-            target_type=known_name.target_type,
-            value=known_name.value,
+            target_type=known_name.target_type, value=known_name.value,
             target=target
         )
 
@@ -270,8 +96,7 @@ class Translator:
             lg.debug('Constant expression')
 
             return ConstantExpression(
-                target_type='int32',
-                value=helpers.int32const(ast_expr),
+                target_type='int32', value=helpers.int32const(ast_expr),
                 target=target
             )
 
@@ -309,8 +134,7 @@ class Translator:
             value = helpers.get_constant_value(target_type, source)
 
             return ConstantExpression(
-                target_type=target_type,
-                value=value,
+                target_type=target_type, value=value,
                 target=target
             )
 
@@ -460,6 +284,7 @@ class Translator:
                 else:
                     lg.debug(f'Statements of type {type(value)} are ignored')
                     return VoidElement('ignored')
+
             case ast.Pass:
                 return VoidElement('pass')
             case ast.Assign:
@@ -477,25 +302,25 @@ class Translator:
     def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[Element]:
         return list(map(self.translate_stmt, ast_body))
 
-    def translate_function(self, ast_function: ast.FunctionDef) -> Function:
+    def translate_function(self, ast_function: ast.FunctionDef) -> ns.Function:
         name = ast_function.name
+
+        if ast_function.returns is None:
+            target_type = 'unit'
+        else:
+            raise UserWarning(f'Unsupported target type {ast_function.returns}')
+
         lg.debug(f'Function {name} found')
-        function = Function(name, self.context)
+
+        function = helpers.create_function(self.context, name, ast_function.args, target_type)
+        self.context.names[name] = function
         self.context = function
-
-        if len(ast_function.args.args) > NUMBER_OF_REGISTERS:
-            raise UserWarning(f'Function {name} has too many arguments')
-
-        def make_arg(ast_arg: ast.arg):
-            return ast_arg.arg
-
-        function.args = [make_arg(ast_arg) for ast_arg in ast_function.args.args]
         function.body = self.translate_body(ast_function.body)
-        self.context = cast(Namespace, function.parent)
+        self.context = cast(ns.Namespace, function.parent)
         return function
 
     def translate_module(self, name: str, ast_module: ast.Module):
-        module = Module(name, self.context)
+        module = ns.Module(name, self.context)
         self.context = module
 
         ast_module_body: Sequence[ast.stmt] = []
@@ -508,14 +333,14 @@ class Translator:
                 ast_module_body.append(ast_element)
 
         module.body = self.translate_body(ast_module_body)
-        self.context = cast(Namespace, module.parent)
+        self.context = cast(ns.Namespace, module.parent)
         return module
 
     def translate(self, name: str, ast_module: ast.Module):
         module = self.translate_module(name, ast_module)
-        cast(TopLevel, self.context).modules[name] = module
+        cast(ns.TopLevel, self.context).modules[name] = module
 
-    def top(self) -> TopLevel:
+    def top(self) -> ns.TopLevel:
         return self._top
 
 

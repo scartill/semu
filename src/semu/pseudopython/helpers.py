@@ -6,6 +6,7 @@ from semu.pseudopython.elements import Expression, Register, TargetType
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
+import semu.pseudopython.namespaces as ns
 
 
 def get_constant_type(ast_const: ast.Constant):
@@ -141,3 +142,16 @@ def create_compare(left: Expression, ast_op: ast.AST, right: Expression, target:
     lg.debug(f'Creating compare {ast_op} {left} {right}')
 
     return cmpops.Compare(target, left, Op(), right)
+
+
+def create_function(
+    context: ns.Namespace, name: str,
+    args: ast.arguments, target_type: TargetType
+) -> ns.Function:
+    function = ns.Function(name, 'unit', context)
+
+    for ast_arg in args.args:
+        raise NotImplementedError()
+
+    function.args = []
+    return function
