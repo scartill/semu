@@ -50,7 +50,7 @@ class Translator:
         # return helpers.make_call(known_name, args, target)
 
     def translate_arg(self, ast_arg: ast.AST, target: Register):
-        return self.translate_source(ast_arg, target)
+        return self.translate_expression(ast_arg, target)
 
     def translate_call(self, ast_call: ast.Call, target: Register):
         ast_name = ast_call.func
@@ -98,10 +98,10 @@ class Translator:
 
     def translate_boolop(self, source: ast.BoolOp, target: Register):
         values = source.values
-        args = [self.translate_source(value, DEFAULT_REGISTER) for value in values]
+        args = [self.translate_expression(value, DEFAULT_REGISTER) for value in values]
         return helpers.create_boolop(args, source.op, target)
 
-    def translate_source(self, source: ast.AST, target: Register) -> Expression:
+    def translate_expression(self, source: ast.AST, target: Register) -> Expression:
         if isinstance(source, ast.Constant):
             lg.debug(f'Source from constant (type {type(source.value)})')
             target_type = helpers.get_constant_type(source)
@@ -127,8 +127,8 @@ class Translator:
 
         if isinstance(source, ast.BinOp):
             lg.debug('Source from binop')
-            left = self.translate_source(source.left, REGISTERS[0])
-            right = self.translate_source(source.right, REGISTERS[1])
+            left = self.translate_expression(source.left, REGISTERS[0])
+            right = self.translate_expression(source.right, REGISTERS[1])
             return helpers.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
@@ -137,7 +137,7 @@ class Translator:
 
         if isinstance(source, ast.UnaryOp):
             lg.debug('Source from a unary op')
-            right = self.translate_source(source.operand, REGISTERS[0])
+            right = self.translate_expression(source.operand, REGISTERS[0])
             return helpers.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
@@ -146,7 +146,7 @@ class Translator:
 
         if isinstance(source, ast.Compare):
             lg.debug('Source from a compare')
-            left = self.translate_source(source.left, REGISTERS[0])
+            left = self.translate_expression(source.left, REGISTERS[0])
             ops = source.ops
 
             if len(source.comparators) != 1:
@@ -156,7 +156,7 @@ class Translator:
 
             assert len(ops) == 1
 
-            right = self.translate_source(source.comparators[0], REGISTERS[1])
+            right = self.translate_expression(source.comparators[0], REGISTERS[1])
             return helpers.create_compare(left, ops[0], right, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
@@ -165,7 +165,7 @@ class Translator:
         '''
             Stores the result the `GlobalVarAssignment.source` register
         '''
-        expression = self.translate_source(source, GlobalVarAssignment.source)
+        expression = self.translate_expression(source, GlobalVarAssignment.source)
         t_type = target.target_type
         e_type = expression.target_type
 
@@ -213,7 +213,7 @@ class Translator:
         return self.context.create_variable(name, target_type)
 
     def translate_if(self, ast_if: ast.If):
-        test = self.translate_source(ast_if.test, DEFAULT_REGISTER)
+        test = self.translate_expression(ast_if.test, DEFAULT_REGISTER)
         true_body = self.translate_body(ast_if.body)
 
         if test.target_type != 'bool32':
@@ -227,7 +227,7 @@ class Translator:
         return flow.If(test, true_body, false_body)
 
     def translate_while(self, ast_while: ast.While):
-        test = self.translate_source(ast_while.test, DEFAULT_REGISTER)
+        test = self.translate_expression(ast_while.test, DEFAULT_REGISTER)
         body = self.translate_body(ast_while.body)
 
         if test.target_type != 'bool32':
@@ -261,16 +261,11 @@ class Translator:
             case ast.Expr:
                 value = cast(ast.Expr, ast_element).value
 
-                if isinstance(value, ast.Expression):
-                    expression = self.translate_source(value, DEFAULT_REGISTER)
-                    return expression
-                if isinstance(value, ast.Call):
-                    return self.translate_call(value, DEFAULT_REGISTER)
                 if isinstance(value, ast.Compare):
+                    # NB: This is a hack to support `is` as a free operator
                     return self.translate_free_is(value)
                 else:
-                    lg.debug(f'Statements of type {type(value)} are ignored')
-                    return VoidElement('ignored')
+                    return self.translate_expression(value, DEFAULT_REGISTER)
 
             case ast.Pass:
                 return VoidElement('pass')
