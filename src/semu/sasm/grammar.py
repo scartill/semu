@@ -131,4 +131,6 @@ asm_cmd = hlt_cmd \
     ^ mrr_cmd \
     ^ lla_cmd \
     ^ cpt_cmd \
-    ^ aeq_cmd
+    ^ aeq_cmd \
+    ^ label \
+    ^ comment
