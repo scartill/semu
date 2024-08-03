@@ -44,24 +44,31 @@ class Namespace:
 class Function(KnownName, Namespace, Element):
     args: Sequence[str]
     body: Sequence[Element]
+    return_target: Register
 
-    def __init__(self, name: str, target_type: TargetType, parent: Namespace):
+    def __init__(
+        self, name: str, parent: Namespace,
+        return_type: TargetType, return_target: Register
+    ):
         Element.__init__(self)
-        KnownName.__init__(self, name, target_type)
+        KnownName.__init__(self, name, return_type)
         Namespace.__init__(self, name, parent)
         self.args = list()
         self.body = list()
+        self.return_target = return_target
 
     def __str__(self) -> str:
-        result = [f'Function {self.namespace()}']
+        result = [f'Function {self.name} [']
 
         result.append('Arguments:')
         for arg in self.args:
-            result.append(f'\t{arg}')
+            result.append(f'{arg}')
 
         result.extend(['Body:'])
         for expr in self.body:
             result.append(str(expr))
+
+        result.append(']')
 
         return '\n'.join(result)
 
@@ -143,23 +150,25 @@ class Module(Namespace, Element):
         return flatten(result)
 
     def __str__(self) -> str:
-        result = ['Module[', f'\tname={self.name}']
+        result = ['Module[', f'name={self.name}']
 
         if self.names:
-            result.append('\tKnownNames=[')
+            result.append('KnownNames=[')
 
-            for known_name in self.names.values():
-                result.append(f'\t\t{str(known_name)}')
+            for kn in self.names.values():
+                result.append(
+                    f'{type(kn)} {kn.name} : {kn.target_type}'
+                )
 
-            result.append('\t]')
+            result.append(']')
 
         if self.body:
-            result.append('\tBody=[')
+            result.append('Body=[')
 
             for statement in self.body:
-                result.append(f'\t\t{str(statement)}')
+                result.append(f'{str(statement)}')
 
-            result.append('\t]')
+            result.append(']')
 
         result.append(']')
         return '\n'.join(result)

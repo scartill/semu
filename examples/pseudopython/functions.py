@@ -1,10 +1,12 @@
 # type: ignore
 
-i: int
+checkpoint(0)
 
 def test():
     checkpoint(1)
 
-# test.i()
-# i()
-# test()
+test()
+test()
+test()
+
+checkpoint(2)

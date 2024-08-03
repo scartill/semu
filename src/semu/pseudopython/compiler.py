@@ -46,8 +46,7 @@ class Translator:
         return known_name.func(known_name, args, target)
 
     def translate_real_call(self, function: ns.Function, args: Expressions, target: Register):
-        raise NotImplementedError()
-        # return helpers.make_call(known_name, args, target)
+        return helpers.make_call(function, args, target)
 
     def translate_arg(self, ast_arg: ast.AST, target: Register):
         return self.translate_expression(ast_arg, target)

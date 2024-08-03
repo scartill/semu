@@ -2,14 +2,14 @@ import ast
 import logging as lg
 
 from semu.pseudopython.elements import (
-    Register, TargetType,
-    Expression, Expressions
+    Register, TargetType, Expression, Expressions, DEFAULT_REGISTER
 )
 
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.calls as calls
 
 
 def get_constant_type(ast_const: ast.Constant):
@@ -148,10 +148,11 @@ def create_compare(left: Expression, ast_op: ast.AST, right: Expression, target:
 
 
 def create_function(
-    context: ns.Namespace, name: str,
-    args: ast.arguments, target_type: TargetType
+    context: ns.Namespace, name: str, args: ast.arguments,
+    target_type: TargetType
 ) -> ns.Function:
-    function = ns.Function(name, 'unit', context)
+
+    function = ns.Function(name, context, target_type, DEFAULT_REGISTER)
 
     for ast_arg in args.args:
         raise NotImplementedError()
@@ -160,6 +161,18 @@ def create_function(
     return function
 
 
-def make_call(known_name: ns.KnownName, args: Expressions, target: Register):
-    if not isinstance(known_name, ns.Function):
-        raise UserWarning(f'{known_name.name} is not callable')
+def make_call(func: ns.Function, args: Expressions, target: Register):
+    lg.debug(f'Making call to {func.name} -> {func.target_type} with {args}')
+
+    formal_args = func.args
+
+    if len(formal_args) != len(args):
+        raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
+
+    # for formal_arg, arg in zip(formal_args, args):
+    #     if formal_arg.target_type != arg.target_type:
+    #         raise UserWarning(
+    #             f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
+    #         )
+
+    return calls.FunctionCall(func.target_type, target, func)
