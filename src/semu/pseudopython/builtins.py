@@ -1,16 +1,36 @@
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Sequence, Type
 import logging as lg
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression, Register, ConstantExpression
+
+from semu.pseudopython.elements import (
+    Expression, Register, ConstantExpression, KnownName, TargetType
+)
 
 
 @dataclass
-class Checkpoint(Expression):
+class BuiltinImplementation(Expression):
+    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
+        super().__init__(known_name.target_type, target)
+
+
+@dataclass
+class BuiltinFunction(KnownName):
+    func: Type[BuiltinImplementation]
+
+    def __init__(self, name: str, target_type: TargetType, func: Type):
+        super().__init__(name, target_type)
+        self.func = func
+
+
+@dataclass
+class Checkpoint(BuiltinImplementation):
     arg: int
 
-    def __init__(self, args: Sequence[Expression], target: Register):
+    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
+        super().__init__(known_name, args, target)
+
         lg.debug(f'Checkpoint {args}')
 
         if len(args) != 1:
@@ -20,9 +40,6 @@ class Checkpoint(Expression):
 
         if not isinstance(arg, ConstantExpression):
             raise UserWarning(f"'checkpoint' expects a constant argument, got {arg}")
-
-        self.target_type = 'unit'
-        self.target = target  # Checkpoints don't have a actual target
 
         # Inlining the checkpoint number
         self.arg = arg.value
@@ -35,11 +52,13 @@ class Checkpoint(Expression):
 
 
 @dataclass
-class Assertion(Expression):
+class Assertion(BuiltinImplementation):
     source: Expression
     value: int
 
-    def __init__(self, args: Sequence[Expression], target: Register):
+    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
+        super().__init__(known_name, args, target)
+
         lg.debug(f'Assertion {args}')
 
         if len(args) != 2:
@@ -61,9 +80,6 @@ class Assertion(Expression):
                 f"'assertion' expects a int32 value, got {value_expr.target_type}"
             )
 
-        self.target_type = 'unit'
-        self.target = target  # Assertions don't have an actual target
-
         # Inlining the value
         self.value = value_expr.value
 
@@ -76,15 +92,14 @@ class Assertion(Expression):
 
 
 @dataclass
-class BoolToInt(Expression):
+class BoolToInt(BuiltinImplementation):
     source: Expression
 
-    def __init__(self, args: Sequence[Expression], target: Register):
+    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
+        super().__init__(known_name, args, target)
+
         # TODO: More structurally correct would be have these in helpers
         lg.debug(f'BoolToInt {args}')
-
-        self.target_type = 'int32'
-        self.target = target
 
         if len(args) != 1:
             raise UserWarning(f"'bool_to_int' expects 1 argument, got {len(args)}")
@@ -99,3 +114,11 @@ class BoolToInt(Expression):
     def emit(self) -> Sequence[str]:
         # Does nothing on the assembly level
         return self.source.emit()
+
+
+def get() -> Sequence[BuiltinFunction]:
+    return [
+        BuiltinFunction('checkpoint', 'unit', Checkpoint),
+        BuiltinFunction('assert_eq', 'unit', Assertion),
+        BuiltinFunction('bool_to_int', 'int32', BoolToInt)
+    ]

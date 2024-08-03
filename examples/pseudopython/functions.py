@@ -4,7 +4,7 @@ i: int
 
 
 def test():
-    std.checkpoint(1)
+    checkpoint(1)
 
 # test.i()
 # i()

@@ -3,6 +3,7 @@ from typing import Dict, Sequence, cast
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.builtins as builtins
 
 from semu.pseudopython.elements import (
     TargetType, Register,
@@ -19,6 +20,8 @@ class Namespace:
         self.name = name
         self.parent = parent
         self.names = dict()
+
+        self.names.update({bi.name: bi for bi in builtins.get()})
 
     def namespace(self) -> str:
         prefix = self.parent.parent_prefix() if self.parent else ''

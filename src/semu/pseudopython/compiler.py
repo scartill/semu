@@ -19,13 +19,6 @@ import semu.pseudopython.helpers as helpers
 import semu.pseudopython.namespaces as ns
 
 
-STD_LIB_CALLS = {
-    'checkpoint': builtins.Checkpoint,
-    'assert_eq': builtins.Assertion,
-    'bool_to_int': builtins.BoolToInt
-}
-
-
 class Translator:
     context: ns.Namespace
 
@@ -46,16 +39,15 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(self, std_name: str, args: Expressions, target: Register):
-        if std_name not in STD_LIB_CALLS:
-            raise UserWarning(f'Unknown stdlib call {std_name}')
+    def translate_std_call(
+            self, known_name: builtins.BuiltinFunction,
+            args: Expressions, target: Register
+    ):
+        return known_name.func(known_name, args, target)
 
-        return STD_LIB_CALLS[std_name](args, target)
-
-    def translate_real_call(self, name: ast.AST, args: Expressions, target: Register):
-        known_name = self.resolve_name(name)
+    def translate_real_call(self, function: ns.Function, args: Expressions, target: Register):
         raise NotImplementedError()
-        return helpers.make_call(known_name, args, target)
+        # return helpers.make_call(known_name, args, target)
 
     def translate_arg(self, ast_arg: ast.AST, target: Register):
         return self.translate_source(ast_arg, target)
@@ -64,11 +56,7 @@ class Translator:
         ast_name = ast_call.func
         lg.debug(f'Raw call {ast_name}')
 
-        if not isinstance(ast_name, ast.Attribute):
-            raise UserWarning(f'Unsupported function name {ast_call} {ast_name}')
-
-        ast_name_name = cast(ast.Name, ast_name.value)
-        lg.debug(f'Call {ast_name_name.id}.{ast_name.attr}')
+        known_name = self.resolve_name(ast_name)
 
         ast_args = ast_call.args
 
@@ -79,10 +67,13 @@ class Translator:
             lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
 
-        if ast_name_name.id == 'std':
-            return self.translate_std_call(ast_name.attr, args_expressions, target)
-        else:
-            return self.translate_real_call(ast_name_name, args_expressions, target)
+        if isinstance(known_name, builtins.BuiltinFunction):
+            return self.translate_std_call(known_name, args_expressions, target)
+
+        if isinstance(known_name, ns.Function):
+            return self.translate_real_call(known_name, args_expressions, target)
+
+        raise UserWarning(f'Unsupported call {ast_call}')
 
     def load_const(self, name: ast.AST, target: Register):
         known_name = self.resolve_name(name)
