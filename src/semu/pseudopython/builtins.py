@@ -10,14 +10,14 @@ from semu.pseudopython.elements import (
 
 
 @dataclass
-class BuiltinImplementation(Expression):
+class InlineBuiltin(Expression):
     def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
         super().__init__(known_name.target_type, target)
 
 
 @dataclass
-class BuiltinFunction(KnownName):
-    func: Type[BuiltinImplementation]
+class BuiltinInline(KnownName):
+    func: Type[InlineBuiltin]
 
     def __init__(self, name: str, target_type: TargetType, func: Type):
         super().__init__(name, target_type)
@@ -25,7 +25,7 @@ class BuiltinFunction(KnownName):
 
 
 @dataclass
-class Checkpoint(BuiltinImplementation):
+class Checkpoint(InlineBuiltin):
     arg: int
 
     def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
@@ -52,7 +52,7 @@ class Checkpoint(BuiltinImplementation):
 
 
 @dataclass
-class Assertion(BuiltinImplementation):
+class Assertion(InlineBuiltin):
     source: Expression
     value: int
 
@@ -92,7 +92,7 @@ class Assertion(BuiltinImplementation):
 
 
 @dataclass
-class BoolToInt(BuiltinImplementation):
+class BoolToInt(InlineBuiltin):
     source: Expression
 
     def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
@@ -116,9 +116,9 @@ class BoolToInt(BuiltinImplementation):
         return self.source.emit()
 
 
-def get() -> Sequence[BuiltinFunction]:
+def get() -> Sequence[BuiltinInline]:
     return [
-        BuiltinFunction('checkpoint', 'unit', Checkpoint),
-        BuiltinFunction('assert_eq', 'unit', Assertion),
-        BuiltinFunction('bool_to_int', 'int32', BoolToInt)
+        BuiltinInline('checkpoint', 'unit', Checkpoint),
+        BuiltinInline('assert_eq', 'unit', Assertion),
+        BuiltinInline('bool_to_int', 'int32', BoolToInt)
     ]

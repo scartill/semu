@@ -39,9 +39,9 @@ class Translator:
 
         return known_name
 
-    def translate_std_call(
-            self, known_name: builtins.BuiltinFunction,
-            args: Expressions, target: Register
+    def translate_builtin_inline(
+        self, known_name: builtins.BuiltinInline, args: Expressions,
+        target: Register
     ):
         return known_name.func(known_name, args, target)
 
@@ -67,8 +67,8 @@ class Translator:
             lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
 
-        if isinstance(known_name, builtins.BuiltinFunction):
-            return self.translate_std_call(known_name, args_expressions, target)
+        if isinstance(known_name, builtins.BuiltinInline):
+            return self.translate_builtin_inline(known_name, args_expressions, target)
 
         if isinstance(known_name, ns.Function):
             return self.translate_real_call(known_name, args_expressions, target)
