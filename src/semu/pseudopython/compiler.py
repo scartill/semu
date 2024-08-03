@@ -290,7 +290,7 @@ class Translator:
     def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[Element]:
         return list(map(self.translate_stmt, ast_body))
 
-    def translate_function(self, ast_function: ast.FunctionDef) -> ns.Function:
+    def translate_function(self, ast_function: ast.FunctionDef):
         name = ast_function.name
 
         if ast_function.returns is None:
@@ -315,8 +315,7 @@ class Translator:
 
         for ast_element in ast_module.body:
             if isinstance(ast_element, ast.FunctionDef):
-                function = self.translate_function(ast_element)
-                module.functions[function.name] = function
+                self.translate_function(ast_element)
             else:
                 ast_module_body.append(ast_element)
 

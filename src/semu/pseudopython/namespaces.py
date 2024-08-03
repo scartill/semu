@@ -88,13 +88,11 @@ class Function(KnownName, Namespace, Element):
 
 @dataclass
 class Module(Namespace, Element):
-    functions: Dict[str, Function]
     body: Sequence[Element]
 
     def __init__(self, name: str, parent: Namespace):
         Element.__init__(self)
         Namespace.__init__(self, name, parent)
-        self.functions = dict()
         self.body = list()
 
     def create_global_var(self, global_var: GlobalVar):
@@ -127,8 +125,8 @@ class Module(Namespace, Element):
             f'jmp {temp}',
         ])
 
-        for function in self.functions.values():
-            result.extend(function.emit())
+        for function in filter(lambda n: isinstance(n, Function), self.names.values()):
+            result.extend(cast(Function, function).emit())
 
         result.extend([
             f'{declarations_end}:',
@@ -149,14 +147,6 @@ class Module(Namespace, Element):
 
             for known_name in self.names.values():
                 result.append(f'\t\t{str(known_name)}')
-
-            result.append('\t]')
-
-        if self.functions:
-            result.append('\tFunctions=[')
-
-            for function in self.functions.values():
-                result.append(f'\t\t{str(function)}')
 
             result.append('\t]')
 
