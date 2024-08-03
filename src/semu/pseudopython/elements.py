@@ -105,11 +105,16 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
-class GlobalVariableCreate(Element):
-    name: KnownName
+class GlobalVariableCreate(Element, GlobalVar):
+    def __init__(self, name: str, target_type: TargetType):
+        KnownName.__init__(self, name, target_type)
+        Element.__init__(self)
+
+    def label_name(self) -> str:
+        return f'_global_variable_{self.name}'
 
     def emit(self):
-        label = self.name.label_name()
+        label = self.label_name()
 
         return [
             f'// Begin variable {self.name}',

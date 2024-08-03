@@ -7,8 +7,8 @@ import semu.pseudopython.builtins as builtins
 
 from semu.pseudopython.elements import (
     TargetType, Register,
-    KnownName, Element, Expression,
-    GlobalVar, GlobalVariableCreate, GlobalVariableLoad
+    KnownName,
+    Element, Expression, GlobalVariableCreate, GlobalVariableLoad
 )
 
 
@@ -34,7 +34,7 @@ class Namespace:
         lg.debug(f'Looking up {name} in {self.namespace()}')
         return self.names.get(name)
 
-    def create_variable(self, name: str, target_type: TargetType) -> None:
+    def create_variable(self, name: str, target_type: TargetType) -> Element:
         raise NotImplementedError()
 
     def load_variable(self, known_name: KnownName, target: Register) -> Expression:
@@ -95,25 +95,20 @@ class Module(Namespace, Element):
         Namespace.__init__(self, name, parent)
         self.body = list()
 
-    def create_global_var(self, global_var: GlobalVar):
-        return GlobalVariableCreate(global_var)
-
-    def create_variable(self, name: str, target_type: TargetType) -> None:
+    def create_variable(self, name: str, target_type: TargetType) -> Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 
         lg.debug(f'Creating a global variable {name}')
-        self.names[name] = GlobalVar(name, target_type)
+        create = GlobalVariableCreate(name, target_type)
+        self.names[name] = create
+        return create
 
     def load_variable(self, known_name: KnownName, target: Register) -> Expression:
         return GlobalVariableLoad(known_name, target=target)
 
     def emit(self):
         result: Sequence[str] = []
-
-        for global_var in filter(lambda n: isinstance(n, GlobalVar), self.names.values()):
-            element = self.create_global_var(cast(GlobalVar, global_var))
-            result.extend(element.emit())
 
         declarations_end = self._make_label('declarations_end')
         temp = self._get_temp([])
@@ -125,15 +120,23 @@ class Module(Namespace, Element):
             f'jmp {temp}',
         ])
 
-        for function in filter(lambda n: isinstance(n, Function), self.names.values()):
+        globals = lambda n: isinstance(n, GlobalVariableCreate)
+        functions = lambda n: isinstance(n, Function)
+        others = lambda n: not isinstance(n, (GlobalVariableCreate, Function))
+
+        for global_var in filter(globals, self.body):
+            result.extend(global_var.emit())
+
+        for function in filter(functions, self.body):
             result.extend(cast(Function, function).emit())
 
         result.extend([
             f'{declarations_end}:',
+            f'pop {temp}',
             f'// Module {self.namespace()} body',
         ])
 
-        for expr in self.body:
+        for expr in filter(others, self.body):
             result.extend(expr.emit())
 
         result.append('hlt')

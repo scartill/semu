@@ -210,8 +210,7 @@ class Translator:
         else:
             raise UserWarning(f'Unsupported type found ({type_name})')
 
-        self.context.create_variable(name, target_type)
-        return VoidElement(f'Declare var {name}: {target_type}')
+        return self.context.create_variable(name, target_type)
 
     def translate_if(self, ast_if: ast.If):
         test = self.translate_source(ast_if.test, DEFAULT_REGISTER)
@@ -283,6 +282,8 @@ class Translator:
                 return self.translate_if(cast(ast.If, ast_element))
             case ast.While:
                 return self.translate_while(cast(ast.While, ast_element))
+            case ast.FunctionDef:
+                return self.translate_function(cast(ast.FunctionDef, ast_element))
 
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
         return VoidElement('unsupported')
@@ -310,16 +311,7 @@ class Translator:
     def translate_module(self, name: str, ast_module: ast.Module):
         module = ns.Module(name, self.context)
         self.context = module
-
-        ast_module_body: Sequence[ast.stmt] = []
-
-        for ast_element in ast_module.body:
-            if isinstance(ast_element, ast.FunctionDef):
-                self.translate_function(ast_element)
-            else:
-                ast_module_body.append(ast_element)
-
-        module.body = self.translate_body(ast_module_body)
+        module.body = self.translate_body(ast_module.body)
         self.context = cast(ns.Namespace, module.parent)
         return module
 
