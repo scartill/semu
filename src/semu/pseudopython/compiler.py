@@ -39,24 +39,13 @@ class Translator:
 
         return known_name
 
-    def translate_builtin_inline(
-        self, impl: builtins.BuiltinInlineImpl, args: Expressions,
-        target: Register
-    ):
-        impl.set_args(args)
-        return impl
-
-    def translate_real_call(self, function: ns.Function, args: Expressions, target: Register):
-        return helpers.make_call(function, args, target)
-
-    def translate_arg(self, ast_arg: ast.AST, target: Register):
-        return self.translate_expression(ast_arg, target)
-
     def translate_call(self, ast_call: ast.Call, target: Register):
         lg.debug(f'Raw call {ast_call.func}')
 
+        # TODO: HACK: DOES NOT WORK: choosa a free register
         callable = self.translate_expression(ast_call.func, DEFAULT_REGISTER)
 
+        # TODO: change to type check, remove callable class
         if not isinstance(callable, Callable):
             raise UserWarning(f'Unsupported callable {callable}')
 
@@ -67,13 +56,13 @@ class Translator:
             ast_arg = ast_args[i]
             target = REGISTERS[i]
             lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
-            args_expressions.append(self.translate_arg(ast_arg, target))
+            args_expressions.append(self.translate_expression(ast_arg, target))
 
-        if isinstance(callable, builtins.BuiltinInlineImpl):
-            return self.translate_builtin_inline(callable, args_expressions, target)
+        if isinstance(callable, builtins.BuiltinInline):
+            return helpers.create_builtin(callable, args_expressions, target)
 
         if isinstance(callable, ns.Function):
-            return self.translate_real_call(callable, args_expressions, target)
+            return helpers.make_call(callable, args_expressions, target)
 
         raise UserWarning(f'Unsupported call {ast_call}')
 
@@ -126,7 +115,7 @@ class Translator:
                 return self.context.load_variable(known_name, target)
 
             if isinstance(known_name, builtins.BuiltinInline):
-                return known_name.func(known_name, target)
+                return known_name  # as expression
 
             if isinstance(known_name, ns.Function):
                 # return self.context.load_function(known_name, target)

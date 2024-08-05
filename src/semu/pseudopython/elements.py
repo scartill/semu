@@ -5,13 +5,14 @@ from random import randint
 from semu.pseudopython.flatten import flatten
 
 
-Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-TargetType = Literal['unit', 'int32', 'bool32']
+Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'void']
+TargetType = Literal['unit', 'int32', 'bool32', 'callable']
 
 
 REGISTERS: List[Register] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 NUMBER_OF_REGISTERS = len(REGISTERS)
 DEFAULT_REGISTER = 'a'
+VOID_REGISTER = 'void'
 
 
 class KnownName:
@@ -54,8 +55,9 @@ class LocalVar(KnownName):
 
 
 class Callable(KnownName):
-    def __init__(self, name: str, return_type: TargetType):
-        super().__init__(name, return_type)
+    # TODO: Change 'target_type' to 'callable_type -> target_type'
+    def __init__(self, name: str, target_type: TargetType):
+        super().__init__(name, target_type)
 
 
 class Element:

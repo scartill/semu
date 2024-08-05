@@ -5,36 +5,38 @@ import logging as lg
 from semu.pseudopython.flatten import flatten
 
 from semu.pseudopython.elements import (
-    Expression, Register, ConstantExpression, KnownName, TargetType, Callable
+    Expression, Expressions, Register, ConstantExpression,
+    Callable, TargetType, VOID_REGISTER
 )
 
 
 @dataclass
 class BuiltinInlineImpl(Expression):
-    def __init__(self, known_name: KnownName, target: Register):
-        super().__init__(known_name.target_type, target)
+    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+        super().__init__(target_type, target)
 
-    def set_args(self, args: Sequence[Expression]):
-        raise NotImplementedError()
 
 @dataclass
-class BuiltinInline(Callable):
+class BuiltinInline(Callable, Expression):
     func: Type[BuiltinInlineImpl]
+    return_type: TargetType
 
     def __init__(self, name: str, target_type: TargetType, func: Type):
-        super().__init__(name, target_type)
+        Callable.__init__(self, name, target_type)
+        # Builtin functions have no address
+        Expression.__init__(self, 'callable', VOID_REGISTER)
         self.func = func
+        self.return_type = target_type
 
 
 @dataclass
 class Checkpoint(BuiltinInlineImpl):
     arg: int
 
-    def __init__(self, known_name: KnownName, target: Register):
-        super().__init__(known_name, target)
+    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+        super().__init__(target_type, args, target)
         lg.debug('Checkpoint')
 
-    def set_args(self, args: Sequence[Expression]):
         if len(args) != 1:
             raise UserWarning(f"'checkpoint' expects 1 argument, got {len(args)}")
 
@@ -58,11 +60,10 @@ class Assertion(BuiltinInlineImpl):
     source: Expression
     value: int
 
-    def __init__(self, known_name: KnownName, target: Register):
-        super().__init__(known_name, target)
-        lg.debug(f'Assertion')
+    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+        super().__init__(target_type, args, target)
+        lg.debug('Assertion')
 
-    def set_args(self, args: Sequence[Expression]):
         if len(args) != 2:
             raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -97,13 +98,12 @@ class Assertion(BuiltinInlineImpl):
 class BoolToInt(BuiltinInlineImpl):
     source: Expression
 
-    def __init__(self, known_name: KnownName, target: Register):
-        super().__init__(known_name, target)
+    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+        super().__init__(target_type, args, target)
 
-        # TODO: More structurally correct would be have these in helpers
+        # TODO: move these constructors to factory functions
         lg.debug('BoolToInt')
 
-    def set_args(self, args: Sequence[Expression]):
         if len(args) != 1:
             raise UserWarning(f"'bool_to_int' expects 1 argument, got {len(args)}")
 

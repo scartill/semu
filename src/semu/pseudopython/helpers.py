@@ -10,6 +10,7 @@ import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
+import semu.pseudopython.builtins as bi
 
 
 def get_constant_type(ast_const: ast.Constant):
@@ -159,6 +160,10 @@ def create_function(
 
     function.args = []
     return function
+
+
+def create_builtin(inline: bi.BuiltinInline, args: Expressions, target: Register):
+    return inline.func(inline.return_type, args, target)
 
 
 def make_call(func: ns.Function, args: Expressions, target: Register):
