@@ -5,19 +5,21 @@ import logging as lg
 from semu.pseudopython.flatten import flatten
 
 from semu.pseudopython.elements import (
-    Expression, Register, ConstantExpression, KnownName, TargetType
+    Expression, Register, ConstantExpression, KnownName, TargetType, Callable
 )
 
 
 @dataclass
-class InlineBuiltin(Expression):
-    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
+class BuiltinInlineImpl(Expression):
+    def __init__(self, known_name: KnownName, target: Register):
         super().__init__(known_name.target_type, target)
 
+    def set_args(self, args: Sequence[Expression]):
+        raise NotImplementedError()
 
 @dataclass
-class BuiltinInline(KnownName):
-    func: Type[InlineBuiltin]
+class BuiltinInline(Callable):
+    func: Type[BuiltinInlineImpl]
 
     def __init__(self, name: str, target_type: TargetType, func: Type):
         super().__init__(name, target_type)
@@ -25,14 +27,14 @@ class BuiltinInline(KnownName):
 
 
 @dataclass
-class Checkpoint(InlineBuiltin):
+class Checkpoint(BuiltinInlineImpl):
     arg: int
 
-    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
-        super().__init__(known_name, args, target)
+    def __init__(self, known_name: KnownName, target: Register):
+        super().__init__(known_name, target)
+        lg.debug('Checkpoint')
 
-        lg.debug(f'Checkpoint {args}')
-
+    def set_args(self, args: Sequence[Expression]):
         if len(args) != 1:
             raise UserWarning(f"'checkpoint' expects 1 argument, got {len(args)}")
 
@@ -52,15 +54,15 @@ class Checkpoint(InlineBuiltin):
 
 
 @dataclass
-class Assertion(InlineBuiltin):
+class Assertion(BuiltinInlineImpl):
     source: Expression
     value: int
 
-    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
-        super().__init__(known_name, args, target)
+    def __init__(self, known_name: KnownName, target: Register):
+        super().__init__(known_name, target)
+        lg.debug(f'Assertion')
 
-        lg.debug(f'Assertion {args}')
-
+    def set_args(self, args: Sequence[Expression]):
         if len(args) != 2:
             raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -92,15 +94,16 @@ class Assertion(InlineBuiltin):
 
 
 @dataclass
-class BoolToInt(InlineBuiltin):
+class BoolToInt(BuiltinInlineImpl):
     source: Expression
 
-    def __init__(self, known_name: KnownName, args: Sequence[Expression], target: Register):
-        super().__init__(known_name, args, target)
+    def __init__(self, known_name: KnownName, target: Register):
+        super().__init__(known_name, target)
 
         # TODO: More structurally correct would be have these in helpers
-        lg.debug(f'BoolToInt {args}')
+        lg.debug('BoolToInt')
 
+    def set_args(self, args: Sequence[Expression]):
         if len(args) != 1:
             raise UserWarning(f"'bool_to_int' expects 1 argument, got {len(args)}")
 

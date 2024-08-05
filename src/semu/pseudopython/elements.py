@@ -53,6 +53,11 @@ class LocalVar(KnownName):
     pass
 
 
+class Callable(KnownName):
+    def __init__(self, name: str, return_type: TargetType):
+        super().__init__(name, return_type)
+
+
 class Element:
     labels: Set[str]
 

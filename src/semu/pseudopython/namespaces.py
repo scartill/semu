@@ -7,7 +7,7 @@ import semu.pseudopython.builtins as builtins
 
 from semu.pseudopython.elements import (
     TargetType, Register,
-    KnownName,
+    KnownName, Callable,
     Element, Expression, GlobalVariableCreate, GlobalVariableLoad
 )
 
@@ -41,7 +41,7 @@ class Namespace:
         raise NotImplementedError()
 
 
-class Function(KnownName, Namespace, Element):
+class Function(Callable, Namespace, Element):
     args: Sequence[str]
     body: Sequence[Element]
     return_target: Register

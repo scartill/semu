@@ -8,7 +8,7 @@ import click
 
 from semu.pseudopython.elements import (
     REGISTERS, DEFAULT_REGISTER, Register,
-    KnownName, Constant, GlobalVar,
+    KnownName, Constant, GlobalVar, Callable,
     Element, VoidElement, Expression, Expressions,
     ConstantExpression, GlobalVarAssignment
 )
@@ -27,7 +27,7 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
-    def resolve_name(self, ast_name: ast.AST) -> KnownName:
+    def resolve_object(self, ast_name: ast.AST) -> KnownName:
         if not isinstance(ast_name, ast.Name):
             raise UserWarning(f'Unsupported name {ast_name}')
 
@@ -40,10 +40,11 @@ class Translator:
         return known_name
 
     def translate_builtin_inline(
-        self, known_name: builtins.BuiltinInline, args: Expressions,
+        self, impl: builtins.BuiltinInlineImpl, args: Expressions,
         target: Register
     ):
-        return known_name.func(known_name, args, target)
+        impl.set_args(args)
+        return impl
 
     def translate_real_call(self, function: ns.Function, args: Expressions, target: Register):
         return helpers.make_call(function, args, target)
@@ -52,30 +53,32 @@ class Translator:
         return self.translate_expression(ast_arg, target)
 
     def translate_call(self, ast_call: ast.Call, target: Register):
-        ast_name = ast_call.func
-        lg.debug(f'Raw call {ast_name}')
+        lg.debug(f'Raw call {ast_call.func}')
 
-        known_name = self.resolve_name(ast_name)
+        callable = self.translate_expression(ast_call.func, DEFAULT_REGISTER)
+
+        if not isinstance(callable, Callable):
+            raise UserWarning(f'Unsupported callable {callable}')
 
         ast_args = ast_call.args
-
         args_expressions: Expressions = []
+
         for i in range(len(ast_args)):
             ast_arg = ast_args[i]
             target = REGISTERS[i]
             lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
             args_expressions.append(self.translate_arg(ast_arg, target))
 
-        if isinstance(known_name, builtins.BuiltinInline):
-            return self.translate_builtin_inline(known_name, args_expressions, target)
+        if isinstance(callable, builtins.BuiltinInlineImpl):
+            return self.translate_builtin_inline(callable, args_expressions, target)
 
-        if isinstance(known_name, ns.Function):
-            return self.translate_real_call(known_name, args_expressions, target)
+        if isinstance(callable, ns.Function):
+            return self.translate_real_call(callable, args_expressions, target)
 
         raise UserWarning(f'Unsupported call {ast_call}')
 
     def load_const(self, name: ast.AST, target: Register):
-        known_name = self.resolve_name(name)
+        known_name = self.resolve_object(name)
 
         if not isinstance(known_name, Constant):
             raise UserWarning(f'Unsupported const reference {name}')
@@ -114,13 +117,20 @@ class Translator:
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
             lg.debug('Source from name')
-            known_name = self.resolve_name(source)
+            known_name = self.resolve_object(source)
 
             if isinstance(known_name, Constant):
                 return self.load_const(source, target)
 
             if isinstance(known_name, GlobalVar):
                 return self.context.load_variable(known_name, target)
+
+            if isinstance(known_name, builtins.BuiltinInline):
+                return known_name.func(known_name, target)
+
+            if isinstance(known_name, ns.Function):
+                # return self.context.load_function(known_name, target)
+                return known_name
 
             raise UserWarning(f'Unsupported name {source}')
 
@@ -181,7 +191,7 @@ class Translator:
 
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
-        known_name = self.resolve_name(ast_target)
+        known_name = self.resolve_object(ast_target)
 
         if isinstance(known_name, GlobalVar):
             return self.translate_global_var_assign(known_name, ast_value)
