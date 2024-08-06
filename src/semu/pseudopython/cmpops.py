@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Element, Expression, Register
+from semu.pseudopython.elements import Element, Expression
+import semu.pseudopython.registers as regs
 
 
 @dataclass
 class CompareOp(Element):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         raise NotImplementedError()
@@ -18,7 +20,8 @@ class CompareOp(Element):
 class Eq(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -37,7 +40,8 @@ class Eq(CompareOp):
 class NotEq(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -56,7 +60,8 @@ class NotEq(CompareOp):
 class Lt(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -75,7 +80,8 @@ class Lt(CompareOp):
 class LtE(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -99,7 +105,8 @@ class LtE(CompareOp):
 class Gt(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -115,7 +122,8 @@ class Gt(CompareOp):
 class GtE(CompareOp):
     def emit(
             self,
-            left: Register, right: Register, address: Register, temp: Register,
+            left: regs.Register, right: regs.Register,
+            address: regs.Register, temp: regs.Register,
             label_true: str, label_false: str
     ):
         return [
@@ -138,7 +146,7 @@ class Compare(Expression):
     op: CompareOp
     right: Expression
 
-    def __init__(self, target: Register, left: Expression, op: CompareOp, right: Expression):
+    def __init__(self, target: regs.Register, left: Expression, op: CompareOp, right: Expression):
         super().__init__(target_type='bool32', target=target)
         self.left = left
         self.op = op
@@ -149,7 +157,7 @@ class Compare(Expression):
         r_target = self.right.target
         assert l_target != r_target
 
-        available = self._get_available_registers([
+        available = regs.get_available([
             self.target,
             l_target,
             r_target

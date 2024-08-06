@@ -3,28 +3,27 @@ from typing import Sequence, Type
 import logging as lg
 
 from semu.pseudopython.flatten import flatten
-
-from semu.pseudopython.elements import (
-    Expression, Expressions, Register, ConstantExpression,
-    Callable, TargetType, VOID_REGISTER
-)
+import semu.pseudopython.registers as regs
+import semu.pseudopython.elements as el
 
 
 @dataclass
-class BuiltinInlineImpl(Expression):
-    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+class BuiltinInlineImpl(el.Expression):
+    def __init__(
+            self, target_type: el.TargetType, args: el.Expressions, target: regs.Register
+    ):
         super().__init__(target_type, target)
 
 
 @dataclass
-class BuiltinInline(Callable, Expression):
+class BuiltinInline(el.Callable, el.Expression):
     func: Type[BuiltinInlineImpl]
-    return_type: TargetType
+    return_type: el.TargetType
 
-    def __init__(self, name: str, target_type: TargetType, func: Type):
-        Callable.__init__(self, name, target_type)
+    def __init__(self, name: str, target_type: el.TargetType, func: Type):
+        el.Callable.__init__(self, name, target_type)
         # Builtin functions have no address
-        Expression.__init__(self, 'callable', VOID_REGISTER)
+        el.Expression.__init__(self, 'callable', regs.VOID_REGISTER)
         self.func = func
         self.return_type = target_type
 
@@ -33,7 +32,9 @@ class BuiltinInline(Callable, Expression):
 class Checkpoint(BuiltinInlineImpl):
     arg: int
 
-    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+    def __init__(
+            self, target_type: el.TargetType, args: el.Expressions, target: regs.Register
+    ):
         super().__init__(target_type, args, target)
         lg.debug('Checkpoint')
 
@@ -42,7 +43,7 @@ class Checkpoint(BuiltinInlineImpl):
 
         arg = args[0]
 
-        if not isinstance(arg, ConstantExpression):
+        if not isinstance(arg, el.ConstantExpression):
             raise UserWarning(f"'checkpoint' expects a constant argument, got {arg}")
 
         # Inlining the checkpoint number
@@ -57,10 +58,10 @@ class Checkpoint(BuiltinInlineImpl):
 
 @dataclass
 class Assertion(BuiltinInlineImpl):
-    source: Expression
+    source: el.Expression
     value: int
 
-    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+    def __init__(self, target_type: el.TargetType, args: el.Expressions, target: regs.Register):
         super().__init__(target_type, args, target)
         lg.debug('Assertion')
 
@@ -70,7 +71,7 @@ class Assertion(BuiltinInlineImpl):
         self.source = args[0]
         value_expr = args[1]
 
-        if not isinstance(value_expr, ConstantExpression):
+        if not isinstance(value_expr, el.ConstantExpression):
             raise UserWarning(f"'assertion' expects a constant value, got {value_expr}")
 
         if self.source.target_type != 'int32':
@@ -89,16 +90,19 @@ class Assertion(BuiltinInlineImpl):
     def emit(self) -> Sequence[str]:
         return flatten([
             '// Assertion',
-            self.source.emit(),
-            f'.assert {self.source.target} {self.value}'
+            f'pop {self.target}',
+            f'.assert {self.source.target} {self.value}',
+            '// Return null',
+            f'ldc 0 {self.target}',
+            f'push {self.target}'
         ])
 
 
 @dataclass
 class BoolToInt(BuiltinInlineImpl):
-    source: Expression
+    source: el.Expression
 
-    def __init__(self, target_type: TargetType, args: Expressions, target: Register):
+    def __init__(self, target_type: el.TargetType, args: el.Expressions, target: regs.Register):
         super().__init__(target_type, args, target)
 
         # TODO: move these constructors to factory functions

@@ -3,6 +3,7 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import Expression, Element
+import semu.pseudopython.registers as regs
 
 
 @dataclass
@@ -26,7 +27,7 @@ class If(Element):
         false_label = self._make_label('false')
         end_label = self._make_label('end')
 
-        temp = self._get_temp([self.test.target])
+        temp = regs.get_temp([self.test.target])
 
         return flatten([
             '// if block',
@@ -63,7 +64,7 @@ class While(Element):
         body_label = self._make_label('body')
         end_label = self._make_label('end')
 
-        temp = self._get_temp([self.test.target])
+        temp = regs.get_temp([self.test.target])
 
         return flatten([
             '// while block',

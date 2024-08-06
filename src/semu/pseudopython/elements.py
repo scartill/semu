@@ -1,18 +1,12 @@
-from typing import Literal, Sequence, Any, List, Set
+from typing import Literal, Sequence, Any, Set
 from dataclasses import dataclass
 from random import randint
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.registers as regs
 
 
-Register = Literal['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'void']
 TargetType = Literal['unit', 'int32', 'bool32', 'callable']
-
-
-REGISTERS: List[Register] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-NUMBER_OF_REGISTERS = len(REGISTERS)
-DEFAULT_REGISTER = 'a'
-VOID_REGISTER = 'void'
 
 
 class KnownName:
@@ -78,16 +72,6 @@ class Element:
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
-    def _get_available_registers(self, used: List[Register]) -> Set[Register]:
-        available = set(REGISTERS.copy())
-        available.difference_update(used)
-        return available
-
-    def _get_temp(self, used: List[Register]) -> Register:
-        available = self._get_available_registers(used)
-        temp = available.pop()
-        return temp
-
 
 @dataclass
 class VoidElement(Element):
@@ -100,9 +84,9 @@ class VoidElement(Element):
 @dataclass
 class Expression(Element):
     target_type: TargetType
-    target: Register
+    target: regs.Register
 
-    def __init__(self, target_type: TargetType, target: Register):
+    def __init__(self, target_type: TargetType, target: regs.Register):
         super().__init__()
         self.target_type = target_type
         self.target = target
@@ -153,10 +137,10 @@ class ConstantExpression(Expression):
 class GlobalVarAssignment(Element):
     target: KnownName
     expr: Expression
-    source: Register = DEFAULT_REGISTER
+    source: regs.Register = regs.DEFAULT_REGISTER
 
     def emit(self):
-        temp = self._get_temp([self.source])
+        temp = regs.get_temp([self.source])
         label = self.target.label_name()
 
         return flatten([
@@ -176,12 +160,12 @@ class GlobalVarAssignment(Element):
 class GlobalVariableLoad(Expression):
     name: KnownName
 
-    def __init__(self, name: KnownName, target: Register):
+    def __init__(self, name: KnownName, target: regs.Register):
         super().__init__(name.target_type, target)
         self.name = name
 
     def emit(self):
-        temp = self._get_temp([self.target])
+        temp = regs.get_temp([self.target])
         label = self.name.label_name()
 
         return flatten([

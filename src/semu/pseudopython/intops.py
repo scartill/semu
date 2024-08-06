@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import Expression
+import semu.pseudopython.registers as regs
 
 
 @dataclass
@@ -12,7 +13,7 @@ class UOp(Expression):
 @dataclass
 class Neg(UOp):
     def emit(self):
-        temp = self._get_temp([
+        temp = regs.get_temp([
             self.target,
             self.operand.target
         ])
@@ -40,7 +41,7 @@ class BinOp(Expression):
 @dataclass
 class IntBinOp(BinOp):
     def emit(self):
-        available = self._get_available_registers([
+        available = regs.get_available([
             self.target,
             self.left.target,
             self.right.target

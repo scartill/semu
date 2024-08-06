@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression, Register
+from semu.pseudopython.elements import Expression
+import semu.pseudopython.registers as regs
 
 
 @dataclass
@@ -13,7 +14,7 @@ class Unary(Expression):
 @dataclass
 class Not(Unary):
     def emit(self) -> Sequence[str]:
-        available = self._get_available_registers([
+        available = regs.get_available([
             self.target,
             self.right.target
         ])
@@ -45,9 +46,9 @@ class BoolOp(Expression):
         raise NotImplementedError()
 
     def emit(self) -> Sequence[str]:
-        used: Sequence[Register] = [value.target for value in self.values]
+        used: Sequence[regs.Register] = [value.target for value in self.values]
         used.append(self.target)
-        available = self._get_available_registers(used)
+        available = regs.get_available(used)
         op_temp = available.pop()
         result_temp = available.pop()
         init = self._initial()

@@ -7,12 +7,12 @@ import ast
 import click
 
 from semu.pseudopython.elements import (
-    REGISTERS, DEFAULT_REGISTER, Register,
     KnownName, Constant, GlobalVar, Callable,
     Element, VoidElement, Expression, Expressions,
     ConstantExpression, GlobalVarAssignment
 )
 
+import semu.pseudopython.registers as regs
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as helpers
@@ -39,34 +39,37 @@ class Translator:
 
         return known_name
 
-    def translate_call(self, ast_call: ast.Call, target: Register):
+    def translate_call(self, ast_call: ast.Call, target: regs.Register):
         lg.debug(f'Raw call {ast_call.func}')
 
-        # TODO: HACK: DOES NOT WORK: choosa a free register
-        callable = self.translate_expression(ast_call.func, DEFAULT_REGISTER)
+        available = regs.get_available([target])
+        callable_address = available.pop()
+        actual_target = available.pop()
+
+        callable = self.translate_expression(ast_call.func, callable_address)
 
         # TODO: change to type check, remove callable class
         if not isinstance(callable, Callable):
             raise UserWarning(f'Unsupported callable {callable}')
 
         ast_args = ast_call.args
-        args_expressions: Expressions = []
+        args: Expressions = []
 
-        for i in range(len(ast_args)):
-            ast_arg = ast_args[i]
-            target = REGISTERS[i]
-            lg.debug(f'Adding argument of type {type(ast_arg)} to reg:{target}')
-            args_expressions.append(self.translate_expression(ast_arg, target))
+        for ast_arg in ast_args:
+            lg.debug(f'Adding argument of type {type(ast_arg)} as actual parameter')
+            expression = self.translate_expression(ast_arg, actual_target)
+            args.append(expression)
 
         if isinstance(callable, builtins.BuiltinInline):
-            return helpers.create_builtin(callable, args_expressions, target)
+            call = helpers.create_builtin(callable, args, target)
+        elif isinstance(callable, ns.Function):
+            call = helpers.make_call(callable, args, target)
+        else:
+            raise UserWarning(f'Unsupported call {ast_call}')
 
-        if isinstance(callable, ns.Function):
-            return helpers.make_call(callable, args_expressions, target)
+        return helpers.create_call_frame(call, args, available)
 
-        raise UserWarning(f'Unsupported call {ast_call}')
-
-    def load_const(self, name: ast.AST, target: Register):
+    def load_const(self, name: ast.AST, target: regs.Register):
         known_name = self.resolve_object(name)
 
         if not isinstance(known_name, Constant):
@@ -87,12 +90,12 @@ class Translator:
         self.context.names[name] = Constant(name, 'int32', value)
         return VoidElement(f'Const {name} = {value}')
 
-    def translate_boolop(self, source: ast.BoolOp, target: Register):
+    def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
-        args = [self.translate_expression(value, DEFAULT_REGISTER) for value in values]
+        args = [self.translate_expression(value, regs.DEFAULT_REGISTER) for value in values]
         return helpers.create_boolop(args, source.op, target)
 
-    def translate_expression(self, source: ast.AST, target: Register) -> Expression:
+    def translate_expression(self, source: ast.AST, target: regs.Register) -> Expression:
         if isinstance(source, ast.Constant):
             lg.debug(f'Source from constant (type {type(source.value)})')
             target_type = helpers.get_constant_type(source)
@@ -125,8 +128,8 @@ class Translator:
 
         if isinstance(source, ast.BinOp):
             lg.debug('Source from binop')
-            left = self.translate_expression(source.left, REGISTERS[0])
-            right = self.translate_expression(source.right, REGISTERS[1])
+            left = self.translate_expression(source.left, regs.REGISTERS[0])
+            right = self.translate_expression(source.right, regs.REGISTERS[1])
             return helpers.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
@@ -135,7 +138,7 @@ class Translator:
 
         if isinstance(source, ast.UnaryOp):
             lg.debug('Source from a unary op')
-            right = self.translate_expression(source.operand, REGISTERS[0])
+            right = self.translate_expression(source.operand, regs.REGISTERS[0])
             return helpers.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
@@ -144,7 +147,7 @@ class Translator:
 
         if isinstance(source, ast.Compare):
             lg.debug('Source from a compare')
-            left = self.translate_expression(source.left, REGISTERS[0])
+            left = self.translate_expression(source.left, regs.REGISTERS[0])
             ops = source.ops
 
             if len(source.comparators) != 1:
@@ -154,7 +157,7 @@ class Translator:
 
             assert len(ops) == 1
 
-            right = self.translate_expression(source.comparators[0], REGISTERS[1])
+            right = self.translate_expression(source.comparators[0], regs.REGISTERS[1])
             return helpers.create_compare(left, ops[0], right, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
@@ -211,7 +214,7 @@ class Translator:
         return self.context.create_variable(name, target_type)
 
     def translate_if(self, ast_if: ast.If):
-        test = self.translate_expression(ast_if.test, DEFAULT_REGISTER)
+        test = self.translate_expression(ast_if.test, regs.DEFAULT_REGISTER)
         true_body = self.translate_body(ast_if.body)
 
         if test.target_type != 'bool32':
@@ -225,7 +228,7 @@ class Translator:
         return flow.If(test, true_body, false_body)
 
     def translate_while(self, ast_while: ast.While):
-        test = self.translate_expression(ast_while.test, DEFAULT_REGISTER)
+        test = self.translate_expression(ast_while.test, regs.DEFAULT_REGISTER)
         body = self.translate_body(ast_while.body)
 
         if test.target_type != 'bool32':
@@ -263,7 +266,7 @@ class Translator:
                     # NB: This is a hack to support `is` as a free operator
                     return self.translate_free_is(value)
                 else:
-                    return self.translate_expression(value, DEFAULT_REGISTER)
+                    return self.translate_expression(value, regs.DEFAULT_REGISTER)
 
             case ast.Pass:
                 return VoidElement('pass')

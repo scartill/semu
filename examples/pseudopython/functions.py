@@ -1,5 +1,8 @@
 # type: ignore
 
+def foo():
+    pass
+
 checkpoint(0)
 
 def test():

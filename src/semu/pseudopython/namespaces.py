@@ -6,10 +6,11 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.builtins as builtins
 
 from semu.pseudopython.elements import (
-    TargetType, Register,
-    KnownName, Callable,
+    TargetType, KnownName, Callable,
     Element, Expression, GlobalVariableCreate, GlobalVariableLoad
 )
+
+import semu.pseudopython.registers as regs
 
 
 class Namespace:
@@ -37,18 +38,18 @@ class Namespace:
     def create_variable(self, name: str, target_type: TargetType) -> Element:
         raise NotImplementedError()
 
-    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
+    def load_variable(self, known_name: KnownName, target: regs.Register) -> Expression:
         raise NotImplementedError()
 
 
 class Function(Callable, Namespace, Element):
     args: Sequence[str]
     body: Sequence[Element]
-    return_target: Register
+    return_target: regs.Register
 
     def __init__(
         self, name: str, parent: Namespace,
-        return_type: TargetType, return_target: Register
+        return_type: TargetType, return_target: regs.Register
     ):
         Element.__init__(self)
         KnownName.__init__(self, name, return_type)
@@ -111,14 +112,14 @@ class Module(Namespace, Element):
         self.names[name] = create
         return create
 
-    def load_variable(self, known_name: KnownName, target: Register) -> Expression:
+    def load_variable(self, known_name: KnownName, target: regs.Register) -> Expression:
         return GlobalVariableLoad(known_name, target=target)
 
     def emit(self):
         result: Sequence[str] = []
 
         declarations_end = self._make_label('declarations_end')
-        temp = self._get_temp([])
+        temp = regs.get_temp([])
 
         result.extend([
             f'// Module {self.namespace()} declarations guard',

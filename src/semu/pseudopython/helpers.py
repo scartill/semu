@@ -1,10 +1,8 @@
 import ast
 import logging as lg
 
-from semu.pseudopython.elements import (
-    Register, TargetType, Expression, Expressions, DEFAULT_REGISTER
-)
-
+import semu.pseudopython.registers as regs
+import semu.pseudopython.elements as el
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
@@ -43,7 +41,7 @@ def bool32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def get_constant_value(target_type: TargetType, source: ast.AST):
+def get_constant_value(target_type: el.TargetType, source: ast.AST):
     if target_type == 'int32':
         return int32const(source)
 
@@ -53,7 +51,7 @@ def get_constant_value(target_type: TargetType, source: ast.AST):
     raise UserWarning(f'Unsupported constant type {target_type}')
 
 
-def create_binop(left: Expression, right: Expression, op: ast.AST, target: Register):
+def create_binop(left: el.Expression, right: el.Expression, op: ast.AST, target: regs.Register):
     required_type = None
     Op = None
 
@@ -83,7 +81,7 @@ def create_binop(left: Expression, right: Expression, op: ast.AST, target: Regis
     return Op(target_type, target, left, right)
 
 
-def create_unary(right: Expression, op: ast.AST, target: Register):
+def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
     required_type = None
     Op = None
 
@@ -106,7 +104,7 @@ def create_unary(right: Expression, op: ast.AST, target: Register):
     return Op(target_type, target, right)
 
 
-def create_boolop(args: Expressions, op: ast.AST, target: Register):
+def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
     target_type = 'bool32'
 
     for arg in args:
@@ -132,7 +130,10 @@ COMPARE_OPS = {
 }
 
 
-def create_compare(left: Expression, ast_op: ast.AST, right: Expression, target: Register):
+def create_compare(
+        left: el.Expression, ast_op: ast.AST, right: el.Expression,
+        target: regs.Register
+):
     operand_type = left.target_type
 
     if right.target_type != operand_type:
@@ -150,10 +151,10 @@ def create_compare(left: Expression, ast_op: ast.AST, right: Expression, target:
 
 def create_function(
     context: ns.Namespace, name: str, args: ast.arguments,
-    target_type: TargetType
+    target_type: el.TargetType
 ) -> ns.Function:
 
-    function = ns.Function(name, context, target_type, DEFAULT_REGISTER)
+    function = ns.Function(name, context, target_type, regs.DEFAULT_REGISTER)
 
     for ast_arg in args.args:
         raise NotImplementedError()
@@ -162,11 +163,11 @@ def create_function(
     return function
 
 
-def create_builtin(inline: bi.BuiltinInline, args: Expressions, target: Register):
+def create_builtin(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
     return inline.func(inline.return_type, args, target)
 
 
-def make_call(func: ns.Function, args: Expressions, target: Register):
+def make_call(func: ns.Function, args: el.Expressions, target: regs.Register):
     lg.debug(f'Making call to {func.name} -> {func.target_type} with {args}')
 
     formal_args = func.args
@@ -181,3 +182,21 @@ def make_call(func: ns.Function, args: Expressions, target: Register):
     #         )
 
     return calls.FunctionCall(func.target_type, target, func)
+
+
+def create_call_frame(
+        call: el.Expression, args: el.Expressions, available: regs.Available
+):
+    actuals = [
+        calls.ActualParameter(inx, arg)
+        for inx, arg in enumerate(args)
+    ]
+
+    dump = available.pop()
+
+    unwinds = [
+        calls.UnwindActualParameter(actual, dump)
+        for actual in actuals
+    ]
+
+    return calls.CallFrame(call.target_type, call.target, actuals, call, unwinds)
