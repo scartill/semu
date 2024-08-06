@@ -184,15 +184,13 @@ def make_call(func: ns.Function, args: el.Expressions, target: regs.Register):
     return calls.FunctionCall(func.target_type, target, func)
 
 
-def create_call_frame(
-        call: el.Expression, args: el.Expressions, available: regs.Available
-):
+def create_call_frame(call: el.Expression, args: el.Expressions):
     actuals = [
         calls.ActualParameter(inx, arg)
         for inx, arg in enumerate(args)
     ]
 
-    dump = available.pop()
+    dump = regs.get_temp([call.target])
 
     unwinds = [
         calls.UnwindActualParameter(actual, dump)

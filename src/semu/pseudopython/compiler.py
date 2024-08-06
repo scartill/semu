@@ -42,11 +42,7 @@ class Translator:
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         lg.debug(f'Raw call {ast_call.func}')
 
-        available = regs.get_available([target])
-        callable_address = available.pop()
-        actual_target = available.pop()
-
-        callable = self.translate_expression(ast_call.func, callable_address)
+        callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
 
         # TODO: change to type check, remove callable class
         if not isinstance(callable, Callable):
@@ -57,7 +53,7 @@ class Translator:
 
         for ast_arg in ast_args:
             lg.debug(f'Adding argument of type {type(ast_arg)} as actual parameter')
-            expression = self.translate_expression(ast_arg, actual_target)
+            expression = self.translate_expression(ast_arg, regs.DEFAULT_REGISTER)
             args.append(expression)
 
         if isinstance(callable, builtins.BuiltinInline):
@@ -67,7 +63,7 @@ class Translator:
         else:
             raise UserWarning(f'Unsupported call {ast_call}')
 
-        return helpers.create_call_frame(call, args, available)
+        return helpers.create_call_frame(call, args)
 
     def load_const(self, name: ast.AST, target: regs.Register):
         known_name = self.resolve_object(name)
