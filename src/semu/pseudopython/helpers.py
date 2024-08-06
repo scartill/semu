@@ -164,7 +164,7 @@ def create_function(
 
 
 def create_builtin(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
-    return inline.func(inline.return_type, args, target)
+    return inline.factory(inline.return_type, args, target)
 
 
 def make_call(func: ns.Function, args: el.Expressions, target: regs.Register):
