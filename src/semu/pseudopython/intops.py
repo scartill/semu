@@ -39,22 +39,17 @@ class BinOp(Expression):
 @dataclass
 class IntBinOp(BinOp):
     def emit(self):
-        available = regs.get_available([
-            self.target,
-            self.left.target,
-            self.right.target
-        ])
-
-        left_temp = available.pop()
-        right_temp = available.pop()
+        l_target = self.left.target
+        r_target = self.right.target
+        target = self.target
 
         return flatten([
-            f'// BinOp begin to reg:{self.target}',
+            f'// BinOp begin to reg:{target}',
             self.left.emit(),
-            f'mrr {self.left.target} {left_temp}',
+            f'push {l_target}',
             self.right.emit(),
-            f'mrr {self.right.target} {right_temp}',
-            f'{self.op()} {left_temp} {right_temp} {self.target}',
+            f'pop {l_target}',
+            f'{self.op()} {l_target} {r_target} {target}',
             '// BinOp end'
         ])
 
