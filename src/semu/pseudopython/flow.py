@@ -37,7 +37,6 @@ class If(Element):
         true_label = self._make_label('true')
         false_label = self._make_label('false')
         end_label = self._make_label('end')
-
         temp = regs.get_temp([self.test.target])
 
         return flatten([
@@ -82,7 +81,6 @@ class While(Element):
         start_label = self._make_label('start')
         body_label = self._make_label('body')
         end_label = self._make_label('end')
-
         temp = regs.get_temp([self.test.target])
 
         return flatten([

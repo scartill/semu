@@ -14,7 +14,6 @@ class Namespace:
         self.name = name
         self.parent = parent
         self.names = dict()
-
         self.names.update({bi.name: bi for bi in builtins.get()})
 
     def json(self) -> el.JSON:

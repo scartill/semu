@@ -248,7 +248,6 @@ class Translator:
                     return self.translate_free_is(value)
                 else:
                     return self.translate_expression(value, regs.DEFAULT_REGISTER)
-
             case ast.Pass:
                 return el.VoidElement('pass')
             case ast.Assign:

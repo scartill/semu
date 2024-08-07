@@ -98,7 +98,6 @@ def create_checkpoint(
 
     # Inlining the checkpoint number
     value = arg.value
-
     return Checkpoint(target_type, target, value)
 
 

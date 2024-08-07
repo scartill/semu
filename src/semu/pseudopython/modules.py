@@ -44,14 +44,13 @@ class Module(ns.Namespace, el.Element):
 
     def emit(self):
         result: Sequence[str] = []
-
         declarations_end = self._make_label('declarations_end')
         temp = regs.get_temp([])
 
         result.extend([
             f'// Module {self.namespace()} declarations guard',
             f'ldr &{declarations_end} {temp}',
-            f'jmp {temp}',
+            f'jmp {temp}'
         ])
 
         globals = lambda n: isinstance(n, el.GlobalVariableCreate)
@@ -66,7 +65,7 @@ class Module(ns.Namespace, el.Element):
 
         result.extend([
             f'{declarations_end}:',
-            f'// Module {self.namespace()} body',
+            f'// Module {self.namespace()} body'
         ])
 
         for expr in filter(others, self.body):

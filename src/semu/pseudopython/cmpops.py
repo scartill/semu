@@ -181,7 +181,6 @@ class Compare(Expression):
 
         address = available.pop()
         temp = available.pop()
-
         label_true = self._make_label('true')
         label_false = self._make_label('false')
         label_end = self._make_label('end')
