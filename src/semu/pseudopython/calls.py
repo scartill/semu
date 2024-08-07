@@ -129,8 +129,17 @@ class FunctionRef(el.Expression):
 
 @dataclass
 class Return(el.Element):
+    def return_type(self) -> el.TargetType:
+        raise NotImplementedError()
+
+
+@dataclass
+class ReturnValue(Return):
     func: Function
     expression: el.Expression
+
+    def return_type(self):
+        return self.expression.target_type
 
     def emit(self):
         return_label = self.func.return_label()
@@ -153,6 +162,9 @@ class Return(el.Element):
 @dataclass
 class ReturnUnit(el.Element):
     func: Function
+
+    def return_type(self):
+        return 'unit'
 
     def emit(self):
         return_label = self.func.return_label()

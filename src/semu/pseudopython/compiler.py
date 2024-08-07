@@ -288,7 +288,7 @@ class Translator:
 
         if ast_return.value:
             value = self.translate_expression(ast_return.value, regs.DEFAULT_REGISTER)
-            return calls.Return(func, value)
+            return calls.ReturnValue(func, value)
         else:
             return calls.ReturnUnit(func)
 

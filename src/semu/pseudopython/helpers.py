@@ -163,6 +163,22 @@ def create_function(
     return function
 
 
+def validate_function(func: calls.Function):
+    f_type = func.target_type
+    returns = False
+
+    for element in func.body:
+        if isinstance(element, calls.Return):
+            returns = True
+
+            e_type = element.return_type()
+            if e_type != f_type:
+                raise UserWarning(f'Function return type mismatch {e_type} != {f_type}')
+
+    if f_type != 'int32' and not returns:
+        raise UserWarning(f'Function {func.name} does not return')
+
+
 def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
     return inline.factory(inline.return_type, args, target)
 
