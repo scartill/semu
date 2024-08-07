@@ -25,17 +25,17 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
-    def resolve_object(self, ast_name: ast.AST) -> el.KnownName:
+    def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
         if not isinstance(ast_name, ast.Name):
             raise UserWarning(f'Unsupported name {ast_name}')
 
         name = ast_name.id
-        known_name = self.context.get_name(name)
 
-        if known_name is None:
-            raise UserWarning(f'Unknown reference {name}')
-
-        return known_name
+        match self.context.get_name(name):
+            case None:
+                raise UserWarning(f'Unknown reference {name}')
+            case result:
+                return result
 
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
@@ -61,7 +61,8 @@ class Translator:
         return helpers.create_call_frame(call, args)
 
     def load_const(self, name: ast.AST, target: regs.Register):
-        known_name = self.resolve_object(name)
+        lookup = self.resolve_object(name)
+        known_name = lookup.known_name
 
         if not isinstance(known_name, el.Constant):
             raise UserWarning(f'Unsupported const reference {name}')
@@ -97,13 +98,15 @@ class Translator:
             )
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
-            known_name = self.resolve_object(source)
+            lookup = self.resolve_object(source)
+            namespace = lookup.namespace
+            known_name = lookup.known_name
 
             if isinstance(known_name, el.Constant):
-                return self.load_const(source, target)
+                return namespace.load_const(source, target)
 
             if isinstance(known_name, el.GlobalVar):
-                return self.context.load_variable(known_name, target)
+                return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, builtins.BuiltinInline):
                 return known_name  # as expression
@@ -165,7 +168,8 @@ class Translator:
 
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
-        known_name = self.resolve_object(ast_target)
+        lookup = self.resolve_object(ast_target)
+        known_name = lookup.known_name
 
         if isinstance(known_name, el.GlobalVar):
             return self.translate_global_var_assign(known_name, ast_value)

@@ -1,9 +1,13 @@
 import logging as lg
 from typing import Dict
+from collections import namedtuple
 
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
+
+
+NameLookup = namedtuple('NameLookup', ['namespace', 'known_name'])
 
 
 class Namespace:
@@ -29,9 +33,18 @@ class Namespace:
     def parent_prefix(self) -> str:
         return f'{self.namespace()}.'
 
-    def get_name(self, name: str) -> el.KnownName | None:
+    def get_name(self, name: str) -> NameLookup | None:
         lg.debug(f'Looking up {name} in {self.namespace()}')
-        return self.names.get(name)
+
+        known_name = self.names.get(name)
+
+        if known_name:
+            return NameLookup(self, known_name)
+
+        if not self.parent:
+            return None
+
+        return self.parent.get_name(name)
 
     def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
         raise NotImplementedError()

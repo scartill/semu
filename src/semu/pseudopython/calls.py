@@ -160,7 +160,7 @@ class FunctionRef(el.Expression):
 
     def emit(self):
         return [
-            f'// Function reference {self.func.name}',
+            f'// Function reference {self.func.namespace()}',
             f'ldr &{self.func.address_label()} {self.target}'
         ]
 
