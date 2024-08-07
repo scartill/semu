@@ -48,12 +48,6 @@ class LocalVar(KnownName):
     pass
 
 
-class Callable(KnownName):
-    # TODO: Change 'target_type' to 'callable_type -> target_type'
-    def __init__(self, name: str, target_type: TargetType):
-        super().__init__(name, target_type)
-
-
 class Element:
     labels: Set[str]
 

@@ -163,14 +163,16 @@ def create_function(
     return function
 
 
-def create_builtin(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
+def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
     return inline.factory(inline.return_type, args, target)
 
 
-def make_call(func: ns.Function, args: el.Expressions, target: regs.Register):
-    lg.debug(f'Making call to {func.name} -> {func.target_type} with {args}')
+def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):
+    f_name = func_ref.func.name
+    f_type = func_ref.func.target_type
+    lg.debug(f'Making call to {f_name}({args}) -> {f_type}')
 
-    formal_args = func.args
+    formal_args = func_ref.func.args
 
     if len(formal_args) != len(args):
         raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
@@ -181,7 +183,7 @@ def make_call(func: ns.Function, args: el.Expressions, target: regs.Register):
     #             f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
     #         )
 
-    return calls.FunctionCall(func.target_type, target, func)
+    return calls.FunctionCall(f_type, target, func_ref)
 
 
 def create_call_frame(call: el.Expression, args: el.Expressions):

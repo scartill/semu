@@ -19,12 +19,12 @@ Factory = Callable[[el.TargetType, el.Expressions, regs.Register], BuiltinInline
 
 
 @dataclass
-class BuiltinInline(el.Callable, el.Expression):
+class BuiltinInline(el.KnownName, el.Expression):
     factory: Factory
     return_type: el.TargetType
 
     def __init__(self, name: str, target_type: el.TargetType, factory: Factory):
-        el.Callable.__init__(self, name, target_type)
+        el.KnownName.__init__(self, name, target_type)
         # Builtin functions have no address
         el.Expression.__init__(self, 'callable', regs.VOID_REGISTER)
         self.factory = factory

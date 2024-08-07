@@ -7,7 +7,7 @@ import ast
 import click
 
 from semu.pseudopython.elements import (
-    KnownName, Constant, GlobalVar, Callable,
+    KnownName, Constant, GlobalVar,
     Element, VoidElement, Expression, Expressions,
     ConstantExpression, GlobalVarAssignment
 )
@@ -17,6 +17,7 @@ import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as helpers
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.calls as calls
 
 
 class Translator:
@@ -44,8 +45,8 @@ class Translator:
 
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
 
-        # TODO: change to type check, remove callable class
-        if not isinstance(callable, Callable):
+        # TODO: change to full func-type check
+        if callable.target_type != 'callable':
             raise UserWarning(f'Unsupported callable {callable}')
 
         ast_args = ast_call.args
@@ -57,8 +58,8 @@ class Translator:
             args.append(expression)
 
         if isinstance(callable, builtins.BuiltinInline):
-            call = helpers.create_builtin(callable, args, target)
-        elif isinstance(callable, ns.Function):
+            call = helpers.create_inline(callable, args, target)
+        elif isinstance(callable, calls.FunctionRef):
             call = helpers.make_call(callable, args, target)
         else:
             raise UserWarning(f'Unsupported call {ast_call}')
@@ -117,8 +118,7 @@ class Translator:
                 return known_name  # as expression
 
             if isinstance(known_name, ns.Function):
-                # return self.context.load_function(known_name, target)
-                return known_name
+                return calls.FunctionRef(known_name, target)
 
             raise UserWarning(f'Unsupported name {source}')
 

@@ -61,17 +61,30 @@ class CallFrame(el.Expression):
 
 
 @dataclass
-class FunctionCall(el.Expression):
+class FunctionRef(el.Expression):
     func: ns.Function
 
-    def emit(self) -> ns.Sequence[str]:
-        address = regs.get_temp([self.target])
+    def __init__(self, func: ns.Function, target: regs.Register):
+        super().__init__('callable', target)
+        self.func = func
 
+    def emit(self):
+        return [
+            f'// Function reference {self.func.name}',
+            f'ldr &{self.func.label_name()} {self.target}'
+        ]
+
+
+@dataclass
+class FunctionCall(el.Expression):
+    func_ref: FunctionRef
+
+    def emit(self) -> ns.Sequence[str]:
         return flatten([
-            f'// Call {self.func.name}',
-            f'push {address}',
-            f'ldr &{self.func.label_name()} {address}',
-            f'cll {address}',
-            f'pop {address}',
-            f'// End call {self.func.name}'
+            f'// Begin function call {self.func_ref.func.name}',
+            self.func_ref.emit(),
+            '// Calling',
+            f'cll {self.func_ref.target}',
+            '// Store return value',
+            f'mrr {self.func_ref.func.return_target} {self.target}',
         ])
