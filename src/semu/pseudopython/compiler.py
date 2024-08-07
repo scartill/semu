@@ -3,6 +3,7 @@ from pathlib import Path
 import logging as lg
 from typing import Sequence, Dict, Any, Tuple, cast
 import ast
+import json
 
 import click
 
@@ -37,8 +38,6 @@ class Translator:
         return known_name
 
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
-        lg.debug(f'Raw call {ast_call.func}')
-
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
 
         # TODO: change to full func-type check
@@ -49,7 +48,6 @@ class Translator:
         args: el.Expressions = []
 
         for ast_arg in ast_args:
-            lg.debug(f'Adding argument of type {type(ast_arg)} as actual parameter')
             expression = self.translate_expression(ast_arg, regs.DEFAULT_REGISTER)
             args.append(expression)
 
@@ -90,9 +88,7 @@ class Translator:
 
     def translate_expression(self, source: ast.AST, target: regs.Register) -> el.Expression:
         if isinstance(source, ast.Constant):
-            lg.debug(f'Source from constant (type {type(source.value)})')
             target_type = helpers.get_constant_type(source)
-            lg.debug(f'Detected target type = {target_type}')
             value = helpers.get_constant_value(target_type, source)
 
             return el.ConstantExpression(
@@ -101,7 +97,6 @@ class Translator:
             )
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
-            lg.debug('Source from name')
             known_name = self.resolve_object(source)
 
             if isinstance(known_name, el.Constant):
@@ -119,26 +114,21 @@ class Translator:
             raise UserWarning(f'Unsupported name {source}')
 
         if isinstance(source, ast.BinOp):
-            lg.debug('Source from binop')
             left = self.translate_expression(source.left, regs.REGISTERS[0])
             right = self.translate_expression(source.right, regs.REGISTERS[1])
             return helpers.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
-            lg.debug('Source from a call')
             return self.translate_call(source, target)
 
         if isinstance(source, ast.UnaryOp):
-            lg.debug('Source from a unary op')
             right = self.translate_expression(source.operand, regs.REGISTERS[0])
             return helpers.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
-            lg.debug('Source from a bool op')
             return self.translate_boolop(source, target)
 
         if isinstance(source, ast.Compare):
-            lg.debug('Source from a compare')
             left = self.translate_expression(source.left, regs.REGISTERS[0])
             ops = source.ops
 
@@ -345,13 +335,15 @@ Params = Dict[str, Any]
 def emit(params: Params, translator: Translator):
     top = translator.top()
 
+    if params['verbose']:
+        eprint('------------------ AST -----------------------')
+        eprint(json.dumps(top.json(), indent=2))
+
     results: Sequence[Tuple[str, str]] = []
     for module_name, module in top.modules.items():
         module_sasm = '\n'.join(module.emit())
 
         if params['verbose']:
-            eprint(f'------------ AST {module_name} ---------------')
-            eprint(top)
             eprint(f'------------ ASM {module_name} ---------------')
             eprint(module_sasm)
             eprint('-----------------------------------------------')

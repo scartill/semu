@@ -20,20 +20,21 @@ class Function(el.KnownName, ns.Namespace, el.Element):
         self.args = list()
         self.body = list()
 
-    def __str__(self) -> str:
-        result = [f'Function {self.name} [']
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
 
-        result.append('Arguments:')
-        for arg in self.args:
-            result.append(f'{arg}')
+        data.update({
+            'KnownName': el.KnownName.json(self),
+            'Namespace': ns.Namespace.json(self),
+            'Function': {
+                'Arguments': self.args,
+                'Body': [e.json() for e in self.body],
+                'Returns': self.returns,
+                'ReturnTarget': self.return_target
+            }
+        })
 
-        result.extend(['Body:'])
-        for expr in self.body:
-            result.append(str(expr))
-
-        result.append(']')
-
-        return '\n'.join(result)
+        return data
 
     def address_label(self) -> str:
         return f'_function_{self.name}'
@@ -69,6 +70,17 @@ class ActualParameter(el.Element):
         self.inx = inx
         self.expression = expression
 
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
+
+        data.update({
+            'Parameter': 'actual',
+            'Index': self.inx,
+            'Expression': self.expression.json()
+        })
+
+        return data
+
     def emit(self):
         return flatten([
             f'//Actual parameter {self.inx} calculating',
@@ -83,6 +95,17 @@ class UnwindActualParameter(el.Element):
     actual: ActualParameter
     target: regs.Register
 
+    def json(self) -> el.JSON:
+        data = super().json()
+
+        data.update({
+            'Parameter': 'unwind',
+            'Actual': self.actual.inx,
+            'Target': self.target
+        })
+
+        return data
+
     def emit(self):
         return [
             f'//Unwinding actual parameter {self.actual.inx}',
@@ -96,6 +119,18 @@ class CallFrame(el.Expression):
     call: el.Expression
     unwinds: list[UnwindActualParameter]
 
+    def json(self) -> el.JSON:
+        data = super().json()
+
+        data.update({
+            'Frame': 'Call',
+            'Actuals': [a.json() for a in self.actuals],
+            'Call': self.call.json(),
+            'Unwinds': [uw.json() for uw in self.unwinds]
+        })
+
+        return data
+
     def emit(self):
         return flatten([
             '// Begin call frame',
@@ -105,13 +140,6 @@ class CallFrame(el.Expression):
             '// End call frame'
         ])
 
-    def __str__(self) -> str:
-        return f'''CallFrame[
-            Actuals={self.actuals}
-            Call={self.call}
-            Unwind={','.join(str(uw) for uw in self.unwinds)}
-        ]'''
-
 
 @dataclass
 class FunctionRef(el.Expression):
@@ -120,6 +148,15 @@ class FunctionRef(el.Expression):
     def __init__(self, func: Function, target: regs.Register):
         super().__init__('callable', target)
         self.func = func
+
+    def json(self) -> el.JSON:
+        data = super().json()
+
+        data.update({
+            'Function': self.func.json()
+        })
+
+        return data
 
     def emit(self):
         return [
@@ -132,6 +169,11 @@ class FunctionRef(el.Expression):
 class Return(el.Element):
     def return_type(self) -> el.TargetType:
         raise NotImplementedError()
+
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
+        data.update({'Return': self.return_type()})
+        return data
 
 
 @dataclass
@@ -182,6 +224,11 @@ class ReturnUnit(el.Element):
 @dataclass
 class FunctionCall(el.Expression):
     func_ref: FunctionRef
+
+    def json(self) -> el.JSON:
+        data = super().json()
+        data.update({'FunctionCall': self.func_ref.json()})
+        return data
 
     def emit(self):
         return flatten([

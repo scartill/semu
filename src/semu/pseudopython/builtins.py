@@ -14,6 +14,11 @@ class BuiltinInlineImpl(el.Expression):
     ):
         super().__init__(target_type, target)
 
+    def json(self) -> el.JSON:
+        data = super().json()
+        data.update({'Type': 'BuiltinInline'})
+        return data
+
 
 Factory = Callable[[el.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
 
@@ -41,6 +46,11 @@ class Checkpoint(BuiltinInlineImpl):
             f'.check {self.arg}'
         ]
 
+    def json(self) -> el.JSON:
+        data = super().json()
+        data.update({'Checkpoint': self.arg})
+        return data
+
 
 @dataclass
 class Assertion(BuiltinInlineImpl):
@@ -61,6 +71,16 @@ class Assertion(BuiltinInlineImpl):
             '// Return null',
             f'ldc 0 {self.target}'
         ])
+
+    def json(self) -> el.JSON:
+        data = super().json()
+
+        data.update({
+            'Assert': self.value,
+            'Source': self.source.json()
+        })
+
+        return data
 
 
 def create_checkpoint(

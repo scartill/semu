@@ -1,11 +1,11 @@
-from typing import Literal, Sequence, Any, Set
+from typing import Literal, Sequence, Any, Set, Dict
 from dataclasses import dataclass
 from random import randint
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 
-
+JSON = Dict[str, Any]
 TargetType = Literal['unit', 'int32', 'bool32', 'callable']
 
 
@@ -17,8 +17,8 @@ class KnownName:
         self.name = name
         self.target_type = target_type
 
-    def __str__(self) -> str:
-        return f'{self.name}: {self.target_type}'
+    def json(self) -> JSON:
+        return {'Name': self.name, 'Type': self.target_type}
 
     def address_label(self) -> str:
         raise NotImplementedError()
@@ -31,8 +31,10 @@ class Constant(KnownName):
         super().__init__(name, target_type)
         self.value = value
 
-    def __str__(self) -> str:
-        return f'{self.name}: {self.target_type} = {self.value}'
+    def json(self) -> JSON:
+        data = super().json()
+        data.update({'Value': self.value})
+        return data
 
 
 class GlobalVar(KnownName):
@@ -41,6 +43,11 @@ class GlobalVar(KnownName):
 
     def address_label(self) -> str:
         return f'_global_{self.name}'
+
+    def json(self) -> JSON:
+        data = super().json()
+        data.update({'Variable': 'global'})
+        return data
 
 
 @dataclass
@@ -66,6 +73,9 @@ class Element:
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
+    def json(self) -> JSON:
+        return {}
+
 
 @dataclass
 class VoidElement(Element):
@@ -73,6 +83,11 @@ class VoidElement(Element):
 
     def emit(self):
         return [f'// {self.comment}']
+
+    def json(self) -> JSON:
+        data = Element.json(self)
+        data.update({'void': self.comment})
+        return data
 
 
 @dataclass
@@ -84,6 +99,11 @@ class Expression(Element):
         super().__init__()
         self.target_type = target_type
         self.target = target
+
+    def json(self) -> JSON:
+        data = Element.json(self)
+        data.update({'Type': self.target_type, 'Target': self.target})
+        return data
 
 
 Expressions = Sequence[Expression]
@@ -108,6 +128,14 @@ class GlobalVariableCreate(Element, GlobalVar):
             '// End variable'
         ]
 
+    def json(self) -> JSON:
+        data = {'Create': 'global'}
+        data_kn = KnownName.json(self)
+        data_el = Element.json(self)
+        data.update(data_kn)
+        data.update(data_el)
+        return data_kn
+
 
 @dataclass
 class ConstantExpression(Expression):
@@ -125,6 +153,11 @@ class ConstantExpression(Expression):
     def emit(self):
         value = self._convert_value()
         return f'ldc {value} {self.target}'
+
+    def json(self):
+        data = super().json()
+        data.update({'Constant': self.value})
+        return data
 
 
 @dataclass
@@ -145,6 +178,16 @@ class GlobalVarAssignment(Element):
             f'mrm {self.source} {temp}',
         ])
 
+    def json(self) -> JSON:
+        data = Element.json(self)
+
+        data.update({
+            'GlobalAssign': self.target.json(),
+            'Expression': self.expr.json()
+        })
+
+        return data
+
 
 @dataclass
 class GlobalVariableLoad(Expression):
@@ -153,6 +196,11 @@ class GlobalVariableLoad(Expression):
     def __init__(self, name: KnownName, target: regs.Register):
         super().__init__(name.target_type, target)
         self.name = name
+
+    def json(self) -> JSON:
+        data = super().json()
+        data.update({'GlobalLoad': self.name.json()})
+        return data
 
     def emit(self):
         temp = regs.get_temp([self.target])

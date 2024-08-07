@@ -2,12 +2,17 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Element, Expression
+from semu.pseudopython.elements import JSON, Element, Expression
 import semu.pseudopython.registers as regs
 
 
 @dataclass
 class CompareOp(Element):
+    def json(self) -> JSON:
+        data = super().json()
+        data.update({'Type': type(self).__name__})
+        return data
+
     def emit(
             self,
             left: regs.Register, right: regs.Register,
@@ -151,6 +156,17 @@ class Compare(Expression):
         self.left = left
         self.op = op
         self.right = right
+
+    def json(self) -> JSON:
+        data = super().json()
+
+        data.update({
+            'Left': self.left.json(),
+            'Operator': self.op.json(),
+            'Right': self.right.json()
+        })
+
+        return data
 
     def emit(self) -> Sequence[str]:
         l_target = self.left.target

@@ -20,6 +20,16 @@ class Module(ns.Namespace, el.Element):
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
 
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
+
+        data.update({
+            'Namespace': ns.Namespace.json(self),
+            'Body': [e.json() for e in self.body]
+        })
+
+        return data
+
     def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
@@ -40,7 +50,6 @@ class Module(ns.Namespace, el.Element):
 
         result.extend([
             f'// Module {self.namespace()} declarations guard',
-            f'push {temp}',
             f'ldr &{declarations_end} {temp}',
             f'jmp {temp}',
         ])
@@ -57,7 +66,6 @@ class Module(ns.Namespace, el.Element):
 
         result.extend([
             f'{declarations_end}:',
-            f'pop {temp}',
             f'// Module {self.namespace()} body',
         ])
 
@@ -67,30 +75,6 @@ class Module(ns.Namespace, el.Element):
         result.append('hlt')
         return flatten(result)
 
-    def __str__(self) -> str:
-        result = ['Module[', f'name={self.name}']
-
-        if self.names:
-            result.append('KnownNames=[')
-
-            for kn in self.names.values():
-                result.append(
-                    f'{type(kn)} {kn.name} : {kn.target_type}'
-                )
-
-            result.append(']')
-
-        if self.body:
-            result.append('Body=[')
-
-            for statement in self.body:
-                result.append(f'{str(statement)}')
-
-            result.append(']')
-
-        result.append(']')
-        return '\n'.join(result)
-
 
 @dataclass
 class TopLevel(ns.Namespace, el.Element):
@@ -99,6 +83,16 @@ class TopLevel(ns.Namespace, el.Element):
     def __init__(self):
         super().__init__('::', None)
         self.modules = dict()
+
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
+
+        data.update({
+            'Namespace': ns.Namespace.json(self),
+            'Modules': {name: module.json() for name, module in self.modules.items()}
+        })
+
+        return data
 
     def namespace(self) -> str:
         return '::'
@@ -113,6 +107,3 @@ class TopLevel(ns.Namespace, el.Element):
             result.extend(module.emit())
 
         return flatten(result)
-
-    def __str__(self):
-        return '\n'.join([str(module) for module in self.modules.values()])

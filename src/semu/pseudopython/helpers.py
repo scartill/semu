@@ -144,8 +144,6 @@ def create_compare(
     if Op is None:
         raise UserWarning(f'Unsupported compare op {ast_op}')
 
-    lg.debug(f'Creating compare {ast_op} {left} {right}')
-
     return cmpops.Compare(target, left, Op(), right)
 
 
@@ -175,6 +173,7 @@ def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.R
 def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):
     f_name = func_ref.func.name
     f_type = func_ref.func.target_type
+
     lg.debug(f'Making call to {f_name}({args}) -> {f_type}')
 
     formal_args = func_ref.func.args

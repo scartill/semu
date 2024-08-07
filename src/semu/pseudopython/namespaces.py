@@ -17,6 +17,12 @@ class Namespace:
 
         self.names.update({bi.name: bi for bi in builtins.get()})
 
+    def json(self) -> el.JSON:
+        return {
+            'Namespace': self.name,
+            'Names': {name: known.json() for name, known in self.names.items()}
+        }
+
     def namespace(self) -> str:
         prefix = self.parent.parent_prefix() if self.parent else ''
         return f'{prefix}{self.name}'

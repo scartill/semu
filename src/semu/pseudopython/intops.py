@@ -1,13 +1,22 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression
+from semu.pseudopython.elements import JSON, Expression
 import semu.pseudopython.registers as regs
 
 
 @dataclass
 class UOp(Expression):
     operand: Expression
+
+    def json(self) -> JSON:
+        data = super().json()
+
+        data.update({
+            'Operand': self.operand.json()
+        })
+
+        return data
 
 
 @dataclass
@@ -31,6 +40,17 @@ class Neg(UOp):
 class BinOp(Expression):
     left: Expression
     right: Expression
+
+    def json(self) -> JSON:
+        data = super().json()
+
+        data.update({
+            'Left': self.left.json(),
+            'Operator': self.op(),
+            'Right': self.right.json()
+        })
+
+        return data
 
     def op(self) -> str:
         raise NotImplementedError()
