@@ -8,9 +8,9 @@ import semu.pseudopython.registers as regs
 
 
 class Function(el.KnownName, ns.Namespace, el.Element):
-    RETURN_TARGET: regs.Register = regs.DEFAULT_REGISTER
     args: Sequence[str]
     body: Sequence[el.Element]
+    return_target: regs.Register = regs.DEFAULT_REGISTER
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: el.TargetType):
         el.Element.__init__(self)
@@ -37,11 +37,14 @@ class Function(el.KnownName, ns.Namespace, el.Element):
     def address_label(self) -> str:
         return f'_function_{self.name}'
 
+    def return_label(self) -> str:
+        return f'_function_{self.name}_return'
+
     def emit(self) -> Sequence[str]:
         name = self.name
-        body_label = self._make_label(f'{name}_body')
-        return_label = self._make_label(f'{name}_return')
+        return_label = self.return_label()
         entrypoint = self.address_label()
+        body_label = self._make_label(f'{name}_body')
 
         return flatten([
             f'// function {name} entrypoint',
@@ -124,26 +127,43 @@ class FunctionRef(el.Expression):
         ]
 
 
-# @dataclass
-# class ReturnUnit(el.Element):
-#     function: ns.Function
+@dataclass
+class Return(el.Element):
+    func: Function
+    expression: el.Expression
 
-#     def emit(self):
-#         return_label = function.
+    def emit(self):
+        return_label = self.func.return_label()
 
-#         return [
-#             '// Returning with no value',
-#         ]
+        temp = regs.get_temp([
+            self.expression.target,
+            self.func.return_target
+        ])
 
-# @dataclass
-# class Return(el.Element):
-#     expression: el.Expression
+        return flatten([
+            '// Calculating return value',
+            self.emit(),
+            f'// Returning from {self.func.name}',
+            f'mrr {self.expression.target} {self.func.return_target}',
+            f'ldr &{return_label} {temp}',
+            f'jmp {temp}'
+        ])
 
-#     def emit(self):
-#         return flatten([
-#             '// Calculating return value',
 
-#         ])
+@dataclass
+class ReturnUnit(el.Element):
+    func: Function
+
+    def emit(self):
+        return_label = self.func.return_label()
+        temp = regs.get_temp([self.func.return_target])
+
+        return flatten([
+            f'// Returning from {self.func.name} without a value',
+            f'ldc 0 {self.func.return_target}',
+            f'ldr &{return_label} {temp}',
+            f'jmp {temp}'
+        ])
 
 
 @dataclass
@@ -157,5 +177,5 @@ class FunctionCall(el.Expression):
             '// Calling',
             f'cll {self.func_ref.target}',
             '// Store return value',
-            f'mrr {Function.RETURN_TARGET} {self.target}',
+            f'mrr {Function.return_target} {self.target}',
         ])

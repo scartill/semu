@@ -281,8 +281,16 @@ class Translator:
         return list(map(self.translate_stmt, ast_body))
 
     def translate_return(self, ast_return: ast.Return) -> el.Element:
-        print(ast_return.value)
-        return el.VoidElement('return')
+        if isinstance(self.context, calls.Function):
+            func = self.context
+        else:
+            raise UserWarning('Return statement outside a function')
+
+        if ast_return.value:
+            value = self.translate_expression(ast_return.value, regs.DEFAULT_REGISTER)
+            return calls.Return(func, value)
+        else:
+            return calls.ReturnUnit(func)
 
     def translate_function(self, ast_function: ast.FunctionDef):
         name = ast_function.name
