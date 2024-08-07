@@ -86,5 +86,5 @@ class FunctionCall(el.Expression):
             '// Calling',
             f'cll {self.func_ref.target}',
             '// Store return value',
-            f'mrr {self.func_ref.func.return_target} {self.target}',
+            f'mrr {ns.Function.RETURN_TARGET} {self.target}',
         ])

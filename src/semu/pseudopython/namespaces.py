@@ -43,20 +43,16 @@ class Namespace:
 
 
 class Function(KnownName, Namespace, Element):
+    RETURN_TARGET: regs.Register = regs.DEFAULT_REGISTER
     args: Sequence[str]
     body: Sequence[Element]
-    return_target: regs.Register
 
-    def __init__(
-        self, name: str, parent: Namespace,
-        return_type: TargetType, return_target: regs.Register
-    ):
+    def __init__(self, name: str, parent: Namespace, return_type: TargetType):
         Element.__init__(self)
         KnownName.__init__(self, name, return_type)
         Namespace.__init__(self, name, parent)
         self.args = list()
         self.body = list()
-        self.return_target = return_target
 
     def __str__(self) -> str:
         result = [f'Function {self.name} [']

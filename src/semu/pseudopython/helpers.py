@@ -154,7 +154,7 @@ def create_function(
     target_type: el.TargetType
 ) -> ns.Function:
 
-    function = ns.Function(name, context, target_type, regs.DEFAULT_REGISTER)
+    function = ns.Function(name, context, target_type)
 
     for ast_arg in args.args:
         raise NotImplementedError()
