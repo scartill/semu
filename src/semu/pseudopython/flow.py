@@ -31,7 +31,6 @@ class If(Element):
 
         return flatten([
             '// if block',
-            f'push {temp}',
             self.test.emit(),
             f'ldr &{true_label} {temp}',
             f'jgt {self.test.target} {temp}',
@@ -44,8 +43,7 @@ class If(Element):
             f'{true_label}:',
             [statement.emit() for statement in self.true_body],
             f'{end_label}:',
-            f'pop {temp}',
-            '// end if block',
+            '// end if block'
         ])
 
 
@@ -69,7 +67,6 @@ class While(Element):
         return flatten([
             '// while block',
             f'{start_label}:',
-            f'push {temp}',
             self.test.emit(),
             f'ldr &{body_label} {temp}',
             f'jgt {self.test.target} {temp}',
@@ -80,6 +77,5 @@ class While(Element):
             f'ldr &{start_label} {temp}',
             f'jmp {temp}',
             f'{end_label}:',
-            f'pop {temp}',
-            '// end while block',
+            '// end while block'
         ])

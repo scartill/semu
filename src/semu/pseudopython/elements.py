@@ -104,8 +104,8 @@ class GlobalVariableCreate(Element, GlobalVar):
         return [
             f'// Begin variable {self.name}',
             f'{label}:',        # label
-            'nop',                  # placeholder
-            '// End variable',
+            'nop',              # placeholder
+            '// End variable'
         ]
 
 
@@ -138,15 +138,11 @@ class GlobalVarAssignment(Element):
         label = self.target.address_label()
 
         return flatten([
-            f'// Saving reg:{temp}',
-            f'push {temp}',
             f"// Calculating var:{self.target.name} into reg:{self.source}",
             self.expr.emit(),
             f'// Storing var:{self.target.name}',
             f'ldr &{label} {temp}',
             f'mrm {self.source} {temp}',
-            f'// Restoring reg:{temp}',
-            f'pop {temp}'
         ])
 
 
@@ -163,12 +159,8 @@ class GlobalVariableLoad(Expression):
         label = self.name.address_label()
 
         return flatten([
-            f'// Saving reg:{temp}',
-            f'push {temp}',
             f'// Loading var:{self.name} address',
             f'ldr &{label} {temp}',
             f'// Setting var:{self.name} to reg:{self.target}',
             f'mmr {temp} {self.target}',
-            f'// Restoring reg:{temp}',
-            f'pop {temp}'
         ])

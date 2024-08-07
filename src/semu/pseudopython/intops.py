@@ -20,11 +20,9 @@ class Neg(UOp):
 
         return flatten([
             f'// UOp begin to reg:{self.target}',
-            f'push {temp}',
             self.operand.emit(),
             f'ldc -1 {temp}',
             f'mul {temp} {self.operand.target} {self.target}',
-            f'pop {temp}',
             '// UOp end'
         ])
 
@@ -52,15 +50,11 @@ class IntBinOp(BinOp):
 
         return flatten([
             f'// BinOp begin to reg:{self.target}',
-            f'push {left_temp}',
-            f'push {right_temp}',
             self.left.emit(),
             f'mrr {self.left.target} {left_temp}',
             self.right.emit(),
             f'mrr {self.right.target} {right_temp}',
             f'{self.op()} {left_temp} {right_temp} {self.target}',
-            f'pop {right_temp}',
-            f'pop {left_temp}',
             '// BinOp end'
         ])
 

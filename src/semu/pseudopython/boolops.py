@@ -24,14 +24,10 @@ class Not(Unary):
 
         return flatten([
             '// Boolean Not',
-            f'push {left_temp}',
-            f'push {right_temp}',
             self.right.emit(),
             f'mrr {self.right.target} {right_temp}',
             f'ldc 1 {left_temp}',
             f'xor {left_temp} {right_temp} {self.target}',
-            f'pop {right_temp}',
-            f'pop {left_temp}',
         ])
 
 
@@ -56,20 +52,18 @@ class BoolOp(Expression):
 
         return flatten([
             '// Boolean operator',
-            f'push {op_temp}',
-            f'push {result_temp}',
             f'ldc {init} {result_temp}',
             [
                 [
+                    f'push {result_temp}',
                     value.emit(),
+                    f'pop {result_temp}',
                     f'mrr {value.target} {op_temp}',
                     f'{op} {result_temp} {op_temp} {result_temp}'
                 ]
                 for value in self.values
             ],
             f'mrr {result_temp} {self.target}',
-            f'pop {result_temp}',
-            f'pop {op_temp}',
             '// End boolean operator'
         ])
 
