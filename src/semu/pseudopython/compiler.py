@@ -288,8 +288,18 @@ class Translator:
 
         if ast_return.value:
             value = self.translate_expression(ast_return.value, regs.DEFAULT_REGISTER)
+            f_type = func.target_type
+            e_type = value.target_type
+
+            if func.target_type != value.target_type:
+                raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
+
+            func.returns = True
             return calls.ReturnValue(func, value)
         else:
+            if func.target_type != 'unit':
+                raise UserWarning('Function has no target type')
+
             return calls.ReturnUnit(func)
 
     def translate_function(self, ast_function: ast.FunctionDef):
@@ -306,6 +316,7 @@ class Translator:
         self.context.names[name] = function
         self.context = function
         function.body = self.translate_body(ast_function.body)
+        helpers.validate_function(function)
         self.context = cast(ns.Namespace, function.parent)
         return function
 

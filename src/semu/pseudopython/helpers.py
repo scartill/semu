@@ -164,18 +164,7 @@ def create_function(
 
 
 def validate_function(func: calls.Function):
-    f_type = func.target_type
-    returns = False
-
-    for element in func.body:
-        if isinstance(element, calls.Return):
-            returns = True
-
-            e_type = element.return_type()
-            if e_type != f_type:
-                raise UserWarning(f'Function return type mismatch {e_type} != {f_type}')
-
-    if f_type != 'int32' and not returns:
+    if func.target_type != 'unit' and not func.returns:
         raise UserWarning(f'Function {func.name} does not return')
 
 

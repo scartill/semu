@@ -45,3 +45,7 @@ def test_whileloop(capsys):
 
 def test_noparamfunctions(capsys):
     simple_with_capture('noparamfunctions', capsys)
+
+
+def test_returns(capsys):
+    simple_with_capture('returns', capsys)

@@ -50,11 +50,16 @@ class Assertion(BuiltinInlineImpl):
     def emit(self) -> Sequence[str]:
         return flatten([
             '// Assertion',
+            '// Ignore the second param',
+            f'pop {self.target}',
+            '// Take the first param',
             f'pop {self.target}',
             f'.assert {self.source.target} {self.value}',
-            '// Return null',
-            f'ldc 0 {self.target}',
+            '// Restoring the stack',
+            f'push {self.target}',
             f'push {self.target}'
+            '// Return null',
+            f'ldc 0 {self.target}'
         ])
 
 

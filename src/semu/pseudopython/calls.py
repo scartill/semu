@@ -11,6 +11,7 @@ class Function(el.KnownName, ns.Namespace, el.Element):
     args: Sequence[str]
     body: Sequence[el.Element]
     return_target: regs.Register = regs.DEFAULT_REGISTER
+    returns: bool = False
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: el.TargetType):
         el.Element.__init__(self)
@@ -151,7 +152,7 @@ class ReturnValue(Return):
 
         return flatten([
             '// Calculating return value',
-            self.emit(),
+            self.expression.emit(),
             f'// Returning from {self.func.name}',
             f'mrr {self.expression.target} {self.func.return_target}',
             f'ldr &{return_label} {temp}',
