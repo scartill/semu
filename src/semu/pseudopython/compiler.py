@@ -60,18 +60,6 @@ class Translator:
 
         return helpers.create_call_frame(call, args)
 
-    def load_const(self, name: ast.AST, target: regs.Register):
-        lookup = self.resolve_object(name)
-        known_name = lookup.known_name
-
-        if not isinstance(known_name, el.Constant):
-            raise UserWarning(f'Unsupported const reference {name}')
-
-        return el.ConstantExpression(
-            target_type=known_name.target_type, value=known_name.value,
-            target=target
-        )
-
     def translate_const_assign(self, name: str, ast_value: ast.AST):
         if not isinstance(ast_value, ast.Constant):
             raise UserWarning(
@@ -103,7 +91,7 @@ class Translator:
             known_name = lookup.known_name
 
             if isinstance(known_name, el.Constant):
-                return namespace.load_const(source, target)
+                return namespace.load_const(known_name, target)
 
             if isinstance(known_name, el.GlobalVar):
                 return namespace.load_variable(known_name, target)

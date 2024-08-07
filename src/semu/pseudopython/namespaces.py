@@ -46,6 +46,15 @@ class Namespace:
 
         return self.parent.get_name(name)
 
+    def load_const(self, known_name: el.KnownName, target: regs.Register):
+        if not isinstance(known_name, el.Constant):
+            raise UserWarning(f'Unsupported const reference {known_name.name}')
+
+        return el.ConstantExpression(
+            target_type=known_name.target_type, value=known_name.value,
+            target=target
+        )
+
     def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
         raise NotImplementedError()
 
