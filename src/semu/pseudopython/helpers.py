@@ -152,9 +152,9 @@ def create_compare(
 def create_function(
     context: ns.Namespace, name: str, args: ast.arguments,
     target_type: el.TargetType
-) -> ns.Function:
+) -> calls.Function:
 
-    function = ns.Function(name, context, target_type)
+    function = calls.Function(name, context, target_type)
 
     for ast_arg in args.args:
         raise NotImplementedError()

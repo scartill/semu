@@ -20,7 +20,7 @@ class KnownName:
     def __str__(self) -> str:
         return f'{self.name}: {self.target_type}'
 
-    def label_name(self) -> str:
+    def address_label(self) -> str:
         raise NotImplementedError()
 
 
@@ -39,7 +39,7 @@ class GlobalVar(KnownName):
     def __init__(self, name: str, target_type: TargetType):
         super().__init__(name, target_type)
 
-    def label_name(self) -> str:
+    def address_label(self) -> str:
         return f'_global_{self.name}'
 
 
@@ -95,11 +95,11 @@ class GlobalVariableCreate(Element, GlobalVar):
         KnownName.__init__(self, name, target_type)
         Element.__init__(self)
 
-    def label_name(self) -> str:
+    def address_label(self) -> str:
         return f'_global_variable_{self.name}'
 
     def emit(self):
-        label = self.label_name()
+        label = self.address_label()
 
         return [
             f'// Begin variable {self.name}',
@@ -135,7 +135,7 @@ class GlobalVarAssignment(Element):
 
     def emit(self):
         temp = regs.get_temp([self.source])
-        label = self.target.label_name()
+        label = self.target.address_label()
 
         return flatten([
             f'// Saving reg:{temp}',
@@ -160,7 +160,7 @@ class GlobalVariableLoad(Expression):
 
     def emit(self):
         temp = regs.get_temp([self.target])
-        label = self.name.label_name()
+        label = self.name.address_label()
 
         return flatten([
             f'// Saving reg:{temp}',

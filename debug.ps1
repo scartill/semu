@@ -1,4 +1,4 @@
-$subject = "functions"
+$subject = "returns"
 
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $assembler = "$PSScriptRoot/src/semu/sasm/masm.py"
