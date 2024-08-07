@@ -49,3 +49,7 @@ def test_noparamfunctions(capsys):
 
 def test_returns(capsys):
     simple_with_capture('returns', capsys)
+
+
+def test_nameresolve():
+    simple_test('nameresolve')
