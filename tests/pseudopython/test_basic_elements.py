@@ -41,3 +41,7 @@ def test_conditionals(capsys):
 
 def test_whileloop(capsys):
     simple_with_capture('whileloop', capsys)
+
+
+def test_noparamfunctions(capsys):
+    simple_with_capture('noparamfunctions', capsys)
