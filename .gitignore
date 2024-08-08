@@ -3,3 +3,4 @@ __pycache__
 roms
 .build
 .pytest_cache
+*.bin
