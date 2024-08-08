@@ -3,17 +3,16 @@
 
 import pyparsing as pp
 
-from semu.compile.mfpp import MacroFPP as MFPP
+from semu.sasm.mfpp import MacroFPP as MFPP
 
-from semu.compile.grammar import (
+from semu.sasm.grammar import (
     id,
     refname,
     comment,
     reg_op,
     reg_indices,
     reg_ref,
-    asm_cmd,
-    label
+    asm_cmd
 )
 
 
@@ -80,7 +79,7 @@ cmd = asm_cmd \
     ^ const_def \
     ^ const_load
 
-statement = pp.Optional(label) + pp.Optional(comment) + cmd + pp.ZeroOrMore(comment)
+statement = cmd + pp.ZeroOrMore(comment)
 
 func_decl = (pp.Suppress('FUNC') + id).setParseAction(lambda r: (MFPP.begin_func, r)) \
     + pp.Optional(comment)

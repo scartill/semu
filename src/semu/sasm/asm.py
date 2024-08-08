@@ -2,8 +2,8 @@ import logging as lg
 from typing import cast
 import struct
 
-import semu.compile.mfpp as mfpp
-import semu.compile.mgrammar as mgrammar
+import semu.sasm.mfpp as mfpp
+import semu.sasm.mgrammar as mgrammar
 
 
 class CompilationItem:

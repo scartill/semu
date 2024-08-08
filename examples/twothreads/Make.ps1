@@ -1,7 +1,8 @@
 $root = "$PSScriptRoot/../.."
-$compiler = "$root/src/semu/compile/compiler.py"
+$assembler = "$root/src/semu/sasm/masm.py"
+
 $rom = "$root/roms/twothreads.bin"
 $kernel = "$root/lib/kernel"
 $app = "$PSScriptRoot/app.sasm"
 
-python $compiler --library $kernel $app $rom
+python $assembler --library $kernel $app $rom
