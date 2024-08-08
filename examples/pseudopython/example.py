@@ -8,7 +8,7 @@ unit_function(42)
 def unit_function_2(a: int, b: int):
     assert_eq(a + b, 42)
 
-unit_function(21, 21)
+unit_function_2(40, 2)
 
 #     return a + b
 

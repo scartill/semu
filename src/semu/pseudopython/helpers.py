@@ -168,16 +168,16 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
 
     lg.debug(f'Making call to {f_name}({args}) -> {f_type}')
 
-    # formal_args = func_ref.func.args
+    formal_args = func_ref.func.formals()
 
-    # if len(formal_args) != len(args):
-    #     raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
+    if len(formal_args) != len(args):
+        raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
 
-    # for formal_arg, arg in zip(formal_args, args):
-    #     if formal_arg.target_type != arg.target_type:
-    #         raise UserWarning(
-    #             f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
-    #         )
+    for formal_arg, arg in zip(formal_args, args):
+        if formal_arg.target_type != arg.target_type:
+            raise UserWarning(
+                f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
+            )
 
     return calls.FunctionCall(f_type, target, func_ref)
 

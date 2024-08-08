@@ -31,15 +31,11 @@ class LoadActualParameter(el.Expression):
         temp_a = available.pop()
         temp_b = available.pop()
 
+        offset = (self.total - self.inx + 2) * 4
+
         return [
             f'// Loading actual parameter {self.inx} of {self.total} to {self.target}',
-            f'ldc {self.total} {temp_a}',
-            f'ldc {self.inx} {temp_b}',
-            f'sub {temp_a} {temp_b} {temp_a}',
-            f'ldc 2 {temp_b}',
-            f'add {temp_a} {temp_b} {temp_a}',
-            f'ldc -4 {temp_b}',
-            f'mul {temp_a} {temp_b} {temp_a}',
+            f'ldc -{offset} {temp_a}',
             f'lla {temp_a} {temp_b}',
             f'// Loading from address {temp_b} to {self.target}',
             f'mmr {temp_b} {self.target}'
@@ -90,10 +86,13 @@ class Function(el.KnownName, ns.Namespace, el.Element):
     def return_label(self) -> str:
         return f'_function_{self.name}_return'
 
-    def load_actual(self, formal: FormalParameter, target: regs.Register):
-        total = len(list(filter(
+    def formals(self):
+        return list(filter(
             lambda n: isinstance(n, FormalParameter), self.names.values()
-        )))
+        ))
+
+    def load_actual(self, formal: FormalParameter, target: regs.Register):
+        total = len(self.formals())
 
         return LoadActualParameter(formal.target_type, target, formal.inx, total)
 
