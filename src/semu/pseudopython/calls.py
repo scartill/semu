@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Sequence, List, Tuple
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.elements as el
@@ -7,18 +7,64 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 
 
+@dataclass
+class FormalParameter(el.KnownName):
+    inx: int
+
+    def __init__(self, name: str, inx: int, target_type: el.TargetType):
+        el.KnownName.__init__(self, name, target_type)
+        self.inx = inx
+
+    def json(self) -> el.JSON:
+        data = super().json()
+        data['Index'] = self.inx
+        return data
+
+
+@dataclass
+class LoadActualParameter(el.Expression):
+    inx: int
+    total: int
+
+    def emit(self) -> Sequence[str]:
+        available = regs.get_available([self.target])
+        temp_a = available.pop()
+        temp_b = available.pop()
+
+        return [
+            f'// Loading actual parameter {self.inx} of {self.total}',
+            f'ldc {self.total} {temp_a}',
+            f'ldc {self.inx} {temp_b}',
+            f'sub {temp_a} {temp_b} {temp_a}',
+            f'ldc 2 {temp_b}',
+            f'add {temp_a} {temp_b} {temp_a}',
+            f'ldc -4 {temp_b}',
+            f'mul {temp_a} {temp_b} {temp_a}',
+            f'lla {temp_a} {self.target}'
+        ]
+
+
+ArgDefs = List[Tuple[str, el.TargetType]]
+
+
 class Function(el.KnownName, ns.Namespace, el.Element):
-    args: Sequence[str]
-    body: Sequence[el.Element]
+    body: el.Elements
+    return_type: el.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
 
-    def __init__(self, name: str, parent: ns.Namespace, return_type: el.TargetType):
+    def __init__(
+            self, name: str, parent: ns.Namespace,
+            args: ArgDefs, return_type: el.TargetType
+    ):
         el.Element.__init__(self)
         el.KnownName.__init__(self, name, return_type)
         ns.Namespace.__init__(self, name, parent)
-        self.args = list()
+        self.return_type = return_type
         self.body = list()
+
+        for inx, (arg_name, arg_type) in enumerate(args):
+            self.names[arg_name] = FormalParameter(arg_name, inx, arg_type)
 
     def json(self) -> el.JSON:
         data = el.Element.json(self)
@@ -27,7 +73,7 @@ class Function(el.KnownName, ns.Namespace, el.Element):
             'KnownName': el.KnownName.json(self),
             'Namespace': ns.Namespace.json(self),
             'Function': {
-                'Arguments': self.args,
+                'ReturnType': self.return_type,
                 'Body': [e.json() for e in self.body],
                 'Returns': self.returns,
                 'ReturnTarget': self.return_target
@@ -41,6 +87,13 @@ class Function(el.KnownName, ns.Namespace, el.Element):
 
     def return_label(self) -> str:
         return f'_function_{self.name}_return'
+
+    def load_actual(self, formal: FormalParameter, target: regs.Register):
+        total = len(list(filter(
+            lambda n: isinstance(n, FormalParameter), self.names.values()
+        )))
+
+        return LoadActualParameter(formal.target_type, target, formal.inx, total)
 
     def emit(self) -> Sequence[str]:
         name = self.name

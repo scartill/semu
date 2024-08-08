@@ -7,6 +7,7 @@ import semu.pseudopython.registers as regs
 
 JSON = Dict[str, Any]
 TargetType = Literal['unit', 'int32', 'bool32', 'callable']
+TargetTypes = Sequence[TargetType]
 
 
 class KnownName:
@@ -75,6 +76,9 @@ class Element:
 
     def json(self) -> JSON:
         return {}
+
+
+Elements = Sequence[Element]
 
 
 @dataclass

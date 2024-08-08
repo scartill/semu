@@ -1,4 +1,4 @@
-$subject = "nameresolve"
+$subject = "example"
 
 $compiler = "$PSScriptRoot/src/semu/pseudopython/compiler.py"
 $assembler = "$PSScriptRoot/src/semu/sasm/masm.py"

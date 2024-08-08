@@ -148,17 +148,9 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: ast.arguments,
-    target_type: el.TargetType
+    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: el.TargetType
 ) -> calls.Function:
-
-    function = calls.Function(name, context, target_type)
-
-    for ast_arg in args.args:
-        raise NotImplementedError()
-
-    function.args = []
-    return function
+    return calls.Function(name, context, args, target_type)
 
 
 def validate_function(func: calls.Function):
@@ -176,10 +168,10 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
 
     lg.debug(f'Making call to {f_name}({args}) -> {f_type}')
 
-    formal_args = func_ref.func.args
+    # formal_args = func_ref.func.args
 
-    if len(formal_args) != len(args):
-        raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
+    # if len(formal_args) != len(args):
+    #     raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
 
     # for formal_arg, arg in zip(formal_args, args):
     #     if formal_arg.target_type != arg.target_type:

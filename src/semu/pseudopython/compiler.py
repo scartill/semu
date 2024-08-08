@@ -102,6 +102,12 @@ class Translator:
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
 
+            if isinstance(known_name, calls.FormalParameter):
+                if not isinstance(namespace, calls.Function):
+                    raise UserWarning('Formal parameter outside a function')
+
+                return namespace.load_actual(known_name, target)
+
             raise UserWarning(f'Unsupported name {source}')
 
         if isinstance(source, ast.BinOp):
@@ -166,6 +172,7 @@ class Translator:
 
     def translate_type(self, ast_type: ast.AST):
         if not isinstance(ast_type, ast.Name):
+            print(ast.dump(ast_type))
             raise UserWarning('External types are not supported')
 
         match ast_type.id:
@@ -291,9 +298,18 @@ class Translator:
         else:
             target_type = self.translate_type(ast_function.returns)
 
-        lg.debug(f'Function {name} found')
+        args = []
+        for ast_arg in ast_function.args.args:
+            if ast_arg.annotation is None:
+                raise UserWarning(f'Argument {ast_arg.arg} has no type')
 
-        function = helpers.create_function(self.context, name, ast_function.args, target_type)
+            arg_name = ast_arg.arg
+            arg_type = self.translate_type(ast_arg.annotation)
+            args.append((arg_name, arg_type))
+
+        lg.debug(f'Found function {name}')
+
+        function = helpers.create_function(self.context, name, args, target_type)
         self.context.names[name] = function
         self.context = function
         function.body = self.translate_body(ast_function.body)
@@ -375,7 +391,7 @@ def compile(ctx: click.Context, verbose: bool, input: Path, output: Path | None)
     if not output:
         output = input.with_suffix('.sasm')
 
-    lg.info(f'Translating {input} to {output}')
+    lg.info(f'Translating {input.name} to {output.name}')
     compile_single_file(ctx.obj, input, output)
 
 

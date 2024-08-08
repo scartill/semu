@@ -1,3 +1,0 @@
-# type: ignore
-
-pass
