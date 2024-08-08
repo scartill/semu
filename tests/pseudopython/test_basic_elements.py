@@ -53,3 +53,7 @@ def test_returns(capsys):
 
 def test_nameresolve():
     simple_test('nameresolve')
+
+
+def test_funcparams():
+    simple_test('funcparams')
