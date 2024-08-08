@@ -177,7 +177,7 @@ class CPU():
         self.set_next_gp(val)
 
     def lla(self):
-        offset = self.next_unsigned()
+        offset = self.get_next_gp()
         self.set_next_gp(self.fp + offset)
 
     def intzero(self):

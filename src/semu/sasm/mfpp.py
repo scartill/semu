@@ -170,10 +170,14 @@ class MacroFPP(FPP):
         offset = func.locals.index(vname) * WORD_SIZE
         lg.debug(f'Local store {vname}@{offset}')
 
-        # lla <var-offset> h
+        # ldc <var-offset> h
+        # lla h h
         # mrm <reg> h
+        self.issue_op(ops.LDC)
+        self.issue_signed(offset)
+        self.on_reg(7)
         self.issue_op(ops.LLA)
-        self.issue_usigned(offset)
+        self.on_reg(7)
         self.on_reg(7)
         self.issue_op(ops.MRM)
         self.on_reg(reg)
@@ -193,10 +197,14 @@ class MacroFPP(FPP):
         offset = func.locals.index(vname) * WORD_SIZE
         lg.debug(f'Local load {vname}@{offset}')
 
-        # lla <var-offset> h
-        # mmr h <reg>
+        # ldc <var-offset> h
+        # lla h h
+        # mrm <reg> h
+        self.issue_op(ops.LDC)
+        self.issue_signed(offset)
+        self.on_reg(7)
         self.issue_op(ops.LLA)
-        self.issue_usigned(offset)
+        self.on_reg(7)
         self.on_reg(7)
         self.issue_op(ops.MMR)
         self.on_reg(7)

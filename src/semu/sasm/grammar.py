@@ -81,7 +81,7 @@ ret_cmd = g_cmd('ret', ops.RET)
 irx_cmd = g_cmd('irx', ops.IRX)
 ssp_cmd = g_cmd_1('ssp', ops.SSP)
 mrr_cmd = g_cmd_2('mrr', ops.MRR)
-lla_cmd = g_cmd('lla', ops.LLA) + us_dec_const + reg_op
+lla_cmd = g_cmd_2('lla', ops.LLA)
 
 # Arithmetic
 add_cmd = g_cmd_3('add', ops.ADD)
