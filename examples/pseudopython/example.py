@@ -3,9 +3,12 @@
 def unit_function(a: int):
     assert_eq(a, 42)
 
-
-# unit_function(42, 42)
+unit_function(42)
     
+def unit_function_2(a: int, b: int):
+    assert_eq(a + b, 42)
+
+unit_function(21, 21)
 
 #     return a + b
 

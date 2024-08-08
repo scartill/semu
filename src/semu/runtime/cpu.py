@@ -39,15 +39,15 @@ class CPU():
     # - Helpers - $
 
     def debug_dump(self):
-        state = [f'{k}:{v:X}' for k, v in {
+        state = [f'{k}:{v}' for k, v in {
             'IP': self.ip,
             'SP': self.sp,
             'II': self.ii,
             'FP': self.fp
         }.items()]
 
-        state.extend([f'{i}:{self.gp[i]:X}' for i in range(len(self.gp))])
-
+        a = 'a'.encode('ascii')[0]
+        state.extend([f'{chr(a + i)}:{self.gp[i]}' for i in range(len(self.gp))])
         lg.debug(' '.join(state))
 
     def next_fmt(self, fmt: str):
@@ -220,7 +220,7 @@ class CPU():
         message = f'CHECKPOINT {val}'
         lg.debug(message)
         self.debug_dump()
-        # Write this to stdout so test engine can control execution
+        # Write this to stdout so a test engine can control execution
         print(message)
 
     def aeq(self):

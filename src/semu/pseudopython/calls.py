@@ -32,7 +32,7 @@ class LoadActualParameter(el.Expression):
         temp_b = available.pop()
 
         return [
-            f'// Loading actual parameter {self.inx} of {self.total}',
+            f'// Loading actual parameter {self.inx} of {self.total} to {self.target}',
             f'ldc {self.total} {temp_a}',
             f'ldc {self.inx} {temp_b}',
             f'sub {temp_a} {temp_b} {temp_a}',
@@ -40,7 +40,9 @@ class LoadActualParameter(el.Expression):
             f'add {temp_a} {temp_b} {temp_a}',
             f'ldc -4 {temp_b}',
             f'mul {temp_a} {temp_b} {temp_a}',
-            f'lla {temp_a} {self.target}'
+            f'lla {temp_a} {temp_b}',
+            f'// Loading from address {temp_b} to {self.target}',
+            f'mmr {temp_b} {self.target}'
         ]
 
 
