@@ -9,7 +9,7 @@ import unit_utils
 
 def test_locals():
     item = asm.CompilationItem()
-    item.namespace = 'locals'
+    item.modulename = 'locals'
     item.contents = unit_utils.load_file('msasm/locals/locals.sasm')
     binary = asm.compile_items([item])
 

@@ -9,7 +9,7 @@ def configure_param(param: str) -> str:
 
 def generate_compilation_item() -> CompilationItem:
     item = CompilationItem()
-    item.namespace = 'hw'
+    item.modulename = 'hw'
 
     item.contents = '\n'.join([
         configure_param('INT_VECT_BASE'),

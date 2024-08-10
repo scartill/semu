@@ -11,12 +11,12 @@ FUNC Startup BEGIN
     CALL SetupHandlers
     
     // Start system-idle thread
-    CALL threads::CreateSysThread
+    CALL kernel.threads::CreateSysThread
     
     // Return system thread stack pointer    
-    ldr &threads::runpt a
+    ldr &kernel.threads::runpt a
     mmr a a             // a = *runpt
-    PTR a sp#threads::TCB b
+    PTR a sp#kernel.threads::TCB b
     mmr b a             // return runpt->sp    
     RETURN
 END
@@ -45,15 +45,15 @@ BEGIN
     CALL AddKernelService
     
     CLOAD LOOPBACK_CREATE_THREAD a
-    ldr &threads::CreateThread b
+    ldr &kernel.threads::CreateThread b
     CALL AddKernelService
 
     CLOAD LOOPBACK_LOCK_MUTEX a
-    ldr &sync::LockMutex b
+    ldr &kernel.sync::LockMutex b
     CALL AddKernelService
     
     CLOAD LOOPBACK_UNLOCK_MUTEX a
-    ldr &sync::UnlockMutex b
+    ldr &kernel.sync::UnlockMutex b
     CALL AddKernelService
     RETURN
 END
@@ -83,7 +83,7 @@ FUNC SetupHandlers BEGIN
 
     // Setup timer
     CLOAD hw::SYSTIMER_LINE a
-    ldr &threads::HScheduler b
+    ldr &kernel.threads::HScheduler b
     CALL SetupHandler
     
     RETURN
@@ -96,7 +96,7 @@ FUNC HLoopback BEGIN
     jgt h g                 // if (service == 0) Suspend else goto callservice
 
   suspend:
-    ldr &threads::HScheduler g       // NB: no 'cll' instruction
+    ldr &kernel.threads::HScheduler g       // NB: no 'cll' instruction
     jmp g                            // - saving the stack intact
     
   callservice:
@@ -118,4 +118,3 @@ FUNC WriteSerial BEGIN
     out c                   // signal serial
     RETURN
 END
-

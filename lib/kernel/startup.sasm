@@ -3,7 +3,7 @@
 // Start-up stack
 ldr &startstack a
 lsp a
-CALL kernel::Startup
+CALL kernel.kernel::Startup
 lsp a
 irx
 

@@ -35,7 +35,7 @@ BEGIN
     RETURN              // mutex.lock = 1
   wait:
     LLOAD mutex a
-    CALL threads::ThreadWait
+    CALL kernel.threads::ThreadWait
     RETURN
 END
 

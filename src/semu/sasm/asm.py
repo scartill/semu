@@ -7,8 +7,19 @@ import semu.sasm.mgrammar as mgrammar
 
 
 class CompilationItem:
-    namespace: str
+    package: str | None = None
+    modulename: str
     contents: str
+
+    def namespace(self) -> str:
+        if self.package is None:
+            return f'{self.modulename}'
+
+        return f'{self.package}.{self.modulename}'
+
+    def set_package(self, package: str):
+        self.package = package
+        return self
 
 
 def compile_items(compile_items: list[CompilationItem]) -> bytes:
@@ -16,8 +27,8 @@ def compile_items(compile_items: list[CompilationItem]) -> bytes:
     first_pass = mfpp.MacroFPP()
 
     for compile_item in compile_items:
-        lg.info("Processing {0}".format(compile_item.namespace))
-        first_pass.namespace = compile_item.namespace
+        lg.info("Processing {0}".format(compile_item.namespace()))
+        first_pass.namespace = compile_item.namespace()
         actions = mgrammar.program.parse_string(compile_item.contents)
 
         for (func, arg) in actions:  # type: ignore

@@ -11,14 +11,17 @@ class FPP:
     ''' First pass processor '''
     cmd_list: List[Tuple[str, bytes | Tuple[int, str]]]
     label_dict: Dict[str, int]
+    namespace: str
 
     def __init__(self):
         self.cmd_list = list()
         self.offset = 0
-        self.namespace = "<global>"
+        self.namespace = '<global>'
         self.label_dict = dict()
 
     def get_qualified_name(self, name: str, namespace: str | None = None):
+        assert self.namespace
+
         if namespace is None:
             namespace = self.namespace
 

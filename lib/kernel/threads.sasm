@@ -114,7 +114,7 @@ BEGIN
     mrm c h             // prev.next = next
     PTR c prev#TCB h
     mrm b h             // next.prev = prev
-    CALL api::Suspend
+    CALL kernel.api::Suspend
     // This function never returns
 END
 
@@ -132,7 +132,7 @@ BEGIN
     RETURN          // else return next
     
   locked:
-    PTR b lock#sync::Mutex c
+    PTR b lock#kernel.sync::Mutex c
     mmr c c
     ldr &continue h
     jgt c h         // if (next->syncobj.lock) goto continue
@@ -182,7 +182,7 @@ FUNC CreateSysThread BEGIN
     ldr &idlestack a
     ldr &TSysThread b
     ldc 0 c                      // No parameters
-    CALL threads::InitStack      // a <- SP
+    CALL kernel.threads::InitStack      // a <- SP
     
     ldr &idletcb b
     PTR b sp#TCB h      // idletcb.sp = a
@@ -206,15 +206,15 @@ FUNC TSysThread BEGIN
     out a         // Enable timer
     
     ldr &message a
-    CALL api::Print
-    CALL api::PrintLn
+    CALL kernel.api::Print
+    CALL kernel.api::PrintLn
     
     // Let application start user threads
     CALL app::Start
     // Start idle loop
   loop:
     nop
-    CALL api::Suspend
+    CALL kernel.api::Suspend
     ldr &loop c
     jmp c
 END

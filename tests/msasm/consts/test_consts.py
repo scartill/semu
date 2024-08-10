@@ -9,7 +9,7 @@ import unit_utils
 
 def test_consts():
     item = asm.CompilationItem()
-    item.namespace = 'consts'
+    item.modulename = 'consts'
     item.contents = unit_utils.load_file('msasm/consts/consts.sasm')
     binary = asm.compile_items([item])
 

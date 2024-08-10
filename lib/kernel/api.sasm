@@ -2,14 +2,14 @@
 
 // Kernel service Suspend
 FUNC Suspend BEGIN
-    CLOAD kernel::LOOPBACK_SUSPEND h
+    CLOAD kernel.kernel::LOOPBACK_SUSPEND h
     int
     RETURN
 END
 
 // Kernel service Print char
 FUNC PrintChar BEGIN    
-    CLOAD kernel::LOOPBACK_SERIAL h
+    CLOAD kernel.kernel::LOOPBACK_SERIAL h
     int
     RETURN
 END
@@ -17,7 +17,7 @@ END
 // Kernel service CreateThread
 FUNC CreateThread  // stack_top, func, param, tcb
 BEGIN
-    CLOAD kernel::LOOPBACK_CREATE_THREAD h
+    CLOAD kernel.kernel::LOOPBACK_CREATE_THREAD h
     int
     RETURN
 END
@@ -25,7 +25,7 @@ END
 // Kernel service CreateThread
 FUNC CreateThread  // stack_top, func, param, tcb
 BEGIN
-    CLOAD kernel::LOOPBACK_CREATE_THREAD h
+    CLOAD kernel.kernel::LOOPBACK_CREATE_THREAD h
     int
     RETURN
 END
@@ -33,7 +33,7 @@ END
 // Kernel service LockMutex
 FUNC LockMutex
 BEGIN
-    CLOAD kernel::LOOPBACK_LOCK_MUTEX h
+    CLOAD kernel.kernel::LOOPBACK_LOCK_MUTEX h
     int
     CALL Suspend
     RETURN
@@ -42,7 +42,7 @@ END
 // Kernel service UnlockMutex
 FUNC UnlockMutex
 BEGIN
-    CLOAD kernel::LOOPBACK_UNLOCK_MUTEX h
+    CLOAD kernel.kernel::LOOPBACK_UNLOCK_MUTEX h
     int
     RETURN
 END
@@ -72,9 +72,8 @@ END
 // API Newline
 FUNC PrintLn BEGIN
     ldc 13 a
-    CALL api::PrintChar
+    CALL kernel.api::PrintChar
     ldc 10 a
-    CALL api::PrintChar
+    CALL kernel.api::PrintChar
     RETURN
 END
-

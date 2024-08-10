@@ -54,7 +54,10 @@ us_const = us_dec_const
 s_dec_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.issue_sconst, r))
 s_const = s_dec_const
 
-refname = pp.Optional(id + pp.Suppress("::")) + id
+composite_id = id + pp.ZeroOrMore(pp.Suppress('.') + id)
+composite_id.set_parse_action(lambda r: '.'.join(r))
+
+refname = pp.Optional(composite_id + pp.Suppress("::")) + id
 # Join into [namespace, name] or [name]
 refname.setParseAction(lambda r: [r])
 

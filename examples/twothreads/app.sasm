@@ -1,9 +1,9 @@
 /// User thread functions
 
-DS threads::TCB maintcb
+DS kernel.threads::TCB maintcb
 DW mainstack*100
 
-DS threads::TCB sectcb
+DS kernel.threads::TCB sectcb
 DW secstack*100
 
 DT first "First"
@@ -14,13 +14,13 @@ FUNC Start BEGIN
     ldr &TLoop b
     ldr &first c 
     ldr &maintcb d
-    CALL api::CreateThread
+    CALL kernel.api::CreateThread
     
     ldr &secstack a
     ldr &TLoop b
     ldr &second c
     ldr &sectcb d
-    CALL api::CreateThread
+    CALL kernel.api::CreateThread
     
     RETURN
 END
@@ -29,11 +29,10 @@ END
 FUNC TLoop // String
 BEGIN
     push a
-    CALL api::Print
-    CALL api::PrintLn
+    CALL kernel.api::Print
+    CALL kernel.api::PrintLn
     pop a
     nop
     ldr &TLoop c
     jmp c
 END
-

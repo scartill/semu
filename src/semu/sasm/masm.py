@@ -9,19 +9,14 @@ from semu.sasm.asm import CompilationItem, compile_items
 import semu.sasm.hwc as hwc
 
 
-def namespace(src_filepath: Path) -> str:
-    return src_filepath.stem
-
-
 def collect_file(filepath: str | Path) -> CompilationItem:
     if isinstance(filepath, str):
         filepath = Path(filepath)
 
     lg.debug(f'Collecting file {filepath}')
-
     item = CompilationItem()
     item.contents = filepath.read_text()
-    item.namespace = namespace(filepath)
+    item.modulename = filepath.stem
     return item
 
 
@@ -35,7 +30,7 @@ def collect_library(lib_dir: Path):
     library = config['library']
 
     items = [
-        collect_file(lib_dir / Path(source))
+        collect_file(lib_dir / Path(source)).set_package(library['package'])
         for source in library['sources']
     ]
 

@@ -1,12 +1,12 @@
 /// Mutex test
 
-DS threads::TCB ftcb
+DS kernel.threads::TCB ftcb
 DW fs*100
 
-DS threads::TCB stcb
+DS kernel.threads::TCB stcb
 DW ss*100
 
-DS sync::Mutex mutex
+DS kernel.sync::Mutex mutex
 
 FUNC Start
 BEGIN
@@ -14,7 +14,7 @@ BEGIN
     ldr &TF b
     ldc 0 c 
     ldr &ftcb d
-    CALL api::CreateThread
+    CALL kernel.api::CreateThread
     
     RETURN
 END
@@ -23,18 +23,18 @@ FUNC TF
 BEGIN
     ldr &mutex a
     .check 0
-    CALL sync::InitMutex
+    CALL kernel.sync::InitMutex
     
     ldr &mutex a
-    CALL sync::IsMutexLocked
+    CALL kernel.sync::IsMutexLocked
     .assert a 0
     .check 1
     
     ldr &mutex a
-    CALL api::LockMutex
+    CALL kernel.api::LockMutex
     
     ldr &mutex a
-    CALL sync::IsMutexLocked
+    CALL kernel.sync::IsMutexLocked
     .assert a 1
     .check 2
     
@@ -42,17 +42,17 @@ BEGIN
     ldr &TS b
     ldc 0 c
     ldr &stcb d
-    CALL api::CreateThread
+    CALL kernel.api::CreateThread
     .check 3
     
     CALL SpinWait
     
     ldr &mutex a    
-    CALL api::UnlockMutex
+    CALL kernel.api::UnlockMutex
     .check 5
     
     ldr &mutex a
-    CALL sync::IsMutexLocked
+    CALL kernel.sync::IsMutexLocked
     .assert a 0
     
     CALL SpinWait
@@ -68,7 +68,7 @@ BEGIN
     ldr &wait c
   wait:
     nop
-    CALL api::Suspend
+    CALL kernel.api::Suspend
     sub a b a
     jgt a c
     RETURN
@@ -78,17 +78,17 @@ FUNC TS
 BEGIN
     .check 4
     ldr &mutex a
-    CALL sync::IsMutexLocked
+    CALL kernel.sync::IsMutexLocked
     .assert a 1
     
     ldr &mutex a
-    CALL api::LockMutex
+    CALL kernel.api::LockMutex
     
     .check 6
     nop
 
     ldr &mutex a
-    CALL api::UnlockMutex
+    CALL kernel.api::UnlockMutex
     
     RETURN
 END
