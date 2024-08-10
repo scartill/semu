@@ -1,59 +1,10 @@
-from typing import Literal, Sequence, Any, Set, Dict
+from typing import Sequence, Set
 from dataclasses import dataclass
 from random import randint
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
-
-JSON = Dict[str, Any]
-TargetType = Literal['unit', 'int32', 'bool32', 'callable', 'module']
-TargetTypes = Sequence[TargetType]
-
-
-class KnownName:
-    name: str
-    target_type: TargetType
-
-    def __init__(self, name: str, target_type: TargetType):
-        self.name = name
-        self.target_type = target_type
-
-    def json(self) -> JSON:
-        return {'Name': self.name, 'Type': self.target_type}
-
-    def address_label(self) -> str:
-        raise NotImplementedError()
-
-
-class Constant(KnownName):
-    value: Any
-
-    def __init__(self, name: str, target_type: TargetType, value: Any):
-        super().__init__(name, target_type)
-        self.value = value
-
-    def json(self) -> JSON:
-        data = super().json()
-        data.update({'Value': self.value})
-        return data
-
-
-class GlobalVariable(KnownName):
-    def __init__(self, name: str, target_type: TargetType):
-        super().__init__(name, target_type)
-
-    def address_label(self) -> str:
-        return f'_global_{self.name}'
-
-    def json(self) -> JSON:
-        data = super().json()
-        data.update({'Variable': 'global'})
-        return data
-
-
-@dataclass
-class LocalVar(KnownName):
-    pass
+import semu.pseudopython.names as names
 
 
 class Element:
@@ -74,7 +25,7 @@ class Element:
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
-    def json(self) -> JSON:
+    def json(self) -> names.JSON:
         return {}
 
 
@@ -88,7 +39,7 @@ class VoidElement(Element):
     def emit(self):
         return [f'// {self.comment}']
 
-    def json(self) -> JSON:
+    def json(self) -> names.JSON:
         data = Element.json(self)
         data.update({'void': self.comment})
         return data
@@ -96,15 +47,15 @@ class VoidElement(Element):
 
 @dataclass
 class Expression(Element):
-    target_type: TargetType
+    target_type: names.TargetType
     target: regs.Register
 
-    def __init__(self, target_type: TargetType, target: regs.Register):
+    def __init__(self, target_type: names.TargetType, target: regs.Register):
         super().__init__()
         self.target_type = target_type
         self.target = target
 
-    def json(self) -> JSON:
+    def json(self):
         data = Element.json(self)
         data.update({'Type': self.target_type, 'Target': self.target})
         return data
@@ -114,17 +65,17 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
-class GlobalVariableCreate(Element, GlobalVariable):
-    def __init__(self, name: str, target_type: TargetType):
-        KnownName.__init__(self, name, target_type)
+class GlobalVariableCreate(Element, names.GlobalVariable):
+    def __init__(self, name: str, target_type: names.TargetType):
+        names.KnownName.__init__(self, name, target_type)
         Element.__init__(self)
 
     def address_label(self) -> str:
         return f'_global_variable_{self.name}'
 
-    def json(self) -> JSON:
+    def json(self):
         data = {'Create': 'global'}
-        data_kn = KnownName.json(self)
+        data_kn = names.KnownName.json(self)
         data_el = Element.json(self)
         data.update(data_kn)
         data.update(data_el)
@@ -166,10 +117,10 @@ class ConstantExpression(Expression):
 
 @dataclass
 class GlobalVariableAssignment(Element):
-    target: KnownName
+    target: names.KnownName
     expr: Expression
 
-    def json(self) -> JSON:
+    def json(self):
         data = Element.json(self)
 
         data.update({
@@ -194,13 +145,13 @@ class GlobalVariableAssignment(Element):
 
 @dataclass
 class GlobalVariableLoad(Expression):
-    name: KnownName
+    name: names.KnownName
 
-    def __init__(self, name: KnownName, target: regs.Register):
+    def __init__(self, name: names.KnownName, target: regs.Register):
         super().__init__(name.target_type, target)
         self.name = name
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
         data.update({'GlobalLoad': self.name.name})
         return data

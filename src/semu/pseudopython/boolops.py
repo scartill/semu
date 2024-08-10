@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import JSON, Expression
+from semu.pseudopython.elements import Expression
 import semu.pseudopython.registers as regs
 
 
@@ -67,7 +67,7 @@ class BoolOp(Expression):
             '// End boolean operator'
         ])
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
         data['Values'] = [value.json() for value in self.values]
         data['Operator'] = self._op()

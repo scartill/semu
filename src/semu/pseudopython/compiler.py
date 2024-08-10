@@ -9,19 +9,21 @@ import click
 
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
+import semu.pseudopython.names as n
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as helpers
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.modules as mods
+import semu.pseudopython.packages as pack
 
 
 class Translator:
     context: ns.Namespace
 
     def __init__(self):
-        top_level = mods.TopLevel()
+        top_level = pack.TopLevel()
         self.context = top_level
         self._top = top_level
 
@@ -67,7 +69,7 @@ class Translator:
             )
 
         value = helpers.int32const(ast_value)
-        self.context.names[name] = el.Constant(name, 'int32', value)
+        self.context.names[name] = n.Constant(name, 'int32', value)
         return el.VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
@@ -90,10 +92,10 @@ class Translator:
             namespace = lookup.namespace
             known_name = lookup.known_name
 
-            if isinstance(known_name, el.Constant):
+            if isinstance(known_name, n.Constant):
                 return namespace.load_const(known_name, target)
 
-            if isinstance(known_name, el.GlobalVariable):
+            if isinstance(known_name, n.GlobalVariable):
                 return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, builtins.BuiltinInline):
@@ -102,11 +104,11 @@ class Translator:
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
 
-            if isinstance(known_name, calls.FormalParameter):
+            if isinstance(known_name, n.FormalParameter):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_actual(known_name, target)
 
-            if isinstance(known_name, calls.LocalVariable):
+            if isinstance(known_name, n.LocalVariable):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_variable(known_name, target)
 
@@ -143,7 +145,7 @@ class Translator:
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
-    def translate_var_assign(self, target: el.KnownName, source: ast.AST):
+    def translate_var_assign(self, target: n.KnownName, source: ast.AST):
         expression = self.translate_expression(source, regs.DEFAULT_REGISTER)
         t_type = target.target_type
         e_type = expression.target_type
@@ -153,9 +155,9 @@ class Translator:
                 f'Expression type mismath {e_type} in not {t_type}'
             )
 
-        if isinstance(target, el.GlobalVariable):
+        if isinstance(target, n.GlobalVariable):
             return el.GlobalVariableAssignment(target, expression)
-        elif isinstance(target, calls.LocalVariable):
+        elif isinstance(target, n.LocalVariable):
             return calls.LocalVariableAssignment(target, expression)
 
         raise UserWarning(f'Unsupported assign target {target}')
@@ -169,7 +171,7 @@ class Translator:
         lookup = self.resolve_object(ast_target)
         known_name = lookup.known_name
 
-        if isinstance(known_name, (el.GlobalVariable, calls.LocalVariable)):
+        if isinstance(known_name, (n.GlobalVariable, n.LocalVariable)):
             return self.translate_var_assign(known_name, ast_value)
         else:
             raise UserWarning(f'Unsupported assignment target {known_name}')
@@ -330,10 +332,10 @@ class Translator:
 
     def translate(self, name: str, ast_module: ast.Module):
         module = self.translate_module(name, ast_module)
-        assert isinstance(self.context, mods.TopLevel)
+        assert isinstance(self.context, pack.TopLevel)
         self.context.names[name] = module
 
-    def top(self) -> mods.TopLevel:
+    def top(self) -> pack.TopLevel:
         return self._top
 
 

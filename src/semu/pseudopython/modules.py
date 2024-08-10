@@ -5,25 +5,24 @@ from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 
+import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
-import semu.pseudopython.builtins as builtins
-import semu.sasm.asm as asm
 
 
 @dataclass
-class Module(el.KnownName, ns.Namespace, el.Element):
+class Module(n.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
     def __init__(self, name: str, parent: ns.Namespace):
-        el.KnownName.__init__(self, name, 'module')
+        n.KnownName.__init__(self, name, 'module')
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Element.json(self)
 
         data.update({
@@ -33,7 +32,7 @@ class Module(el.KnownName, ns.Namespace, el.Element):
 
         return data
 
-    def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 
@@ -42,7 +41,9 @@ class Module(el.KnownName, ns.Namespace, el.Element):
         self.names[name] = create
         return create
 
-    def load_variable(self, known_name: el.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(
+            self, known_name: n.KnownName, target: regs.Register
+    ) -> el.Expression:
         return el.GlobalVariableLoad(known_name, target=target)
 
     def emit(self):
@@ -80,30 +81,3 @@ class Module(el.KnownName, ns.Namespace, el.Element):
         ])
 
         return flatten(result)
-
-
-@dataclass
-class TopLevel(ns.Namespace):
-    def __init__(self):
-        super().__init__('::', None)
-        self.names.update({bi.name: bi for bi in builtins.get()})
-
-    def json(self) -> el.JSON:
-        data = ns.Namespace.json(self)
-        data.update({'Top': True})
-        return data
-
-    def namespace(self) -> str:
-        return '::'
-
-    def parent_prefix(self) -> str:
-        return self.namespace()
-
-    def emit(self):
-        def item(module: Module):
-            item = asm.CompilationItem()
-            item.modulename = module.name
-            item.contents = '\n'.join(module.emit())
-            return item
-
-        return [item(cast(Module, n)) for n in self.names.values() if isinstance(n, Module)]

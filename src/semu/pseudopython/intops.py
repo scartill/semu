@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import JSON, Expression
+from semu.pseudopython.elements import Expression
 import semu.pseudopython.registers as regs
 
 
@@ -9,7 +9,7 @@ import semu.pseudopython.registers as regs
 class UOp(Expression):
     operand: Expression
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
 
         data.update({
@@ -41,7 +41,7 @@ class BinOp(Expression):
     left: Expression
     right: Expression
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
 
         data.update({

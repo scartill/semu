@@ -2,23 +2,10 @@ from dataclasses import dataclass
 from typing import Sequence, List, Tuple
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
-
-
-@dataclass
-class FormalParameter(el.KnownName):
-    inx: int
-
-    def __init__(self, name: str, inx: int, target_type: el.TargetType):
-        el.KnownName.__init__(self, name, target_type)
-        self.inx = inx
-
-    def json(self) -> el.JSON:
-        data = super().json()
-        data['Index'] = self.inx
-        return data
 
 
 @dataclass
@@ -44,28 +31,14 @@ class LoadActualParameter(el.Expression):
 
 
 @dataclass
-class LocalVariable(el.KnownName):
-    inx: int
-
-    def __init__(self, name: str, target_type: el.TargetType, inx: int):
-        el.KnownName.__init__(self, name, target_type)
-        self.inx = inx
-
-    def json(self) -> el.JSON:
-        data = el.KnownName.json(self)
-        data['Variable'] = 'local'
-        return data
-
-
-@dataclass
-class LocalVariableCreate(LocalVariable, el.Element):
-    def __init__(self, name: str, inx: int, target_type: el.TargetType):
+class LocalVariableCreate(n.LocalVariable, el.Element):
+    def __init__(self, name: str, inx: int, target_type: n.TargetType):
         el.Element.__init__(self)
-        LocalVariable.__init__(self, name, target_type, inx)
+        n.LocalVariable.__init__(self, name, target_type, inx)
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = {'Create': 'global'}
-        data_kn = el.KnownName.json(self)
+        data_kn = n.KnownName.json(self)
         data_el = el.Element.json(self)
         data.update(data_kn)
         data.update(data_el)
@@ -84,14 +57,14 @@ class LocalVariableCreate(LocalVariable, el.Element):
 
 @dataclass
 class LocalVariableAssignment(el.Element):
-    target: LocalVariable
+    target: n.LocalVariable
     expr: el.Expression
 
-    def __init__(self, target: LocalVariable, expr: el.Expression):
+    def __init__(self, target: n.LocalVariable, expr: el.Expression):
         self.target = target
         self.expr = expr
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Element.json(self)
 
         data.update({
@@ -125,13 +98,13 @@ class LocalVariableAssignment(el.Element):
 
 @dataclass
 class LocalVariableLoad(el.Expression):
-    name: LocalVariable
+    name: n.LocalVariable
 
-    def __init__(self, known_name: LocalVariable, target: regs.Register):
+    def __init__(self, known_name: n.LocalVariable, target: regs.Register):
         super().__init__(known_name.target_type, target)
         self.name = known_name
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Expression.json(self)
         data.update({'LocalLoad': self.name.name})
         return data
@@ -154,34 +127,34 @@ class LocalVariableLoad(el.Expression):
         ]
 
 
-ArgDefs = List[Tuple[str, el.TargetType]]
+ArgDefs = List[Tuple[str, n.TargetType]]
 
 
-class Function(el.KnownName, ns.Namespace, el.Element):
+class Function(n.KnownName, ns.Namespace, el.Element):
     body: el.Elements
-    return_type: el.TargetType
+    return_type: n.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
     def __init__(
             self, name: str, parent: ns.Namespace,
-            args: ArgDefs, return_type: el.TargetType
+            args: ArgDefs, return_type: n.TargetType
     ):
         el.Element.__init__(self)
-        el.KnownName.__init__(self, name, return_type)
+        n.KnownName.__init__(self, name, return_type)
         ns.Namespace.__init__(self, name, parent)
         self.return_type = return_type
         self.body = list()
 
         for inx, (arg_name, arg_type) in enumerate(args):
-            self.names[arg_name] = FormalParameter(arg_name, inx, arg_type)
+            self.names[arg_name] = n.FormalParameter(arg_name, inx, arg_type)
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Element.json(self)
 
         data.update({
-            'KnownName': el.KnownName.json(self),
+            'KnownName': n.KnownName.json(self),
             'Namespace': ns.Namespace.json(self),
             'Function': {
                 'ReturnType': self.return_type,
@@ -201,10 +174,10 @@ class Function(el.KnownName, ns.Namespace, el.Element):
 
     def formals(self):
         return list(filter(
-            lambda n: isinstance(n, FormalParameter), self.names.values()
+            lambda p: isinstance(p, n.FormalParameter), self.names.values()
         ))
 
-    def load_actual(self, formal: FormalParameter, target: regs.Register):
+    def load_actual(self, formal: n.FormalParameter, target: regs.Register):
         total = len(self.formals())
 
         return LoadActualParameter(formal.target_type, target, formal.inx, total)
@@ -235,14 +208,14 @@ class Function(el.KnownName, ns.Namespace, el.Element):
             'ret',
         ])
 
-    def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
         local = LocalVariableCreate(name, self.local_num, target_type)
         self.local_num += 1
         self.names[name] = local
         return local
 
-    def load_variable(self, known_name: el.KnownName, target: regs.Register) -> el.Expression:
-        assert isinstance(known_name, LocalVariable)
+    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+        assert isinstance(known_name, n.LocalVariable)
         return LocalVariableLoad(known_name, target=target)
 
 
@@ -256,7 +229,7 @@ class ActualParameter(el.Element):
         self.inx = inx
         self.expression = expression
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Element.json(self)
 
         data.update({
@@ -281,7 +254,7 @@ class CallFrame(el.Expression):
     actuals: list[ActualParameter]
     call: el.Expression
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
 
         data.update({
@@ -319,7 +292,7 @@ class FunctionRef(el.Expression):
         super().__init__('callable', target)
         self.func = func
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
 
         data.update({
@@ -337,10 +310,10 @@ class FunctionRef(el.Expression):
 
 @dataclass
 class Return(el.Element):
-    def return_type(self) -> el.TargetType:
+    def return_type(self) -> n.TargetType:
         raise NotImplementedError()
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = el.Element.json(self)
         data.update({'Return': self.return_type()})
         return data
@@ -395,7 +368,7 @@ class ReturnUnit(el.Element):
 class FunctionCall(el.Expression):
     func_ref: FunctionRef
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
         data.update({'FunctionCall': self.func_ref.json()})
         return data

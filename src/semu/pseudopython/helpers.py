@@ -2,6 +2,7 @@ import ast
 import logging as lg
 
 import semu.pseudopython.registers as regs
+import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
@@ -41,7 +42,7 @@ def bool32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def get_constant_value(target_type: el.TargetType, source: ast.AST):
+def get_constant_value(target_type: n.TargetType, source: ast.AST):
     if target_type == 'int32':
         return int32const(source)
 
@@ -148,7 +149,7 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: el.TargetType
+    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: n.TargetType
 ) -> calls.Function:
     return calls.Function(name, context, args, target_type)
 

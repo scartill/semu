@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import JSON, Expression, Element
+from semu.pseudopython.elements import Expression, Element
 import semu.pseudopython.registers as regs
 
 
@@ -12,7 +12,7 @@ class If(Element):
     true_body: Sequence[Element]
     false_body: Sequence[Element]
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
 
         data.update({
@@ -67,7 +67,7 @@ class While(Element):
         self.test = test
         self.body = body
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
 
         data.update({

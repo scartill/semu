@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import JSON, Element, Expression
+from semu.pseudopython.elements import Element, Expression
 import semu.pseudopython.registers as regs
 
 
 @dataclass
 class CompareOp(Element):
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
         data.update({'Type': type(self).__name__})
         return data
@@ -157,7 +157,7 @@ class Compare(Expression):
         self.op = op
         self.right = right
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
 
         data.update({
