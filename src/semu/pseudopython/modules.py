@@ -10,6 +10,7 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
 import semu.pseudopython.builtins as builtins
+import semu.sasm.asm as asm
 
 
 @dataclass
@@ -73,6 +74,11 @@ class Module(el.KnownName, ns.Namespace, el.Element):
         for expr in filter(others, self.body):
             result.extend(expr.emit())
 
+        result.extend([
+            f'// Module {self.namespace()} end',
+            'hlt'
+        ])
+
         return flatten(result)
 
 
@@ -94,13 +100,10 @@ class TopLevel(ns.Namespace):
         return self.namespace()
 
     def emit(self):
-        return flatten([
-            [
-                f'// ------------ ASM {name.name} ---------------',
-                name.emit(),
-                f'// ------------ END {name.name} ---------------',
-                'hlt'
-            ]
-            for name in self.names.values()
-            if isinstance(name, Module)
-        ])
+        def item(module: Module):
+            item = asm.CompilationItem()
+            item.modulename = module.name
+            item.contents = '\n'.join(module.emit())
+            return item
+
+        return [item(cast(Module, n)) for n in self.names.values() if isinstance(n, Module)]

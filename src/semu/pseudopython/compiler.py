@@ -346,18 +346,18 @@ Params = Dict[str, Any]
 
 def emit(params: Params, translator: Translator):
     top = translator.top()
+    items = top.emit()
 
     if params['verbose']:
         eprint('------------------ AST -----------------------')
         eprint(json.dumps(top.json(), indent=2))
 
-    sasm = '\n'.join(top.emit())
-
     if params['verbose']:
-        eprint('------------------ SASM -----------------------')
-        eprint(sasm)
+        for item in items:
+            eprint(f'------------- SASM {item.modulename} ------------------')
+            eprint(item.contents)
 
-    return sasm
+    return items
 
 
 def add_module(translator: Translator, name: str, input: str):
@@ -375,7 +375,7 @@ def compile_single_string(params: Params, name: str, input: str):
 def compile_single_file(params: Params, input: Path, output: Path):
     sasm = compile_single_string(params, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(sasm)
+    output.write_text(sasm[0].contents)
 
 
 @click.command()
