@@ -93,7 +93,7 @@ class Translator:
             if isinstance(known_name, el.Constant):
                 return namespace.load_const(known_name, target)
 
-            if isinstance(known_name, el.GlobalVar):
+            if isinstance(known_name, el.GlobalVariable):
                 return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, builtins.BuiltinInline):
@@ -103,10 +103,12 @@ class Translator:
                 return calls.FunctionRef(known_name, target)
 
             if isinstance(known_name, calls.FormalParameter):
-                if not isinstance(namespace, calls.Function):
-                    raise UserWarning('Formal parameter outside a function')
-
+                assert isinstance(namespace, calls.Function)
                 return namespace.load_actual(known_name, target)
+
+            if isinstance(known_name, calls.LocalVariable):
+                assert isinstance(namespace, calls.Function)
+                return namespace.load_variable(known_name, target)
 
             raise UserWarning(f'Unsupported name {source}')
 
@@ -141,10 +143,7 @@ class Translator:
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
-    def translate_global_var_assign(self, target: el.GlobalVar, source: ast.AST):
-        '''
-            Stores the result the `GlobalVarAssignment.source` register
-        '''
+    def translate_var_assign(self, target: el.KnownName, source: ast.AST):
         expression = self.translate_expression(source, regs.DEFAULT_REGISTER)
         t_type = target.target_type
         e_type = expression.target_type
@@ -154,7 +153,12 @@ class Translator:
                 f'Expression type mismath {e_type} in not {t_type}'
             )
 
-        return el.GlobalVarAssignment(target, expression)
+        if isinstance(target, el.GlobalVariable):
+            return el.GlobalVariableAssignment(target, expression)
+        elif isinstance(target, calls.LocalVariable):
+            return calls.LocalVariableAssignment(target, expression)
+
+        raise UserWarning(f'Unsupported assign target {target}')
 
     def translate_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
@@ -165,8 +169,8 @@ class Translator:
         lookup = self.resolve_object(ast_target)
         known_name = lookup.known_name
 
-        if isinstance(known_name, el.GlobalVar):
-            return self.translate_global_var_assign(known_name, ast_value)
+        if isinstance(known_name, (el.GlobalVariable, calls.LocalVariable)):
+            return self.translate_var_assign(known_name, ast_value)
         else:
             raise UserWarning(f'Unsupported assignment target {known_name}')
 
