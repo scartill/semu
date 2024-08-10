@@ -50,7 +50,7 @@ def compile(verbose: bool, hw: bool, library: Path, sources: Tuple[Path], binary
     items: List[CompilationItem] = []
 
     if hw:
-        lg.info('Adding harware definitions')
+        lg.info('Adding hardware definitions')
         items.append(hwc.generate_compilation_item())
 
     if library:
