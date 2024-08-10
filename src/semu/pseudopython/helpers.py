@@ -188,5 +188,4 @@ def create_call_frame(call: el.Expression, args: el.Expressions):
         for inx, arg in enumerate(args)
     ]
 
-    dump = regs.get_temp([call.target])
     return calls.CallFrame(call.target_type, call.target, actuals, call)
