@@ -168,18 +168,17 @@ class ConstantExpression(Expression):
 class GlobalVarAssignment(Element):
     target: KnownName
     expr: Expression
-    source: regs.Register = regs.DEFAULT_REGISTER
 
     def emit(self):
-        temp = regs.get_temp([self.source])
+        temp = regs.get_temp([self.expr.target])
         label = self.target.address_label()
 
         return flatten([
-            f"// Calculating var:{self.target.name} into reg:{self.source}",
+            f"// Calculating var:{self.target.name} into reg:{self.expr.target}",
             self.expr.emit(),
             f'// Storing var:{self.target.name}',
             f'ldr &{label} {temp}',
-            f'mrm {self.source} {temp}',
+            f'mrm {self.expr.target} {temp}',
         ])
 
     def json(self) -> JSON:

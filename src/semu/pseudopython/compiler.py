@@ -145,7 +145,7 @@ class Translator:
         '''
             Stores the result the `GlobalVarAssignment.source` register
         '''
-        expression = self.translate_expression(source, el.GlobalVarAssignment.source)
+        expression = self.translate_expression(source, regs.DEFAULT_REGISTER)
         t_type = target.target_type
         e_type = expression.target_type
 
