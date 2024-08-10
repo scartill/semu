@@ -1,5 +1,6 @@
 [library]
 package = "kernel"
+language = "sasm"
 
 sources = [
     'startup.sasm',

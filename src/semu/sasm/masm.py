@@ -28,6 +28,7 @@ def collect_library(lib_dir: Path):
     libfile_path = lib_dir / Path('library.toml')
     config = tomllib.loads(libfile_path.read_text())
     library = config['library']
+    assert library['language'] == 'sasm'
 
     items = [
         collect_file(lib_dir / Path(source)).set_package(library['package'])
