@@ -1,6 +1,6 @@
 
 import logging as lg
-from typing import Dict, Sequence, cast
+from typing import Sequence, cast
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
@@ -9,13 +9,15 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
+import semu.pseudopython.builtins as builtins
 
 
 @dataclass
-class Module(ns.Namespace, el.Element):
+class Module(el.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
     def __init__(self, name: str, parent: ns.Namespace):
+        el.KnownName.__init__(self, name, 'module')
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
@@ -71,26 +73,18 @@ class Module(ns.Namespace, el.Element):
         for expr in filter(others, self.body):
             result.extend(expr.emit())
 
-        result.append('hlt')
         return flatten(result)
 
 
 @dataclass
-class TopLevel(ns.Namespace, el.Element):
-    modules: Dict[str, Module]
-
+class TopLevel(ns.Namespace):
     def __init__(self):
         super().__init__('::', None)
-        self.modules = dict()
+        self.names.update({bi.name: bi for bi in builtins.get()})
 
     def json(self) -> el.JSON:
-        data = el.Element.json(self)
-
-        data.update({
-            'Namespace': ns.Namespace.json(self),
-            'Modules': {name: module.json() for name, module in self.modules.items()}
-        })
-
+        data = ns.Namespace.json(self)
+        data.update({'Top': True})
         return data
 
     def namespace(self) -> str:
@@ -100,9 +94,13 @@ class TopLevel(ns.Namespace, el.Element):
         return self.namespace()
 
     def emit(self):
-        result: Sequence[str] = []
-
-        for module in self.modules.values():
-            result.extend(module.emit())
-
-        return flatten(result)
+        return flatten([
+            [
+                f'// ------------ ASM {name.name} ---------------',
+                name.emit(),
+                f'// ------------ END {name.name} ---------------',
+                'hlt'
+            ]
+            for name in self.names.values()
+            if isinstance(name, Module)
+        ])

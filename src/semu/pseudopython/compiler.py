@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, Tuple, cast
+from typing import Sequence, Dict, Any, cast
 import ast
 import json
 
@@ -330,7 +330,8 @@ class Translator:
 
     def translate(self, name: str, ast_module: ast.Module):
         module = self.translate_module(name, ast_module)
-        cast(mods.TopLevel, self.context).modules[name] = module
+        assert isinstance(self.context, mods.TopLevel)
+        self.context.names[name] = module
 
     def top(self) -> mods.TopLevel:
         return self._top
@@ -350,18 +351,13 @@ def emit(params: Params, translator: Translator):
         eprint('------------------ AST -----------------------')
         eprint(json.dumps(top.json(), indent=2))
 
-    results: Sequence[Tuple[str, str]] = []
-    for module_name, module in top.modules.items():
-        module_sasm = '\n'.join(module.emit())
+    sasm = '\n'.join(top.emit())
 
-        if params['verbose']:
-            eprint(f'------------ ASM {module_name} ---------------')
-            eprint(module_sasm)
-            eprint('-----------------------------------------------')
+    if params['verbose']:
+        eprint('------------------ SASM -----------------------')
+        eprint(sasm)
 
-        results.append((module_name, module_sasm))
-
-    return results
+    return sasm
 
 
 def add_module(translator: Translator, name: str, input: str):
@@ -373,7 +369,7 @@ def compile_single_string(params: Params, name: str, input: str):
     translator = Translator()
     add_module(translator, name, input)
     sasm = emit(params, translator)
-    return sasm[0][1]
+    return sasm
 
 
 def compile_single_file(params: Params, input: Path, output: Path):

@@ -2,7 +2,6 @@ import logging as lg
 from typing import Dict
 from collections import namedtuple
 
-import semu.pseudopython.builtins as builtins
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
 
@@ -18,7 +17,6 @@ class Namespace:
         self.name = name
         self.parent = parent
         self.names = dict()
-        self.names.update({bi.name: bi for bi in builtins.get()})
 
     def json(self) -> el.JSON:
         return {

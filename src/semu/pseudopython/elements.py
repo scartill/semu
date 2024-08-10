@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 
 JSON = Dict[str, Any]
-TargetType = Literal['unit', 'int32', 'bool32', 'callable']
+TargetType = Literal['unit', 'int32', 'bool32', 'callable', 'module']
 TargetTypes = Sequence[TargetType]
 
 
