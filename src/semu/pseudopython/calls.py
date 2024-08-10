@@ -28,17 +28,129 @@ class LoadActualParameter(el.Expression):
 
     def emit(self) -> Sequence[str]:
         available = regs.get_available([self.target])
-        temp_a = available.pop()
-        temp_b = available.pop()
+        temp_offset = available.pop()
+        temp = available.pop()
 
+        # NB: Note that the offset skips the return address and saved frame pointer
         offset = (self.total - self.inx + 2) * 4
 
         return [
             f'// Loading actual parameter {self.inx} of {self.total} to {self.target}',
-            f'ldc -{offset} {temp_a}',
-            f'lla {temp_a} {temp_b}',
-            f'// Loading from address {temp_b} to {self.target}',
-            f'mmr {temp_b} {self.target}'
+            f'ldc -{offset} {temp_offset}',
+            f'lla {temp_offset} {temp}',
+            f'// Loading from address {temp} to {self.target}',
+            f'mmr {temp} {self.target}'
+        ]
+
+
+@dataclass
+class LocalVariable(el.KnownName):
+    inx: int
+
+    def __init__(self, name: str, target_type: el.TargetType, inx: int):
+        el.KnownName.__init__(self, name, target_type)
+        self.inx = inx
+
+    def json(self) -> el.JSON:
+        data = el.KnownName.json(self)
+        data['Variable'] = 'local'
+        return data
+
+
+@dataclass
+class LocalVariableCreate(LocalVariable, el.Element):
+    def __init__(self, name: str, inx: int, target_type: el.TargetType):
+        el.Element.__init__(self)
+        LocalVariable.__init__(self, name, target_type, inx)
+
+    def json(self) -> el.JSON:
+        data = {'Create': 'global'}
+        data_kn = el.KnownName.json(self)
+        data_el = el.Element.json(self)
+        data.update(data_kn)
+        data.update(data_el)
+        return data_kn
+
+    def emit(self):
+        temp = regs.get_temp([])
+
+        return [
+            f'// Creating local variable {self.name} of type {self.target_type}',
+            f'ldc 0 {temp}',
+            f'push {temp}',
+            f'// End variable {self.name}'
+        ]
+
+
+@dataclass
+class LocalVariableAssignment(el.Element):
+    target: LocalVariable
+    expr: el.Expression
+
+    def __init__(self, target: LocalVariable, expr: el.Expression):
+        self.target = target
+        self.expr = expr
+
+    def json(self) -> el.JSON:
+        data = el.Element.json(self)
+
+        data.update({
+            'LocalAssign': self.target.json(),
+            'Expression': self.expr.json()
+        })
+
+        return data
+
+    def emit(self):
+        target = self.expr.target
+        inx = self.target.inx
+        name = self.target.name
+        available = regs.get_available([target])
+        temp_offset = available.pop()
+        temp = available.pop()
+
+        # NB: Offset is calculated from the frame pointer
+        offset = inx * 4
+
+        return flatten([
+            f'// Calculating {name} to reg:{target}',
+            self.expr.emit(),
+            f'// Assigning reg:{target} to local variable {name} at {inx}',
+            f'ldc {offset} {temp_offset}',
+            f'lla {temp_offset} {temp}',
+            f'// Saving addr:{temp} to reg:{target}',
+            f'mrm {target} {temp}'
+        ])
+
+
+@dataclass
+class LocalVariableLoad(el.Expression):
+    name: LocalVariable
+
+    def __init__(self, known_name: LocalVariable, target: regs.Register):
+        super().__init__(known_name.target_type, target)
+        self.name = known_name
+
+    def json(self) -> el.JSON:
+        data = el.Expression.json(self)
+        data.update({'LocalLoad': self.name.name})
+        return data
+
+    def emit(self):
+        available = regs.get_available([self.target])
+        temp_offset = available.pop()
+        temp = available.pop()
+
+        name = self.name.name
+        inx = self.name.inx
+        offset = inx * 4
+
+        return [
+            f'// Loading local variable {name} at {inx} to reg:{self.target}',
+            f'ldc {offset} {temp_offset}',
+            f'lla {temp_offset} {temp}',
+            f'// Loading from addr:{temp} to reg:{self.target}',
+            f'mmr {temp} {self.target}'
         ]
 
 
@@ -50,6 +162,7 @@ class Function(el.KnownName, ns.Namespace, el.Element):
     return_type: el.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
+    local_num: int = 0
 
     def __init__(
             self, name: str, parent: ns.Namespace,
@@ -102,16 +215,35 @@ class Function(el.KnownName, ns.Namespace, el.Element):
         entrypoint = self.address_label()
         body_label = self._make_label(f'{name}_body')
 
+        is_definition = lambda e: isinstance(e, LocalVariableCreate)
+        not_definitions = lambda e: not is_definition(e)
+        definitions = list(filter(is_definition, self.body))
+        body = filter(not_definitions, self.body)
+        dump_target = regs.get_temp([self.return_target])
+
         return flatten([
             f'// function {name} entrypoint',
             f'{entrypoint}:',
             f'// function {name} prologue',
+            [d.emit() for d in definitions],
             f'// function {name} body',
             f'{body_label}:',
-            [e.emit() for e in self.body],
+            [e.emit() for e in body],
+            f'// function {name} epilogue',
             f'{return_label}:',
+            [f'pop {dump_target}' for _ in definitions],
             'ret',
         ])
+
+    def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
+        local = LocalVariableCreate(name, self.local_num, target_type)
+        self.local_num += 1
+        self.names[name] = local
+        return local
+
+    def load_variable(self, known_name: el.KnownName, target: regs.Register) -> el.Expression:
+        assert isinstance(known_name, LocalVariable)
+        return LocalVariableLoad(known_name, target=target)
 
 
 @dataclass

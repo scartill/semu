@@ -38,7 +38,7 @@ class Constant(KnownName):
         return data
 
 
-class GlobalVar(KnownName):
+class GlobalVariable(KnownName):
     def __init__(self, name: str, target_type: TargetType):
         super().__init__(name, target_type)
 
@@ -114,13 +114,21 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
-class GlobalVariableCreate(Element, GlobalVar):
+class GlobalVariableCreate(Element, GlobalVariable):
     def __init__(self, name: str, target_type: TargetType):
         KnownName.__init__(self, name, target_type)
         Element.__init__(self)
 
     def address_label(self) -> str:
         return f'_global_variable_{self.name}'
+
+    def json(self) -> JSON:
+        data = {'Create': 'global'}
+        data_kn = KnownName.json(self)
+        data_el = Element.json(self)
+        data.update(data_kn)
+        data.update(data_el)
+        return data_kn
 
     def emit(self):
         label = self.address_label()
@@ -131,14 +139,6 @@ class GlobalVariableCreate(Element, GlobalVar):
             'nop',              # placeholder
             '// End variable'
         ]
-
-    def json(self) -> JSON:
-        data = {'Create': 'global'}
-        data_kn = KnownName.json(self)
-        data_el = Element.json(self)
-        data.update(data_kn)
-        data.update(data_el)
-        return data_kn
 
 
 @dataclass
@@ -165,22 +165,9 @@ class ConstantExpression(Expression):
 
 
 @dataclass
-class GlobalVarAssignment(Element):
+class GlobalVariableAssignment(Element):
     target: KnownName
     expr: Expression
-    source: regs.Register = regs.DEFAULT_REGISTER
-
-    def emit(self):
-        temp = regs.get_temp([self.source])
-        label = self.target.address_label()
-
-        return flatten([
-            f"// Calculating var:{self.target.name} into reg:{self.source}",
-            self.expr.emit(),
-            f'// Storing var:{self.target.name}',
-            f'ldr &{label} {temp}',
-            f'mrm {self.source} {temp}',
-        ])
 
     def json(self) -> JSON:
         data = Element.json(self)
@@ -191,6 +178,18 @@ class GlobalVarAssignment(Element):
         })
 
         return data
+
+    def emit(self):
+        temp = regs.get_temp([self.expr.target])
+        label = self.target.address_label()
+
+        return flatten([
+            f"// Calculating var:{self.target.name} into reg:{self.expr.target}",
+            self.expr.emit(),
+            f'// Storing var:{self.target.name}',
+            f'ldr &{label} {temp}',
+            f'mrm {self.expr.target} {temp}',
+        ])
 
 
 @dataclass
@@ -203,7 +202,7 @@ class GlobalVariableLoad(Expression):
 
     def json(self) -> JSON:
         data = super().json()
-        data.update({'GlobalLoad': self.name.json()})
+        data.update({'GlobalLoad': self.name.name})
         return data
 
     def emit(self):

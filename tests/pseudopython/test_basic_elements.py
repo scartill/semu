@@ -57,3 +57,7 @@ def test_nameresolve():
 
 def test_funcparams():
     simple_test('funcparams')
+
+
+def test_localvars():
+    simple_test('localvars')
