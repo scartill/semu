@@ -277,33 +277,9 @@ class ActualParameter(el.Element):
 
 
 @dataclass
-class UnwindActualParameter(el.Element):
-    actual: ActualParameter
-    target: regs.Register
-
-    def json(self) -> el.JSON:
-        data = super().json()
-
-        data.update({
-            'Parameter': 'unwind',
-            'Actual': self.actual.inx,
-            'Target': self.target
-        })
-
-        return data
-
-    def emit(self):
-        return [
-            f'//Unwinding actual parameter {self.actual.inx}',
-            f'pop {self.target}'
-        ]
-
-
-@dataclass
 class CallFrame(el.Expression):
     actuals: list[ActualParameter]
     call: el.Expression
-    unwinds: list[UnwindActualParameter]
 
     def json(self) -> el.JSON:
         data = super().json()
@@ -311,18 +287,26 @@ class CallFrame(el.Expression):
         data.update({
             'Frame': 'Call',
             'Actuals': [a.json() for a in self.actuals],
-            'Call': self.call.json(),
-            'Unwinds': [uw.json() for uw in self.unwinds]
+            'Call': self.call.json()
         })
 
         return data
 
     def emit(self):
+        dump = regs.get_temp([self.target])
+
         return flatten([
             '// Begin call frame',
             [actual.emit() for actual in self.actuals],
             self.call.emit(),
-            [unwind.emit() for unwind in self.unwinds],
+            '// Unwinding',
+            [
+                [
+                    f'// Unwinding actual parameter {actual.inx}',
+                    f'pop {dump}'
+                ]
+                for actual in self.actuals
+            ],
             '// End call frame'
         ])
 

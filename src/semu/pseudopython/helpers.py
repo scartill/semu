@@ -189,10 +189,4 @@ def create_call_frame(call: el.Expression, args: el.Expressions):
     ]
 
     dump = regs.get_temp([call.target])
-
-    unwinds = [
-        calls.UnwindActualParameter(actual, dump)
-        for actual in actuals
-    ]
-
-    return calls.CallFrame(call.target_type, call.target, actuals, call, unwinds)
+    return calls.CallFrame(call.target_type, call.target, actuals, call)
