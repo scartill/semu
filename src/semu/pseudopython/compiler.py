@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, cast, List
+from typing import Sequence, Dict, Any, cast
 import ast
 import json
 
@@ -27,24 +27,8 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
-    def collect_path_from_attribute(self, ast_attr: ast.AST) -> List[str]:
-        path = []
-
-        cursor = ast_attr
-
-        while isinstance(cursor, ast.Attribute):
-            path.append(cursor.attr)
-            cursor = cursor.value
-
-        if not isinstance(cursor, ast.Name):
-            raise UserWarning(f'Unsupported attribute path {cursor}')
-
-        path.append(cursor.id)
-        path.reverse()
-        return path
-
     def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
-        path = self.collect_path_from_attribute(ast_name)
+        path = helpers.collect_path_from_attribute(ast_name)
         top_name = path.pop(0)
         lookup = self.context.get_name(top_name)
 
@@ -67,16 +51,13 @@ class Translator:
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
 
-        # TODO: change to full func-type check
         if callable.target_type != 'callable':
             raise UserWarning(f'Unsupported callable {callable}')
 
-        ast_args = ast_call.args
-        args: el.Expressions = []
-
-        for ast_arg in ast_args:
-            expression = self.translate_expression(ast_arg, regs.DEFAULT_REGISTER)
-            args.append(expression)
+        args = [
+            self.translate_expression(ast_arg, regs.DEFAULT_REGISTER)
+            for ast_arg in ast_call.args
+        ]
 
         if isinstance(callable, builtins.BuiltinInline):
             call = helpers.create_inline(callable, args, target)

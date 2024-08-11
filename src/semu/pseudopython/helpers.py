@@ -1,5 +1,6 @@
 import ast
 import logging as lg
+from typing import List
 
 import semu.pseudopython.registers as regs
 import semu.pseudopython.names as n
@@ -190,3 +191,20 @@ def create_call_frame(call: el.Expression, args: el.Expressions):
     ]
 
     return calls.CallFrame(call.target_type, call.target, actuals, call)
+
+
+def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
+    path = []
+
+    cursor = ast_attr
+
+    while isinstance(cursor, ast.Attribute):
+        path.append(cursor.attr)
+        cursor = cursor.value
+
+    if not isinstance(cursor, ast.Name):
+        raise UserWarning(f'Unsupported attribute path {cursor}')
+
+    path.append(cursor.id)
+    path.reverse()
+    return path
