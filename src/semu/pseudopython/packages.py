@@ -11,7 +11,7 @@ import semu.sasm.asm as asm
 @dataclass
 class TopLevel(ns.Namespace):
     def __init__(self):
-        super().__init__('::', None)
+        super().__init__('<top>', self)
         self.names.update({bi.name: bi for bi in bi.get()})
 
     def json(self):
@@ -20,10 +20,10 @@ class TopLevel(ns.Namespace):
         return data
 
     def namespace(self) -> str:
-        return '::'
+        return ''
 
     def parent_prefix(self) -> str:
-        return self.namespace()
+        return '%'
 
     def emit(self):
         def item(module: mod.Module):
@@ -37,3 +37,9 @@ class TopLevel(ns.Namespace):
             for n in self.names.values()
             if isinstance(n, mod.Module)
         ]
+
+
+@dataclass
+class Package(ns.Namespace):
+    def json(self):
+        return {'Package': True}

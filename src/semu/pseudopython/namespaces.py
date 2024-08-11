@@ -13,8 +13,9 @@ NameLookup = namedtuple('NameLookup', ['namespace', 'known_name'])
 class Namespace:
     name: str
     names: Dict[str, n.KnownName]
+    parent: 'Namespace'
 
-    def __init__(self, name: str, parent: 'Namespace | None'):
+    def __init__(self, name: str, parent: 'Namespace'):
         self.name = name
         self.parent = parent
         self.names = dict()
@@ -26,7 +27,7 @@ class Namespace:
         }
 
     def namespace(self) -> str:
-        prefix = self.parent.parent_prefix() if self.parent else ''
+        prefix = self.parent.parent_prefix()
         return f'{prefix}{self.name}'
 
     def parent_prefix(self) -> str:

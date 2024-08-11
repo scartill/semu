@@ -71,7 +71,9 @@ class GlobalVariableCreate(Element, names.GlobalVariable):
         Element.__init__(self)
 
     def address_label(self) -> str:
-        return f'_global_variable_{self.name}'
+        # prefix = self.parent.parent_prefix()
+        # return f'_global_{prefix}{fullname}'
+        return f'_global_{self.name}'
 
     def json(self):
         data = {'Create': 'global'}

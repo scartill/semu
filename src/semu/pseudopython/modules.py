@@ -32,6 +32,9 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
         return data
 
+    def parent_prefix(self) -> str:
+        return f'{ns.Namespace.namespace(self)}::'
+
     def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
