@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import cast
+import logging as lg
 
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
@@ -24,6 +25,14 @@ class TopLevel(ns.Namespace):
 
     def parent_prefix(self) -> str:
         return ''
+
+    def get_name(self, name: str) -> ns.NameLookup | None:
+        lg.debug(f'Looking up {name} on the top level')
+
+        if known_name := self.names.get(name):
+            return ns.NameLookup(self, known_name)
+        else:
+            return None
 
     def emit(self):
         def item(module: mod.Module):

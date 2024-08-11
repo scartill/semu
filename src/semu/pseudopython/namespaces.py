@@ -41,9 +41,6 @@ class Namespace(n.INamespace):
         if known_name:
             return NameLookup(self, known_name)
 
-        if not self.parent:
-            return None
-
         return self.parent.get_name(name)
 
     def load_const(self, known_name: n.KnownName, target: regs.Register):
