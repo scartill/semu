@@ -70,8 +70,8 @@ class GlobalVariableCreate(Element, names.GlobalVariable):
         names.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 
-    def address_label(self) -> str:
-        return f'_global_{self.inmodulename()}'
+    def typelabel(self) -> str:
+        return 'global'
 
     def json(self):
         data = {'Create': 'global'}

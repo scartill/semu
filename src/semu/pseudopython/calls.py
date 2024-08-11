@@ -168,11 +168,11 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
         return data
 
-    def address_label(self) -> str:
-        return f'_function_{self.inmodulename()}'
+    def typelabel(self) -> str:
+        return 'function'
 
     def return_label(self) -> str:
-        return f'_function_{self.inmodulename()}_return'
+        return f'{self.address_label()}_return'
 
     def formals(self):
         return list(filter(

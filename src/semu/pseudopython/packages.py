@@ -1,18 +1,45 @@
 from dataclasses import dataclass
-from typing import cast
 import logging as lg
 from pathlib import Path
 
+from semu.pseudopython.flatten import flatten
+import semu.pseudopython.registers as regs
+import semu.pseudopython.elements as el
 import semu.pseudopython.names as n
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
-import semu.pseudopython.modules as mod
-
-import semu.sasm.asm as asm
+import semu.pseudopython.modules as mods
 
 
 @dataclass
-class TopLevel(ns.Namespace):
+class Package(ns.Namespace, n.KnownName, el.Element):
+    path: Path
+
+    def __init__(self, name: str, parent: ns.Namespace, path: Path):
+        el.Element.__init__(self)
+        ns.Namespace.__init__(self, name, parent)
+        n.KnownName.__init__(self, parent, name, 'package')
+        self.path = path
+
+    def json(self):
+        return {'Package': True, 'Path:': str(self.path)}
+
+    def emit(self):
+        return flatten([
+            f'// Package {self.name}',
+            [
+                item.emit()
+                for item in self.names.values()
+                if isinstance(item, (mods.Module))
+            ],
+            f'// End of package {self.name}'
+        ])
+
+
+@dataclass
+class TopLevel(ns.Namespace, el.Element):
+    main: mods.Module | None = None
+
     def __init__(self):
         super().__init__('<top>', self)
         self.names.update({b.name: b for b in bi.get(self)})
@@ -37,27 +64,20 @@ class TopLevel(ns.Namespace):
             return None
 
     def emit(self):
-        def item(module: mod.Module):
-            item = asm.CompilationItem()
-            item.modulename = module.name
-            item.contents = '\n'.join(module.emit())
-            return item
+        temp = regs.get_temp([])
 
-        return [
-            item(cast(mod.Module, n))
-            for n in self.names.values()
-            if isinstance(n, mod.Module)
-        ]
+        if self.main is None:
+            raise UserWarning('No main module defined')
 
+        entrypoint = self.main.address_label()
 
-@dataclass
-class Package(ns.Namespace, n.KnownName):
-    path: Path
-
-    def __init__(self, name: str, parent: ns.Namespace, path: Path):
-        ns.Namespace.__init__(self, name, parent)
-        n.KnownName.__init__(self, parent, name, 'package')
-        self.path = path
-
-    def json(self):
-        return {'Package': True, 'Path:': str(self.path)}
+        return flatten([
+            '// Jump to the entrypoint',
+            f'ldr &{entrypoint} {temp}',
+            f'jmp {temp}',
+            [
+                item.emit()
+                for item in self.names.values()
+                if isinstance(item, (mods.Module, Package))
+            ]
+        ])

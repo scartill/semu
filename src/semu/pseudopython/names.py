@@ -25,12 +25,14 @@ class KnownName:
     def json(self) -> JSON:
         return {'Name': self.name, 'Type': self.target_type}
 
-    def inmodulename(self) -> str:
-        qname = f'{self.parent.parent_prefix()}{self.name}'
-        return qname.split('::')[-1]
+    def qualname(self) -> str:
+        return f'{self.parent.parent_prefix()}{self.name}'
+
+    def typelabel(self) -> str:
+        raise NotImplementedError()
 
     def address_label(self) -> str:
-        raise NotImplementedError()
+        return f'_{self.typelabel()}_{self.qualname()}'
 
 
 class Constant(KnownName):

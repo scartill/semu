@@ -32,8 +32,8 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
         return data
 
-    def parent_prefix(self) -> str:
-        return f'{ns.Namespace.namespace(self)}::'
+    def typelabel(self) -> str:
+        return 'module'
 
     def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
         if name in self.names:
@@ -54,8 +54,13 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         declarations_end = self._make_label('declarations_end')
         temp = regs.get_temp([])
 
+        address = self.address_label()
+
         result.extend([
-            f'// Module {self.namespace()} declarations guard',
+            '// -------------------------------------------',
+            f'// Module {self.qualname()} begin',
+            f'{address}:',
+            f'// Module {self.qualname()} declarations guard',
             f'ldr &{declarations_end} {temp}',
             f'jmp {temp}'
         ])

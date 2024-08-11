@@ -256,23 +256,19 @@ class Translator:
             return None
 
         parent, name, ast_module = h.load_module(self.settings, self.top(), names.copy())
+
+        lg.debug(f'Importing module {name} to {parent.namespace()}')
+
         current_context = self.context
         self.context = parent
         module = self.translate_module(name, ast_module)
+        parent.names[name] = module
         self.context = current_context
         return module
 
     def translate_import(self, ast_import: ast.Import):
-        self.top_level.names.update(
-            {
-                child.name: child
-                for child in [
-                    self.translate_import_name(alias.name.split('.'))
-                    for alias in ast_import.names
-                ]
-                if isinstance(child, n.KnownName)
-            }
-        )
+        for alias in ast_import.names:
+            self.translate_import_name(alias.name.split('.'))
 
     def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
         ''' NB: Statement execution invalidates all registers.
@@ -325,7 +321,7 @@ class Translator:
             f_type = func.target_type
             e_type = value.target_type
 
-            if func.target_type != value.target_type:
+            if f_type != e_type:
                 raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
 
             func.returns = True
@@ -374,6 +370,7 @@ class Translator:
         module = self.translate_module(name, ast_module)
         assert isinstance(self.context, pack.TopLevel)
         self.context.names[name] = module
+        self.context.main = module
 
     def top(self) -> pack.TopLevel:
         return self.top_level
@@ -388,18 +385,18 @@ Params = Dict[str, Any]
 
 def emit(settings: h.CompileSettings, translator: Translator):
     top = translator.top()
-    items = top.emit()
 
     if settings.verbose:
         eprint('------------------ AST -----------------------')
         eprint(json.dumps(top.json(), indent=2))
 
-    if settings.verbose:
-        for item in items:
-            eprint(f'------------- SASM {item.modulename} ------------------')
-            eprint(item.contents)
+    sasm = '\n'.join(top.emit())
 
-    return items
+    if settings.verbose:
+        eprint('------------------ SASM ----------------------')
+        eprint(sasm)
+
+    return sasm
 
 
 def compile_single_string(settings: h.CompileSettings, name: str, input: str):
@@ -413,7 +410,7 @@ def compile_single_string(settings: h.CompileSettings, name: str, input: str):
 def compile_single_file(settings: h.CompileSettings, input: Path, output: Path):
     sasm = compile_single_string(settings, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(sasm[0].contents)
+    output.write_text(sasm)
 
 
 @click.command()

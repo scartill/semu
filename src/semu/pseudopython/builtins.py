@@ -71,7 +71,7 @@ class Assertion(BuiltinInlineImpl):
             f'.assert {self.source.target} {self.value}',
             '// Restoring the stack',
             f'push {self.target}',
-            f'push {self.target}'
+            f'push {self.target}',
             '// Return null',
             f'ldc 0 {self.target}'
         ])

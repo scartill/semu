@@ -275,18 +275,30 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, names: List[str
     name = names.pop(0)
     first = locate_first_package(settings, name)
 
-    while names:
-        name = names.pop(0)
-        first = first / name
+    print('FIRST', parent, first, name, names)
 
-        if not first.exists():
-            raise UserWarning(f'Module {name} not found')
+    while names:
+        print('NEXT', parent, first, name, names)
 
         package = pack.Package(name, parent, first)
         parent.names[name] = package
         parent = package
+        print('NEW PARENT', parent)
 
-    if first.is_dir():
-        raise UserWarning(f'Expected module, got directory {first}')
+        name = names.pop(0)
+        first = first / name
 
-    return (parent, name, ast.parse(first.with_suffix('.py').read_text()))
+        if names and first.exists():
+            continue
+
+        if not names and first.with_suffix('.py').exists():
+            break
+
+    print('PARENT', parent)
+
+    if first.with_suffix('.py').exists():
+        module = mods.Module(name, parent)
+        parent.names[name] = module
+        return (parent, name, ast.parse(first.with_suffix('.py').read_text()))
+    else:
+        raise UserWarning(f'No module found for {name}')
