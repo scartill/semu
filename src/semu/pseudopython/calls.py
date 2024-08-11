@@ -190,24 +190,29 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         entrypoint = self.address_label()
         body_label = self._make_label(f'{name}_body')
 
-        is_definition = lambda e: isinstance(e, LocalVariableCreate)
-        not_definitions = lambda e: not is_definition(e)
-        definitions = list(filter(is_definition, self.body))
-        body = filter(not_definitions, self.body)
+        is_local = lambda e: isinstance(e, LocalVariableCreate)
+        is_nested = lambda e: isinstance(e, Function)
+        is_body = lambda e: not is_local(e) and not is_nested(e)
+        locals = list(filter(is_local, self.body))
+        nested = list(filter(is_nested, self.body))
+        body = filter(is_body, self.body)
         dump_target = regs.get_temp([self.return_target])
 
         return flatten([
+            f'// function {name} declaration',
+            [n.emit() for n in nested],
             f'// function {name} entrypoint',
             f'{entrypoint}:',
             f'// function {name} prologue',
-            [d.emit() for d in definitions],
+            [d.emit() for d in locals],
             f'// function {name} body',
             f'{body_label}:',
             [e.emit() for e in body],
             f'// function {name} epilogue',
             f'{return_label}:',
-            [f'pop {dump_target}' for _ in definitions],
-            'ret',
+            [f'pop {dump_target}' for _ in locals],
+            f'// function {name} return',
+            'ret'
         ])
 
     def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:

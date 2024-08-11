@@ -27,6 +27,18 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
+    def resolve_top_object(self, ast_name: ast.AST) -> ns.NameLookup:
+        if not isinstance(ast_name, ast.Name):
+            raise UserWarning(f'Unsupported name {ast_name}')
+
+        name = ast_name.id
+
+        match self.context.get_name(name):
+            case None:
+                raise UserWarning(f'Unknown reference {name}')
+            case result:
+                return result
+
     def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
         if not isinstance(ast_name, ast.Name):
             raise UserWarning(f'Unsupported name {ast_name}')
