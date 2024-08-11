@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, cast
+from typing import Sequence, Dict, Any, cast, List
 import ast
 import json
 
@@ -27,29 +27,42 @@ class Translator:
         self.context = top_level
         self._top = top_level
 
-    def resolve_top_object(self, ast_name: ast.AST) -> ns.NameLookup:
-        if not isinstance(ast_name, ast.Name):
-            raise UserWarning(f'Unsupported name {ast_name}')
+    def collect_path_from_attribute(self, ast_attr: ast.AST) -> List[str]:
+        path = []
 
-        name = ast_name.id
+        cursor = ast_attr
 
-        match self.context.get_name(name):
-            case None:
-                raise UserWarning(f'Unknown reference {name}')
-            case result:
-                return result
+        while isinstance(cursor, ast.Attribute):
+            path.append(cursor.attr)
+            cursor = cursor.value
+
+        if not isinstance(cursor, ast.Name):
+            raise UserWarning(f'Unsupported attribute path {cursor}')
+
+        path.append(cursor.id)
+        path.reverse()
+        return path
 
     def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
-        if not isinstance(ast_name, ast.Name):
-            raise UserWarning(f'Unsupported name {ast_name}')
+        path = self.collect_path_from_attribute(ast_name)
+        top_name = path.pop(0)
+        lookup = self.context.get_name(top_name)
 
-        name = ast_name.id
+        if lookup is None:
+            raise UserWarning(f'Unknown reference {top_name}')
 
-        match self.context.get_name(name):
-            case None:
-                raise UserWarning(f'Unknown reference {name}')
-            case result:
-                return result
+        while path:
+            next_name = path.pop(0)
+
+            if not isinstance(lookup.known_name, ns.Namespace):
+                raise UserWarning(f'Unsupported path lookup {lookup.known_name}')
+
+            lookup = lookup.known_name.get_name(next_name)
+
+            if lookup is None:
+                raise UserWarning(f'Unknown nested reference {next_name}')
+
+        return lookup
 
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
