@@ -69,7 +69,7 @@ class Translator:
             )
 
         value = helpers.int32const(ast_value)
-        self.context.names[name] = n.Constant(name, 'int32', value)
+        self.context.names[name] = n.Constant(self.context, name, 'int32', value)
         return el.VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):

@@ -29,8 +29,11 @@ class BuiltinInline(n.KnownName, el.Expression):
     factory: Factory
     return_type: n.TargetType
 
-    def __init__(self, name: str, target_type: n.TargetType, factory: Factory):
-        n.KnownName.__init__(self, name, target_type)
+    def __init__(
+        self, namespace: n.INamespace, name: str, target_type: n.TargetType,
+        factory: Factory
+    ):
+        n.KnownName.__init__(self, namespace, name, target_type)
         # Builtin functions have no address
         el.Expression.__init__(self, 'callable', regs.VOID_REGISTER)
         self.factory = factory
@@ -150,9 +153,9 @@ def create_bool2int(target_type: n.TargetType, args: el.Expressions, target: reg
     return BoolToInt(target_type, target, source)
 
 
-def get() -> Sequence[BuiltinInline]:
+def get(namespace: n.INamespace) -> Sequence[BuiltinInline]:
     return [
-        BuiltinInline('checkpoint', 'unit', create_checkpoint),
-        BuiltinInline('assert_eq', 'unit', create_assert),
-        BuiltinInline('bool_to_int', 'int32', create_bool2int)
+        BuiltinInline(namespace, 'checkpoint', 'unit', create_checkpoint),
+        BuiltinInline(namespace, 'assert_eq', 'unit', create_assert),
+        BuiltinInline(namespace, 'bool_to_int', 'int32', create_bool2int)
     ]

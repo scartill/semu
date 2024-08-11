@@ -10,7 +10,7 @@ import semu.pseudopython.registers as regs
 NameLookup = namedtuple('NameLookup', ['namespace', 'known_name'])
 
 
-class Namespace:
+class Namespace(n.INamespace):
     name: str
     names: Dict[str, n.KnownName]
     parent: 'Namespace'

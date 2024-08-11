@@ -12,7 +12,7 @@ import semu.sasm.asm as asm
 class TopLevel(ns.Namespace):
     def __init__(self):
         super().__init__('<top>', self)
-        self.names.update({bi.name: bi for bi in bi.get()})
+        self.names.update({b.name: b for b in bi.get(self)})
 
     def json(self):
         data = ns.Namespace.json(self)

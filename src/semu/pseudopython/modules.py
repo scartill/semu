@@ -17,7 +17,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
     def __init__(self, name: str, parent: ns.Namespace):
-        n.KnownName.__init__(self, name, 'module')
+        n.KnownName.__init__(self, parent, name, 'module')
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
@@ -40,7 +40,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
             raise UserWarning(f'Redefinition of the name {name}')
 
         lg.debug(f'Creating a global variable {name}')
-        create = el.GlobalVariableCreate(name, target_type)
+        create = el.GlobalVariableCreate(self, name, target_type)
         self.names[name] = create
         return create
 

@@ -66,8 +66,8 @@ Expressions = Sequence[Expression]
 
 @dataclass
 class GlobalVariableCreate(Element, names.GlobalVariable):
-    def __init__(self, name: str, target_type: names.TargetType):
-        names.KnownName.__init__(self, name, target_type)
+    def __init__(self, namespace: names.INamespace, name: str, target_type: names.TargetType):
+        names.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 
     def address_label(self) -> str:

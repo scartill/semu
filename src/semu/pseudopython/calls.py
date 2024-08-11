@@ -32,9 +32,11 @@ class LoadActualParameter(el.Expression):
 
 @dataclass
 class LocalVariableCreate(n.LocalVariable, el.Element):
-    def __init__(self, name: str, inx: int, target_type: n.TargetType):
+    def __init__(
+            self, namespace: n.INamespace, name: str, inx: int, target_type: n.TargetType
+    ):
         el.Element.__init__(self)
-        n.LocalVariable.__init__(self, name, target_type, inx)
+        n.LocalVariable.__init__(self, namespace, name, target_type, inx)
 
     def json(self):
         data = {'Create': 'global'}
@@ -142,13 +144,13 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             args: ArgDefs, return_type: n.TargetType
     ):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, name, return_type)
+        n.KnownName.__init__(self, parent, name, return_type)
         ns.Namespace.__init__(self, name, parent)
         self.return_type = return_type
         self.body = list()
 
         for inx, (arg_name, arg_type) in enumerate(args):
-            self.names[arg_name] = n.FormalParameter(arg_name, inx, arg_type)
+            self.names[arg_name] = n.FormalParameter(self, arg_name, inx, arg_type)
 
     def json(self):
         data = el.Element.json(self)
@@ -209,7 +211,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
     def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
-        local = LocalVariableCreate(name, self.local_num, target_type)
+        local = LocalVariableCreate(self, name, self.local_num, target_type)
         self.local_num += 1
         self.names[name] = local
         return local
