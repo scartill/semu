@@ -20,6 +20,9 @@ def execute_single_pp_source(filename):
     pypath = find_file(filename)
     pysource = pypath.read_text()
     namespace = pypath.stem
-    items = compiler.compile_single_string(settings, namespace, pysource)
-    binary = asm.compile_items(items)
+    sasm = compiler.compile_single_string(settings, namespace, pysource)
+    item = asm.CompilationItem()
+    item.modulename = namespace
+    item.contents = sasm
+    binary = asm.compile_items([item])
     emulator.execute(binary)

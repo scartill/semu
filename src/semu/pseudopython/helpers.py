@@ -275,16 +275,12 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, names: List[str
     name = names.pop(0)
     first = locate_first_package(settings, name)
 
-    print('FIRST', parent, first, name, names)
-
     while names:
-        print('NEXT', parent, first, name, names)
+        lg.debug(f'Creating package {name} from {first}')
 
         package = pack.Package(name, parent, first)
         parent.names[name] = package
         parent = package
-        print('NEW PARENT', parent)
-
         name = names.pop(0)
         first = first / name
 
@@ -294,11 +290,8 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, names: List[str
         if not names and first.with_suffix('.py').exists():
             break
 
-    print('PARENT', parent)
-
     if first.with_suffix('.py').exists():
-        module = mods.Module(name, parent)
-        parent.names[name] = module
+        lg.debug(f'Loading new module {name} from {first}')
         return (parent, name, ast.parse(first.with_suffix('.py').read_text()))
     else:
         raise UserWarning(f'No module found for {name}')
