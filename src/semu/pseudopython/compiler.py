@@ -4,6 +4,7 @@ import logging as lg
 from typing import Sequence, Dict, Any, cast
 import ast
 import json
+from dataclasses import dataclass
 
 import click
 
@@ -19,10 +20,31 @@ import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 
 
-class Translator:
-    context: ns.Namespace
+@dataclass
+class CompileSettings:
+    verbose: bool
+    pp_path: str
 
     def __init__(self):
+        self.verbose = False
+        self.pp_path = ''
+
+    def update(self, verbose: bool | None = None, pp_path: str | None = None):
+        if verbose is not None:
+            self.verbose = verbose
+
+        if pp_path is not None:
+            self.pp_path = pp_path
+
+        return self
+
+
+class Translator:
+    settings: CompileSettings
+    context: ns.Namespace
+
+    def __init__(self, settings: CompileSettings):
+        settings = settings
         top_level = pack.TopLevel()
         self.context = top_level
         self._top = top_level
@@ -352,15 +374,15 @@ def eprint(*args: Any, **kwargs: Any):
 Params = Dict[str, Any]
 
 
-def emit(params: Params, translator: Translator):
+def emit(settings: CompileSettings, translator: Translator):
     top = translator.top()
     items = top.emit()
 
-    if params['verbose']:
+    if settings.verbose:
         eprint('------------------ AST -----------------------')
         eprint(json.dumps(top.json(), indent=2))
 
-    if params['verbose']:
+    if settings.verbose:
         for item in items:
             eprint(f'------------- SASM {item.modulename} ------------------')
             eprint(item.contents)
@@ -368,20 +390,16 @@ def emit(params: Params, translator: Translator):
     return items
 
 
-def add_module(translator: Translator, name: str, input: str):
+def compile_single_string(settings: CompileSettings, name: str, input: str):
+    translator = Translator(settings)
     ast_tree = ast.parse(input)
     translator.translate(name, ast_tree)
-
-
-def compile_single_string(params: Params, name: str, input: str):
-    translator = Translator()
-    add_module(translator, name, input)
-    sasm = emit(params, translator)
+    sasm = emit(settings, translator)
     return sasm
 
 
-def compile_single_file(params: Params, input: Path, output: Path):
-    sasm = compile_single_string(params, input.stem, input.read_text())
+def compile_single_file(settings: CompileSettings, input: Path, output: Path):
+    sasm = compile_single_string(settings, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sasm[0].contents)
 
@@ -389,12 +407,14 @@ def compile_single_file(params: Params, input: Path, output: Path):
 @click.command()
 @click.pass_context
 @click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
+@click.option('--pp-path', type=str, help='path to the pseudopython package')
 @click.argument('input', type=Path)
 @click.argument('output', type=Path, required=False)
-def compile(ctx: click.Context, verbose: bool, input: Path, output: Path | None):
-    ctx.ensure_object(dict)
-    ctx.obj['verbose'] = verbose
-    lg.basicConfig(level=lg.DEBUG if verbose else lg.INFO)
+def compile(ctx: click.Context, input: Path, output: Path | None, **params):
+    ctx.ensure_object(CompileSettings)
+    ctx.obj.update(**params)
+
+    lg.basicConfig(level=lg.DEBUG if ctx.obj.verbose else lg.INFO)
 
     if not output:
         output = input.with_suffix('.sasm')

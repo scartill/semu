@@ -14,10 +14,10 @@ def load_file(filename: str) -> str:
 
 
 def execute_single_pp_source(filename):
-    params = {'verbose': True}
+    settings = compiler.CompileSettings().update(verbose=True)
     pypath = find_file(filename)
     pysource = pypath.read_text()
     namespace = pypath.stem
-    items = compiler.compile_single_string(params, namespace, pysource)
+    items = compiler.compile_single_string(settings, namespace, pysource)
     binary = asm.compile_items(items)
     emulator.execute(binary)
