@@ -4,32 +4,36 @@ import logging as lg
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 
 
 @dataclass
 class BuiltinInlineImpl(el.Expression):
     def __init__(
-            self, target_type: el.TargetType, args: el.Expressions, target: regs.Register
+            self, target_type: n.TargetType, args: el.Expressions, target: regs.Register
     ):
         super().__init__(target_type, target)
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
         data.update({'Type': 'BuiltinInline'})
         return data
 
 
-Factory = Callable[[el.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
+Factory = Callable[[n.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
 
 
 @dataclass
-class BuiltinInline(el.KnownName, el.Expression):
+class BuiltinInline(n.KnownName, el.Expression):
     factory: Factory
-    return_type: el.TargetType
+    return_type: n.TargetType
 
-    def __init__(self, name: str, target_type: el.TargetType, factory: Factory):
-        el.KnownName.__init__(self, name, target_type)
+    def __init__(
+        self, namespace: n.INamespace, name: str, target_type: n.TargetType,
+        factory: Factory
+    ):
+        n.KnownName.__init__(self, namespace, name, target_type)
         # Builtin functions have no address
         el.Expression.__init__(self, 'callable', regs.VOID_REGISTER)
         self.factory = factory
@@ -46,7 +50,7 @@ class Checkpoint(BuiltinInlineImpl):
             f'.check {self.arg}'
         ]
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
         data.update({'Checkpoint': self.arg})
         return data
@@ -67,12 +71,12 @@ class Assertion(BuiltinInlineImpl):
             f'.assert {self.source.target} {self.value}',
             '// Restoring the stack',
             f'push {self.target}',
-            f'push {self.target}'
+            f'push {self.target}',
             '// Return null',
             f'ldc 0 {self.target}'
         ])
 
-    def json(self) -> el.JSON:
+    def json(self):
         data = super().json()
 
         data.update({
@@ -84,7 +88,7 @@ class Assertion(BuiltinInlineImpl):
 
 
 def create_checkpoint(
-    target_type: el.TargetType, args: el.Expressions, target: regs.Register
+    target_type: n.TargetType, args: el.Expressions, target: regs.Register
 ):
     lg.debug('Checkpoint')
 
@@ -110,7 +114,7 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
-def create_assert(target_type: el.TargetType, args: el.Expressions, target: regs.Register):
+def create_assert(target_type: n.TargetType, args: el.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -135,7 +139,7 @@ def create_assert(target_type: el.TargetType, args: el.Expressions, target: regs
     return Assertion(target_type, target, source, value)
 
 
-def create_bool2int(target_type: el.TargetType, args: el.Expressions, target: regs.Register):
+def create_bool2int(target_type: n.TargetType, args: el.Expressions, target: regs.Register):
     lg.debug('BoolToInt')
 
     if len(args) != 1:
@@ -149,9 +153,9 @@ def create_bool2int(target_type: el.TargetType, args: el.Expressions, target: re
     return BoolToInt(target_type, target, source)
 
 
-def get() -> Sequence[BuiltinInline]:
+def get(namespace: n.INamespace) -> Sequence[BuiltinInline]:
     return [
-        BuiltinInline('checkpoint', 'unit', create_checkpoint),
-        BuiltinInline('assert_eq', 'unit', create_assert),
-        BuiltinInline('bool_to_int', 'int32', create_bool2int)
+        BuiltinInline(namespace, 'checkpoint', 'unit', create_checkpoint),
+        BuiltinInline(namespace, 'assert_eq', 'unit', create_assert),
+        BuiltinInline(namespace, 'bool_to_int', 'int32', create_bool2int)
     ]

@@ -2,6 +2,7 @@ import logging as lg
 from typing import Dict
 from collections import namedtuple
 
+import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
 
@@ -9,23 +10,24 @@ import semu.pseudopython.registers as regs
 NameLookup = namedtuple('NameLookup', ['namespace', 'known_name'])
 
 
-class Namespace:
+class Namespace(n.INamespace):
     name: str
-    names: Dict[str, el.KnownName]
+    names: Dict[str, n.KnownName]
+    parent: 'Namespace'
 
-    def __init__(self, name: str, parent: 'Namespace | None'):
+    def __init__(self, name: str, parent: 'Namespace'):
         self.name = name
         self.parent = parent
         self.names = dict()
 
-    def json(self) -> el.JSON:
+    def json(self) -> n.JSON:
         return {
             'Namespace': self.name,
             'Names': {name: known.json() for name, known in self.names.items()}
         }
 
     def namespace(self) -> str:
-        prefix = self.parent.parent_prefix() if self.parent else ''
+        prefix = self.parent.parent_prefix()
         return f'{prefix}{self.name}'
 
     def parent_prefix(self) -> str:
@@ -39,13 +41,10 @@ class Namespace:
         if known_name:
             return NameLookup(self, known_name)
 
-        if not self.parent:
-            return None
-
         return self.parent.get_name(name)
 
-    def load_const(self, known_name: el.KnownName, target: regs.Register):
-        if not isinstance(known_name, el.Constant):
+    def load_const(self, known_name: n.KnownName, target: regs.Register):
+        if not isinstance(known_name, n.Constant):
             raise UserWarning(f'Unsupported const reference {known_name.name}')
 
         return el.ConstantExpression(
@@ -53,8 +52,8 @@ class Namespace:
             target=target
         )
 
-    def create_variable(self, name: str, target_type: el.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
         raise NotImplementedError()
 
-    def load_variable(self, known_name: el.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         raise NotImplementedError()

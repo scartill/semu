@@ -12,9 +12,13 @@ def g_cmd(literal, op):
 
 
 id = pp.Word(pp.alphas + '_', pp.alphanums + '_')
+
+composite_id = id + pp.ZeroOrMore(pp.Suppress('.') + id)
+composite_id.set_parse_action(lambda r: '.'.join(r))
+
 comment = pp.Suppress(pp.Literal('//') + pp.SkipTo('\n'))
 
-label = (id + pp.Suppress(':')).setParseAction(lambda r: (FPP.issue_label, r))
+label = (composite_id + pp.Suppress(':')).setParseAction(lambda r: (FPP.issue_label, r))
 
 reg_indices = {
     'a': 0,
@@ -54,10 +58,7 @@ us_const = us_dec_const
 s_dec_const = pp.Regex('[+-]?[0-9]+').setParseAction(lambda r: (FPP.issue_sconst, r))
 s_const = s_dec_const
 
-composite_id = id + pp.ZeroOrMore(pp.Suppress('.') + id)
-composite_id.set_parse_action(lambda r: '.'.join(r))
-
-refname = pp.Optional(composite_id + pp.Suppress("::")) + id
+refname = pp.Optional(composite_id + pp.Suppress("::")) + composite_id
 # Join into [namespace, name] or [name]
 refname.setParseAction(lambda r: [r])
 

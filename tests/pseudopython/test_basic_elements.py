@@ -61,3 +61,7 @@ def test_funcparams():
 
 def test_localvars():
     simple_test('localvars')
+
+
+def test_nestedfunc():
+    simple_test('nestedfunc')
