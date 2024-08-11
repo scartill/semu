@@ -23,7 +23,7 @@ class TopLevel(ns.Namespace):
         return ''
 
     def parent_prefix(self) -> str:
-        return '%'
+        return ''
 
     def emit(self):
         def item(module: mod.Module):

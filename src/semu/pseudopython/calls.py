@@ -169,10 +169,10 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         return data
 
     def address_label(self) -> str:
-        return f'_function_{self.name}'
+        return f'_function_{self.inmodulename()}'
 
     def return_label(self) -> str:
-        return f'_function_{self.name}_return'
+        return f'_function_{self.inmodulename()}_return'
 
     def formals(self):
         return list(filter(

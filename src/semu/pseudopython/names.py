@@ -25,6 +25,10 @@ class KnownName:
     def json(self) -> JSON:
         return {'Name': self.name, 'Type': self.target_type}
 
+    def inmodulename(self) -> str:
+        qname = f'{self.parent.parent_prefix()}{self.name}'
+        return qname.split('::')[-1]
+
     def address_label(self) -> str:
         raise NotImplementedError()
 
@@ -45,9 +49,6 @@ class Constant(KnownName):
 class GlobalVariable(KnownName):
     def __init__(self, namespace: INamespace, name: str, target_type: TargetType):
         super().__init__(namespace, name, target_type)
-
-    def address_label(self) -> str:
-        return f'_global_{self.name}'
 
     def json(self):
         data = super().json()
