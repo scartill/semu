@@ -247,15 +247,15 @@ class Translator:
         return self.translate_const_assign(name, ast_is.comparators[0])
 
     def translate_import_name(self, names: List[str]) -> n.KnownName | None:
-        (found, module) = h.find_module(self.top_level, names.copy())
+        (found, namespace, name, rest_names) = h.find_module(self.top_level, names)
 
-        lg.debug(f'Module lookup result: {found} ({module})')
+        lg.debug(f'Module lookup result: {found} ({namespace}.{name})')
 
         if found:
             # Already imported
             return None
 
-        parent, name, ast_module = h.load_module(self.settings, self.top(), names.copy())
+        parent, name, ast_module = h.load_module(self.settings, namespace, name, rest_names)
 
         lg.debug(f'Importing module {name} to {parent.namespace()}')
 

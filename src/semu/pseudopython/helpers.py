@@ -235,10 +235,12 @@ def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
 
 def find_module(namespace: ns.Namespace, names: List[str]):
     name = names.pop(0)
-    known_name = namespace.get_name(name)
+    lookup = namespace.get_name(name)
 
-    if not known_name:
-        return (False, namespace)
+    if not lookup:
+        return (False, namespace, name, names)
+
+    known_name = lookup.known_name
 
     if not isinstance(known_name, ns.Namespace):
         raise UserWarning(f'Expected package or module {name}')
@@ -249,7 +251,7 @@ def find_module(namespace: ns.Namespace, names: List[str]):
     if not isinstance(known_name, mods.Module):
         raise UserWarning(f'Expected module {name}')
 
-    return (True, known_name)
+    return (True, known_name, name, names)
 
 
 def locate_first_package(settings: CompileSettings, name: str) -> Path:
@@ -268,30 +270,33 @@ def locate_first_package(settings: CompileSettings, name: str) -> Path:
         raise UserWarning(f'Package {name} not found')
 
     lg.debug(f'Located first package {name} at {found_path}')
+
     return found_path
 
 
-def load_module(settings: CompileSettings, parent: ns.Namespace, names: List[str]):
-    name = names.pop(0)
-    first = locate_first_package(settings, name)
+def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, names: List[str]):
+    if isinstance(parent, pack.TopLevel):
+        head = locate_first_package(settings, name)
+    else:
+        assert isinstance(parent, pack.Package)
+        head = parent.path / name
 
     while names:
-        lg.debug(f'Creating package {name} from {first}')
-
-        package = pack.Package(name, parent, first)
+        lg.debug(f'Creating package {name} from {head}')
+        package = pack.Package(name, parent, head)
         parent.names[name] = package
         parent = package
         name = names.pop(0)
-        first = first / name
+        head = head / name
 
-        if names and first.exists():
+        if names and head.exists():
             continue
 
-        if not names and first.with_suffix('.py').exists():
+        if not names and head.with_suffix('.py').exists():
             break
 
-    if first.with_suffix('.py').exists():
-        lg.debug(f'Loading new module {name} from {first}')
-        return (parent, name, ast.parse(first.with_suffix('.py').read_text()))
+    if head.with_suffix('.py').exists():
+        lg.debug(f'Loading new module {name} from {head}')
+        return (parent, name, ast.parse(head.with_suffix('.py').read_text()))
     else:
         raise UserWarning(f'No module found for {name}')

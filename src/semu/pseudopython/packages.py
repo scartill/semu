@@ -30,7 +30,7 @@ class Package(ns.Namespace, n.KnownName, el.Element):
             [
                 item.emit()
                 for item in self.names.values()
-                if isinstance(item, (mods.Module))
+                if isinstance(item, (mods.Module, Package))
             ],
             f'// End of package {self.name}'
         ])
