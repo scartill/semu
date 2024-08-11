@@ -1,4 +1,6 @@
 from pathlib import Path
+
+import semu.pseudopython.helpers as h
 import semu.pseudopython.compiler as compiler
 
 import semu.sasm.asm as asm
@@ -14,7 +16,7 @@ def load_file(filename: str) -> str:
 
 
 def execute_single_pp_source(filename):
-    settings = compiler.CompileSettings().update(verbose=True)
+    settings = h.CompileSettings().update(verbose=True)
     pypath = find_file(filename)
     pysource = pypath.read_text()
     namespace = pypath.stem

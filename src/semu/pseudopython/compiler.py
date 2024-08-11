@@ -1,10 +1,9 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, cast
+from typing import Sequence, Dict, Any, List, cast
 import ast
 import json
-from dataclasses import dataclass
 
 import click
 
@@ -13,44 +12,26 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.names as n
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
-import semu.pseudopython.helpers as helpers
+import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 
 
-@dataclass
-class CompileSettings:
-    verbose: bool
-    pp_path: str
-
-    def __init__(self):
-        self.verbose = False
-        self.pp_path = ''
-
-    def update(self, verbose: bool | None = None, pp_path: str | None = None):
-        if verbose is not None:
-            self.verbose = verbose
-
-        if pp_path is not None:
-            self.pp_path = pp_path
-
-        return self
-
-
 class Translator:
-    settings: CompileSettings
+    top_level: pack.TopLevel
+    settings: h.CompileSettings
     context: ns.Namespace
 
-    def __init__(self, settings: CompileSettings):
-        settings = settings
+    def __init__(self, settings: h.CompileSettings):
+        self.settings = settings
         top_level = pack.TopLevel()
         self.context = top_level
-        self._top = top_level
+        self.top_level = top_level
 
     def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
-        path = helpers.collect_path_from_attribute(ast_name)
+        path = h.collect_path_from_attribute(ast_name)
         top_name = path.pop(0)
         lookup = self.context.get_name(top_name)
 
@@ -82,13 +63,13 @@ class Translator:
         ]
 
         if isinstance(callable, builtins.BuiltinInline):
-            call = helpers.create_inline(callable, args, target)
+            call = h.create_inline(callable, args, target)
         elif isinstance(callable, calls.FunctionRef):
-            call = helpers.make_call(callable, args, target)
+            call = h.make_call(callable, args, target)
         else:
             raise UserWarning(f'Unsupported call {ast_call}')
 
-        return helpers.create_call_frame(call, args)
+        return h.create_call_frame(call, args)
 
     def translate_const_assign(self, name: str, ast_value: ast.AST):
         if not isinstance(ast_value, ast.Constant):
@@ -96,19 +77,19 @@ class Translator:
                 f'Only const assignments are supported for {name}'
             )
 
-        value = helpers.int32const(ast_value)
+        value = h.int32const(ast_value)
         self.context.names[name] = n.Constant(self.context, name, 'int32', value)
         return el.VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
         args = [self.translate_expression(value, regs.DEFAULT_REGISTER) for value in values]
-        return helpers.create_boolop(args, source.op, target)
+        return h.create_boolop(args, source.op, target)
 
     def translate_expression(self, source: ast.AST, target: regs.Register) -> el.Expression:
         if isinstance(source, ast.Constant):
-            target_type = helpers.get_constant_type(source)
-            value = helpers.get_constant_value(target_type, source)
+            target_type = h.get_constant_type(source)
+            value = h.get_constant_value(target_type, source)
 
             return el.ConstantExpression(
                 target_type=target_type, value=value,
@@ -145,14 +126,14 @@ class Translator:
         if isinstance(source, ast.BinOp):
             left = self.translate_expression(source.left, regs.REGISTERS[0])
             right = self.translate_expression(source.right, regs.REGISTERS[1])
-            return helpers.create_binop(left, right, source.op, target)
+            return h.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
             return self.translate_call(source, target)
 
         if isinstance(source, ast.UnaryOp):
             right = self.translate_expression(source.operand, regs.REGISTERS[0])
-            return helpers.create_unary(right, source.op, target)
+            return h.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
             return self.translate_boolop(source, target)
@@ -169,7 +150,7 @@ class Translator:
             assert len(ops) == 1
 
             right = self.translate_expression(source.comparators[0], regs.REGISTERS[1])
-            return helpers.create_compare(left, ops[0], right, target)
+            return h.create_compare(left, ops[0], right, target)
 
         raise UserWarning(f'Unsupported assignment source {source}')
 
@@ -265,6 +246,34 @@ class Translator:
         name = ast_is.left.id
         return self.translate_const_assign(name, ast_is.comparators[0])
 
+    def translate_import_name(self, names: List[str]) -> n.KnownName | None:
+        (found, module) = h.find_module(self.top_level, names.copy())
+
+        lg.debug(f'Module lookup result: {found} ({module})')
+
+        if found:
+            # Already imported
+            return None
+
+        parent, name, ast_module = h.load_module(self.settings, self.top(), names.copy())
+        current_context = self.context
+        self.context = parent
+        module = self.translate_module(name, ast_module)
+        self.context = current_context
+        return module
+
+    def translate_import(self, ast_import: ast.Import):
+        self.top_level.names.update(
+            {
+                child.name: child
+                for child in [
+                    self.translate_import_name(alias.name.split('.'))
+                    for alias in ast_import.names
+                ]
+                if isinstance(child, n.KnownName)
+            }
+        )
+
     def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
         ''' NB: Statement execution invalidates all registers.
             Within a statement, each element is responsible for keeping
@@ -295,6 +304,9 @@ class Translator:
                 return self.translate_function(cast(ast.FunctionDef, ast_element))
             case ast.Return:
                 return self.translate_return(cast(ast.Return, ast_element))
+            case ast.Import:
+                self.translate_import(cast(ast.Import, ast_element))
+                return el.VoidElement('import')
 
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
         return el.VoidElement('unsupported')
@@ -343,11 +355,11 @@ class Translator:
 
         lg.debug(f'Found function {name}')
 
-        function = helpers.create_function(self.context, name, args, target_type)
+        function = h.create_function(self.context, name, args, target_type)
         self.context.names[name] = function
         self.context = function
         function.body = self.translate_body(ast_function.body)
-        helpers.validate_function(function)
+        h.validate_function(function)
         self.context = cast(ns.Namespace, function.parent)
         return function
 
@@ -364,7 +376,7 @@ class Translator:
         self.context.names[name] = module
 
     def top(self) -> pack.TopLevel:
-        return self._top
+        return self.top_level
 
 
 def eprint(*args: Any, **kwargs: Any):
@@ -374,7 +386,7 @@ def eprint(*args: Any, **kwargs: Any):
 Params = Dict[str, Any]
 
 
-def emit(settings: CompileSettings, translator: Translator):
+def emit(settings: h.CompileSettings, translator: Translator):
     top = translator.top()
     items = top.emit()
 
@@ -390,7 +402,7 @@ def emit(settings: CompileSettings, translator: Translator):
     return items
 
 
-def compile_single_string(settings: CompileSettings, name: str, input: str):
+def compile_single_string(settings: h.CompileSettings, name: str, input: str):
     translator = Translator(settings)
     ast_tree = ast.parse(input)
     translator.translate(name, ast_tree)
@@ -398,7 +410,7 @@ def compile_single_string(settings: CompileSettings, name: str, input: str):
     return sasm
 
 
-def compile_single_file(settings: CompileSettings, input: Path, output: Path):
+def compile_single_file(settings: h.CompileSettings, input: Path, output: Path):
     sasm = compile_single_string(settings, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sasm[0].contents)
@@ -411,7 +423,7 @@ def compile_single_file(settings: CompileSettings, input: Path, output: Path):
 @click.argument('input', type=Path)
 @click.argument('output', type=Path, required=False)
 def compile(ctx: click.Context, input: Path, output: Path | None, **params):
-    ctx.ensure_object(CompileSettings)
+    ctx.ensure_object(h.CompileSettings)
     ctx.obj.update(**params)
 
     lg.basicConfig(level=lg.DEBUG if ctx.obj.verbose else lg.INFO)

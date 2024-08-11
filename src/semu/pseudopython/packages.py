@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import cast
 import logging as lg
+from pathlib import Path
 
+import semu.pseudopython.names as n
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mod
@@ -49,6 +51,13 @@ class TopLevel(ns.Namespace):
 
 
 @dataclass
-class Package(ns.Namespace):
+class Package(ns.Namespace, n.KnownName):
+    path: Path
+
+    def __init__(self, name: str, parent: ns.Namespace, path: Path):
+        ns.Namespace.__init__(self, name, parent)
+        n.KnownName.__init__(self, parent, name, 'package')
+        self.path = path
+
     def json(self):
-        return {'Package': True}
+        return {'Package': True, 'Path:': str(self.path)}

@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 import ast
 import logging as lg
 from typing import List
+from pathlib import Path
 
 import semu.pseudopython.registers as regs
 import semu.pseudopython.names as n
@@ -11,6 +13,27 @@ import semu.pseudopython.cmpops as cmpops
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.builtins as bi
+import semu.pseudopython.modules as mods
+import semu.pseudopython.packages as pack
+
+
+@dataclass
+class CompileSettings:
+    verbose: bool
+    pp_path: str
+
+    def __init__(self):
+        self.verbose = False
+        self.pp_path = ''
+
+    def update(self, verbose: bool | None = None, pp_path: str | None = None):
+        if verbose is not None:
+            self.verbose = verbose
+
+        if pp_path is not None:
+            self.pp_path = pp_path
+
+        return self
 
 
 def get_constant_type(ast_const: ast.Constant):
@@ -208,3 +231,62 @@ def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
     path.append(cursor.id)
     path.reverse()
     return path
+
+
+def find_module(namespace: ns.Namespace, names: List[str]):
+    name = names.pop(0)
+    known_name = namespace.get_name(name)
+
+    if not known_name:
+        return (False, namespace)
+
+    if not isinstance(known_name, ns.Namespace):
+        raise UserWarning(f'Expected package or module {name}')
+
+    if names:
+        return find_module(known_name, names)
+
+    if not isinstance(known_name, mods.Module):
+        raise UserWarning(f'Expected module {name}')
+
+    return (True, known_name)
+
+
+def locate_first_package(settings: CompileSettings, name: str) -> Path:
+    found_path = None
+
+    for pp_path_part in settings.pp_path.split(';'):
+        path = Path(pp_path_part) / name
+
+        if path.exists() or path.with_suffix('.py').exists():
+            if found_path is not None:
+                raise UserWarning(f'Multiple paths found for {name}')
+
+            found_path = path
+
+    if found_path is None:
+        raise UserWarning(f'Package {name} not found')
+
+    lg.debug(f'Located first package {name} at {found_path}')
+    return found_path
+
+
+def load_module(settings: CompileSettings, parent: ns.Namespace, names: List[str]):
+    name = names.pop(0)
+    first = locate_first_package(settings, name)
+
+    while names:
+        name = names.pop(0)
+        first = first / name
+
+        if not first.exists():
+            raise UserWarning(f'Module {name} not found')
+
+        package = pack.Package(name, parent, first)
+        parent.names[name] = package
+        parent = package
+
+    if first.is_dir():
+        raise UserWarning(f'Expected module, got directory {first}')
+
+    return (parent, name, ast.parse(first.with_suffix('.py').read_text()))
