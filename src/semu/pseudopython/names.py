@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from dataclasses import dataclass
 
-import semu.pseudopython.pptypes as t
+import semu.pseudopython.base as b
 
 
 JSON = Dict[str, Any]
@@ -14,11 +14,16 @@ class INamespace:
 
 class KnownName:
     name: str
-    target_type: t.TargetType
+    target_type: b.TargetType
     parent: INamespace
 
-    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType):
-        self.parent = namespace
+    def __init__(self, namespace: INamespace | None, name: str, target_type: b.TargetType):
+        if namespace is not None:
+            self.parent = namespace
+        else:
+            # NB: Escape hatch for top-level names
+            self.parent = INamespace()
+
         self.name = name
         self.target_type = target_type
 
@@ -40,7 +45,7 @@ class Constant(KnownName):
 
     def __init__(
         self, namespace: INamespace, name: str,
-        target_type: t.TargetType, value: Any
+        target_type: b.TargetType, value: Any
     ):
         super().__init__(namespace, name, target_type)
         self.value = value
@@ -52,7 +57,7 @@ class Constant(KnownName):
 
 
 class GlobalVariable(KnownName):
-    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType):
+    def __init__(self, namespace: INamespace, name: str, target_type: b.TargetType):
         super().__init__(namespace, name, target_type)
 
     def json(self):
@@ -65,7 +70,7 @@ class GlobalVariable(KnownName):
 class FormalParameter(KnownName):
     inx: int
 
-    def __init__(self, namespace: INamespace, name: str, inx: int, target_type: t.TargetType):
+    def __init__(self, namespace: INamespace, name: str, inx: int, target_type: b.TargetType):
         KnownName.__init__(self, namespace, name, target_type)
         self.inx = inx
 
@@ -79,7 +84,7 @@ class FormalParameter(KnownName):
 class LocalVariable(KnownName):
     inx: int
 
-    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType, inx: int):
+    def __init__(self, namespace: INamespace, name: str, target_type: b.TargetType, inx: int):
         KnownName.__init__(self, namespace, name, target_type)
         self.inx = inx
 

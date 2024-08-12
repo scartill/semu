@@ -2,7 +2,7 @@ import logging as lg
 from typing import Dict
 from collections import namedtuple
 
-import semu.pseudopython.pptypes as t
+import semu.pseudopython.base as b
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
@@ -53,7 +53,7 @@ class Namespace(n.INamespace):
             target=target
         )
 
-    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         raise NotImplementedError()
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:

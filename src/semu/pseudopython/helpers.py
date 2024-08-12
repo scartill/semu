@@ -5,6 +5,7 @@ from typing import List
 from pathlib import Path
 
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.intops as intops
@@ -66,7 +67,7 @@ def bool32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def get_constant_value(target_type: t.TargetType, source: ast.AST):
+def get_constant_value(target_type: b.TargetType, source: ast.AST):
     if target_type == t.Int32:
         return int32const(source)
 
@@ -80,7 +81,7 @@ def create_binop(
     left: el.Expression, right: el.Expression, op: ast.AST,
     target: regs.Register
 ):
-    required_type: t.TargetType | None = None
+    required_type: b.TargetType | None = None
     Op = None
 
     if isinstance(op, ast.Add):
@@ -110,7 +111,7 @@ def create_binop(
 
 
 def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
-    required_type: t.TargetType | None = None
+    required_type: b.TargetType | None = None
     Op = None
 
     if isinstance(op, ast.Not):
@@ -133,7 +134,7 @@ def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
 
 
 def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
-    target_type: t.TargetType = t.Bool32
+    target_type: b.TargetType = t.Bool32
 
     for arg in args:
         if arg.target_type != t.Bool32:
@@ -176,7 +177,7 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: t.TargetType
+    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: b.TargetType
 ) -> calls.Function:
     return calls.Function(name, context, args, target_type)
 

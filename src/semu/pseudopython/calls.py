@@ -3,6 +3,7 @@ from typing import Sequence, List, Tuple
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
@@ -34,7 +35,7 @@ class LoadActualParameter(el.Expression):
 @dataclass
 class LocalVariableCreate(n.LocalVariable, el.Element):
     def __init__(
-            self, namespace: n.INamespace, name: str, inx: int, target_type: t.TargetType
+            self, namespace: n.INamespace, name: str, inx: int, target_type: b.TargetType
     ):
         el.Element.__init__(self)
         n.LocalVariable.__init__(self, namespace, name, target_type, inx)
@@ -130,19 +131,19 @@ class LocalVariableLoad(el.Expression):
         ]
 
 
-ArgDefs = List[Tuple[str, t.TargetType]]
+ArgDefs = List[Tuple[str, b.TargetType]]
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
     body: el.Elements
-    return_type: t.TargetType
+    return_type: b.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
     def __init__(
             self, name: str, parent: ns.Namespace,
-            args: ArgDefs, return_type: t.TargetType
+            args: ArgDefs, return_type: b.TargetType
     ):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, return_type)
@@ -187,7 +188,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
         return LoadActualParameter(formal.target_type, target, formal.inx, total)
 
-    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         local = LocalVariableCreate(self, name, self.local_num, target_type)
         self.local_num += 1
         self.names[name] = local
@@ -316,7 +317,7 @@ class FunctionRef(el.Expression):
 
 @dataclass
 class Return(el.Element):
-    def return_type(self) -> t.TargetType:
+    def return_type(self) -> b.TargetType:
         raise NotImplementedError()
 
     def json(self):

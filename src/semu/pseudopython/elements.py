@@ -4,6 +4,7 @@ from random import randint
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as names
 
@@ -48,10 +49,10 @@ class VoidElement(Element):
 
 @dataclass
 class Expression(Element):
-    target_type: t.TargetType
+    target_type: b.TargetType
     target: regs.Register
 
-    def __init__(self, target_type: t.TargetType, target: regs.Register):
+    def __init__(self, target_type: b.TargetType, target: regs.Register):
         super().__init__()
         self.target_type = target_type
         self.target = target
@@ -67,7 +68,7 @@ Expressions = Sequence[Expression]
 
 @dataclass
 class GlobalVariableCreate(Element, names.GlobalVariable):
-    def __init__(self, namespace: names.INamespace, name: str, target_type: t.TargetType):
+    def __init__(self, namespace: names.INamespace, name: str, target_type: b.TargetType):
         names.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 

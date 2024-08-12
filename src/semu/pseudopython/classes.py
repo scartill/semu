@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -14,7 +15,7 @@ class ClassVariable(n.KnownName, el.Element):
 
     def __init__(
         self, parent: 'Class', name: str, inx: int,
-        target_type: t.TargetType
+        target_type: b.TargetType
     ):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, target_type)
@@ -59,7 +60,7 @@ class Class(n.KnownName, ns.Namespace, el.Element):
             f'// Class {self.qualname()} end'
         ])
 
-    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         var = ClassVariable(self, name, self.num_vars, target_type)
         self.num_vars += 1
         self.names[name] = var
@@ -67,7 +68,7 @@ class Class(n.KnownName, ns.Namespace, el.Element):
 
 
 @dataclass
-class InstanceType(t.TargetType):
+class InstanceType(b.TargetType):
     classdef: Class
 
     def __init__(self):

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -42,7 +43,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     def typelabel(self) -> str:
         return 'module'
 
-    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 

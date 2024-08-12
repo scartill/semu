@@ -4,6 +4,7 @@ import logging as lg
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -12,7 +13,7 @@ import semu.pseudopython.elements as el
 @dataclass
 class BuiltinInlineImpl(el.Expression):
     def __init__(
-            self, target_type: t.TargetType, args: el.Expressions, target: regs.Register
+            self, target_type: b.TargetType, args: el.Expressions, target: regs.Register
     ):
         super().__init__(target_type, target)
 
@@ -22,16 +23,16 @@ class BuiltinInlineImpl(el.Expression):
         return data
 
 
-Factory = Callable[[t.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
+Factory = Callable[[b.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
 
 
 @dataclass
 class BuiltinInline(n.KnownName, el.Expression):
     factory: Factory
-    return_type: t.TargetType
+    return_type: b.TargetType
 
     def __init__(
-        self, namespace: n.INamespace, name: str, target_type: t.TargetType,
+        self, namespace: n.INamespace, name: str, target_type: b.TargetType,
         factory: Factory
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
@@ -89,7 +90,7 @@ class Assertion(BuiltinInlineImpl):
 
 
 def create_checkpoint(
-    target_type: t.TargetType, args: el.Expressions, target: regs.Register
+    target_type: b.TargetType, args: el.Expressions, target: regs.Register
 ):
     lg.debug('Checkpoint')
 
@@ -115,7 +116,7 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
-def create_assert(target_type: t.TargetType, args: el.Expressions, target: regs.Register):
+def create_assert(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -140,7 +141,7 @@ def create_assert(target_type: t.TargetType, args: el.Expressions, target: regs.
     return Assertion(target_type, target, source, value)
 
 
-def create_bool2int(target_type: t.TargetType, args: el.Expressions, target: regs.Register):
+def create_bool2int(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
     lg.debug('BoolToInt')
 
     if len(args) != 1:
@@ -154,9 +155,16 @@ def create_bool2int(target_type: t.TargetType, args: el.Expressions, target: reg
     return BoolToInt(target_type, target, source)
 
 
-def get(namespace: n.INamespace) -> Sequence[BuiltinInline]:
+def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
+    t.Unit.parent = namespace
+    t.Int32.parent = namespace
+    t.Bool32.parent = namespace
+
     return [
+        t.Unit,
+        t.Int32,
+        t.Bool32,
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
-        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int)
+        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
     ]

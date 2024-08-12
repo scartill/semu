@@ -8,6 +8,7 @@ import json
 import click
 
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -188,17 +189,16 @@ class Translator:
             raise UserWarning(f'Unsupported assignment target {known_name}')
 
     def translate_type(self, ast_type: ast.AST):
-        if not isinstance(ast_type, ast.Name):
-            print(ast.dump(ast_type))
-            raise UserWarning('External types are not supported')
+        if not isinstance(ast_type, (ast.Name, ast.Attribute)):
+            raise UserWarning('Compount types are not supported')
 
-        match ast_type.id:
-            case 'int':
-                return t.Int32
-            case 'bool':
-                return t.Bool32
-            case name:
-                raise UserWarning(f'Unsupported type found ({name})')
+        lookup = self.resolve_object(ast_type)
+        known_name = lookup.known_name
+
+        if not isinstance(known_name, b.TargetType):
+            raise UserWarning(f'The object is not a type ({known_name.name})')
+
+        return known_name
 
     def translate_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
