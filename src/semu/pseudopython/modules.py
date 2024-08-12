@@ -47,6 +47,9 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 
+        if not target_type.is_physical:
+            raise UserWarning(f'Type {name} must representable')
+
         lg.debug(f'Creating a global variable {name}')
         create = el.GlobalVariableCreate(self, name, target_type)
         self.names[name] = create

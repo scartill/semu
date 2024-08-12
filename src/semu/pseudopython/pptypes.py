@@ -5,13 +5,6 @@ import semu.pseudopython.names as n
 
 
 @dataclass
-class NamedType(b.TargetType, n.KnownName):
-    def __init__(self, name: str, is_physical: bool, words: int):
-        b.TargetType.__init__(self, is_physical, words)
-        n.KnownName.__init__(self, None, name, b.Builtin)
-
-
-@dataclass
 class ModuleType(b.TargetType):
     def __init__(self):
         super().__init__(False, 0)
@@ -55,9 +48,22 @@ class ClassType(b.TargetType):
 
 
 @dataclass
-class UnitType(NamedType):
+class NamedType(b.TargetType, n.KnownName):
+    def __init__(self, name: str, is_physical: bool, words: int):
+        b.TargetType.__init__(self, is_physical, words)
+        n.KnownName.__init__(self, None, name, b.Builtin)
+
+
+@dataclass
+class PhysicalType(NamedType):
+    def __init__(self, name: str, words: int):
+        super().__init__(name, True, words)
+
+
+@dataclass
+class UnitType(PhysicalType):
     def __init__(self):
-        super().__init__('unit', True, 1)
+        super().__init__('unit', 1)
 
     def json(self):
         data = super().json()
@@ -66,9 +72,9 @@ class UnitType(NamedType):
 
 
 @dataclass
-class Int32Type(NamedType):
+class Int32Type(PhysicalType):
     def __init__(self):
-        super().__init__('int', True, 1)
+        super().__init__('int', 1)
 
     def json(self):
         data = super().json()
@@ -77,9 +83,9 @@ class Int32Type(NamedType):
 
 
 @dataclass
-class Bool32Type(NamedType):
+class Bool32Type(PhysicalType):
     def __init__(self):
-        super().__init__('bool', True, 1)
+        super().__init__('bool', 1)
 
     def json(self):
         data = super().json()
