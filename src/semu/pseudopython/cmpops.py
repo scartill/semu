@@ -3,7 +3,7 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import Element, Expression
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.registers as regs
 
 

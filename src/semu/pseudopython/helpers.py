@@ -5,7 +5,7 @@ from typing import List
 from pathlib import Path
 
 import semu.pseudopython.registers as regs
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops

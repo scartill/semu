@@ -2,7 +2,7 @@ import logging as lg
 from typing import Dict
 from collections import namedtuple
 
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs

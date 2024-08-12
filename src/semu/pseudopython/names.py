@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from dataclasses import dataclass
 
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 
 
 JSON = Dict[str, Any]

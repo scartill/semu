@@ -4,7 +4,7 @@ import logging as lg
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 

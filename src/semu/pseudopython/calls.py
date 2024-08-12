@@ -3,7 +3,7 @@ from typing import Sequence, List, Tuple
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs

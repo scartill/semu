@@ -8,7 +8,7 @@ import json
 import click
 
 import semu.pseudopython.registers as regs
-import semu.pseudopython.types as t
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.builtins as builtins
@@ -278,7 +278,13 @@ class Translator:
         classdef = cls.Class(ast_class.name, self.context)
         self.context.names[ast_class.name] = classdef
         self.context = classdef
-        self.translate_body(ast_class.body)
+
+        for ast_statement in ast_class.body:
+            if not isinstance(ast_statement, (ast.FunctionDef, ast.AnnAssign)):
+                raise UserWarning(f'Unsupported class statement {ast_statement}')
+
+            self.translate_stmt(ast_statement)
+
         self.context = cast(ns.Namespace, classdef.parent)
         return classdef
 
