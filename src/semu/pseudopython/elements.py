@@ -85,11 +85,12 @@ class GlobalVariableCreate(Element, names.GlobalVariable):
 
     def emit(self):
         label = self.address_label()
+        words = self.target_type.words
 
         return [
-            f'// Begin variable {self.name}',
+            f'// Begin variable {self.name} (size {words} words)',
             f'{label}:',        # label
-            'nop',              # placeholder
+            ['nop' for _ in range(words)],              # placeholder
             '// End variable'
         ]
 

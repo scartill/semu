@@ -29,17 +29,17 @@ class ClassVariable(n.KnownName, el.Element):
         return data
 
     def emit(self):
-        return f'// Class variable {self.qualname()}'
+        return f'// Class variable def {self.qualname()}'
 
 
 @dataclass
-class Class(n.KnownName, ns.Namespace, el.Element):
+class Class(t.NamedType, ns.Namespace, el.Element):
     ctor: calls.Function
     num_vars: int
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, t.Class)
+        t.NamedType.__init__(self, name, True, 0)
         ns.Namespace.__init__(self, name, parent)
         self.num_vars = 0
 
@@ -62,6 +62,7 @@ class Class(n.KnownName, ns.Namespace, el.Element):
 
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         var = ClassVariable(self, name, self.num_vars, target_type)
+        self.words += target_type.words
         self.num_vars += 1
         self.names[name] = var
         return var

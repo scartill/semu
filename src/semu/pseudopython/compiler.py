@@ -196,7 +196,7 @@ class Translator:
         known_name = lookup.known_name
 
         if not isinstance(known_name, b.TargetType):
-            raise UserWarning(f'The object is not a type ({known_name.name})')
+            raise UserWarning(f'The object is not a type ({known_name})')
 
         return known_name
 
