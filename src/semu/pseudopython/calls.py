@@ -301,12 +301,8 @@ class FunctionRef(el.Expression):
 
     def json(self):
         data = super().json()
-
-        data.update({
-            'Function': self.func.json()
-        })
-
-        return data
+        data.update({'Function': self.func.name})
+        eturn data
 
     def emit(self):
         return [
