@@ -10,6 +10,7 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
+import semu.pseudopython.classes as cls
 
 
 @dataclass
@@ -23,11 +24,16 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self.body = list()
 
     def json(self):
-        data = el.Element.json(self)
+        data_el = el.Element.json(self)
+        data_ns = ns.Namespace.json(self)
+        data_n = n.KnownName.json(self)
+        data = {}
+        data.update(data_el)
+        data.update(data_ns)
+        data.update(data_n)
 
         data.update({
-            'Namespace': ns.Namespace.json(self),
-            'Body': [e.json() for e in self.body]
+            'Body': [e.json() for e in self.body if not isinstance(e, n.KnownName)]
         })
 
         return data
@@ -67,13 +73,17 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
         globals = lambda n: isinstance(n, el.GlobalVariableCreate)
         functions = lambda n: isinstance(n, calls.Function)
-        others = lambda n: not isinstance(n, (el.GlobalVariableCreate, calls.Function))
+        classes = lambda n: isinstance(n, cls.Class)
+        others = lambda n: not globals(n) and not functions(n) and not classes(n)
 
         for global_var in filter(globals, self.body):
             result.extend(global_var.emit())
 
         for function in filter(functions, self.body):
             result.extend(cast(calls.Function, function).emit())
+
+        for classdef in filter(classes, self.body):
+            result.extend(cast(cls.Class, classdef).emit())
 
         result.extend([
             f'{declarations_end}:',

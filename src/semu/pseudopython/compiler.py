@@ -15,6 +15,7 @@ import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
+import semu.pseudopython.classes as cls
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 
@@ -270,6 +271,14 @@ class Translator:
         for alias in ast_import.names:
             self.translate_import_name(alias.name.split('.'))
 
+    def translate_class(self, ast_class: ast.ClassDef):
+        classdef = cls.Class(ast_class.name, self.context)
+        self.context.names[ast_class.name] = classdef
+        self.context = classdef
+        self.translate_body(ast_class.body)
+        self.context = cast(ns.Namespace, classdef.parent)
+        return classdef
+
     def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
         ''' NB: Statement execution invalidates all registers.
             Within a statement, each element is responsible for keeping
@@ -300,6 +309,8 @@ class Translator:
                 return self.translate_function(cast(ast.FunctionDef, ast_element))
             case ast.Return:
                 return self.translate_return(cast(ast.Return, ast_element))
+            case ast.ClassDef:
+                return self.translate_class(cast(ast.ClassDef, ast_element))
             case ast.Import:
                 self.translate_import(cast(ast.Import, ast_element))
                 return el.VoidElement('import')
@@ -352,6 +363,7 @@ class Translator:
         lg.debug(f'Found function {name}')
 
         function = h.create_function(self.context, name, args, target_type)
+        print(f'ADD function to context {self.context.namespace()} {name}')
         self.context.names[name] = function
         self.context = function
         function.body = self.translate_body(ast_function.body)

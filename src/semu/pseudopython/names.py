@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 JSON = Dict[str, Any]
-TargetType = Literal['unit', 'int32', 'bool32', 'callable', 'module', 'package']
+TargetType = Literal['unit', 'int32', 'bool32', 'callable', 'module', 'package', 'class']
 TargetTypes = Sequence[TargetType]
 
 
