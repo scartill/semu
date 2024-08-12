@@ -18,7 +18,7 @@ def test_nested(capsys):
         settings = h.CompileSettings().update(verbose=True, pp_path=pp_path)
         pysource = main.read_text()
         namespace = 'main'
-        sasm = compiler.compile_single_string(settings, namespace, pysource)
+        sasm = compiler.compile_string(settings, namespace, pysource)
         item = asm.CompilationItem()
         item.modulename = namespace
         item.contents = sasm

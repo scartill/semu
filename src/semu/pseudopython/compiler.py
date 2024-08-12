@@ -399,7 +399,7 @@ def emit(settings: h.CompileSettings, translator: Translator):
     return sasm
 
 
-def compile_single_string(settings: h.CompileSettings, name: str, input: str):
+def compile_string(settings: h.CompileSettings, name: str, input: str):
     translator = Translator(settings)
     ast_tree = ast.parse(input)
     translator.translate(name, ast_tree)
@@ -407,8 +407,8 @@ def compile_single_string(settings: h.CompileSettings, name: str, input: str):
     return sasm
 
 
-def compile_single_file(settings: h.CompileSettings, input: Path, output: Path):
-    sasm = compile_single_string(settings, input.stem, input.read_text())
+def compile_file(settings: h.CompileSettings, input: Path, output: Path):
+    sasm = compile_string(settings, input.stem, input.read_text())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(sasm)
 
@@ -429,7 +429,7 @@ def compile(ctx: click.Context, input: Path, output: Path | None, **params):
         output = input.with_suffix('.sasm')
 
     lg.info(f'Translating {input.name} to {output.name}')
-    compile_single_file(ctx.obj, input, output)
+    compile_file(ctx.obj, input, output)
 
 
 if __name__ == '__main__':

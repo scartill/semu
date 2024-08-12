@@ -20,7 +20,7 @@ def execute_single_pp_source(filename):
     pypath = find_file(filename)
     pysource = pypath.read_text()
     namespace = pypath.stem
-    sasm = compiler.compile_single_string(settings, namespace, pysource)
+    sasm = compiler.compile_string(settings, namespace, pysource)
     item = asm.CompilationItem()
     item.modulename = namespace
     item.contents = sasm
