@@ -47,7 +47,7 @@ class Checkpoint(BuiltinInlineImpl):
     def emit(self) -> Sequence[str]:
         return [
             '// Checkpoint',
-            f'.check {self.arg}'
+            f'%check {self.arg}'
         ]
 
     def json(self):
@@ -68,7 +68,7 @@ class Assertion(BuiltinInlineImpl):
             f'pop {self.target}',
             '// Take the first param',
             f'pop {self.target}',
-            f'.assert {self.source.target} {self.value}',
+            f'%assert {self.source.target} {self.value}',
             '// Restoring the stack',
             f'push {self.target}',
             f'push {self.target}',

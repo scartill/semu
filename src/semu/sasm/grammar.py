@@ -100,8 +100,8 @@ xor_cmd = g_cmd_3('xor', ops.XOR)
 band_cmd = g_cmd_3('and', ops.BAND)
 
 # Emulated
-cpt_cmd = g_cmd('.check', ops.CPT) + us_dec_const
-aeq_cmd = g_cmd('.assert', ops.AEQ) + reg_op + us_dec_const
+cpt_cmd = g_cmd('%check', ops.CPT) + us_dec_const
+aeq_cmd = g_cmd('%assert', ops.AEQ) + reg_op + us_dec_const
 
 asm_cmd = hlt_cmd \
     ^ nop_cmd \

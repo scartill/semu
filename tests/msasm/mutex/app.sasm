@@ -22,38 +22,38 @@ END
 FUNC TF
 BEGIN
     ldr &mutex a
-    .check 0
+    %check 0
     CALL kernel.sync::InitMutex
     
     ldr &mutex a
     CALL kernel.sync::IsMutexLocked
-    .assert a 0
-    .check 1
+    %assert a 0
+    %check 1
     
     ldr &mutex a
     CALL kernel.api::LockMutex
     
     ldr &mutex a
     CALL kernel.sync::IsMutexLocked
-    .assert a 1
-    .check 2
+    %assert a 1
+    %check 2
     
     ldr &ss a
     ldr &TS b
     ldc 0 c
     ldr &stcb d
     CALL kernel.api::CreateThread
-    .check 3
+    %check 3
     
     CALL SpinWait
     
     ldr &mutex a    
     CALL kernel.api::UnlockMutex
-    .check 5
+    %check 5
     
     ldr &mutex a
     CALL kernel.sync::IsMutexLocked
-    .assert a 0
+    %assert a 0
     
     CALL SpinWait
     hlt
@@ -76,15 +76,15 @@ END
 
 FUNC TS
 BEGIN
-    .check 4
+    %check 4
     ldr &mutex a
     CALL kernel.sync::IsMutexLocked
-    .assert a 1
+    %assert a 1
     
     ldr &mutex a
     CALL kernel.api::LockMutex
     
-    .check 6
+    %check 6
     nop
 
     ldr &mutex a
