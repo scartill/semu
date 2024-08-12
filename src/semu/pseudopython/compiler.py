@@ -363,7 +363,6 @@ class Translator:
         lg.debug(f'Found function {name}')
 
         function = h.create_function(self.context, name, args, target_type)
-        print(f'ADD function to context {self.context.namespace()} {name}')
         self.context.names[name] = function
         self.context = function
         function.body = self.translate_body(ast_function.body)
