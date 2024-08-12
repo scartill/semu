@@ -21,7 +21,7 @@ class Namespace(n.INamespace):
         self.parent = parent
         self.names = dict()
 
-    def json(self) -> n.JSON:
+    def json(self) -> b.JSON:
         return {
             'Name': self.name,
             'Names': {name: known.json() for name, known in self.names.items()}

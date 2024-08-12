@@ -158,7 +158,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
         data_n = n.KnownName.json(self)
-        data: n.JSON = {'Class': 'Function'}
+        data: b.JSON = {'Class': 'Function'}
         data.update(data_el)
         data.update(data_ns)
         data.update(data_n)

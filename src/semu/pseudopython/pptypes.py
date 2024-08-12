@@ -7,7 +7,7 @@ import semu.pseudopython.names as n
 @dataclass
 class ModuleType(b.TargetType):
     def __init__(self):
-        super().__init__(False, 0)
+        super().__init__()
 
     def json(self):
         data = super().json()
@@ -18,7 +18,7 @@ class ModuleType(b.TargetType):
 @dataclass
 class PackageType(b.TargetType):
     def __init__(self):
-        super().__init__(False, 0)
+        super().__init__()
 
     def json(self):
         data = super().json()
@@ -29,7 +29,7 @@ class PackageType(b.TargetType):
 @dataclass
 class CallableType(b.TargetType):
     def __init__(self):
-        super().__init__(False, 0)
+        super().__init__()
 
     def json(self):
         data = super().json()
@@ -39,7 +39,7 @@ class CallableType(b.TargetType):
 
 class ClassType(b.TargetType):
     def __init__(self):
-        super().__init__(False, 0)
+        super().__init__()
 
     def json(self):
         data = super().json()
@@ -49,26 +49,29 @@ class ClassType(b.TargetType):
 
 @dataclass
 class NamedType(b.TargetType, n.KnownName):
-    def __init__(self, name: str, is_physical: bool, words: int):
-        b.TargetType.__init__(self, is_physical, words)
+    def __init__(self, name: str):
+        b.TargetType.__init__(self)
         n.KnownName.__init__(self, None, name, b.Builtin)
 
 
 @dataclass
-class PhysicalType(NamedType):
-    def __init__(self, name: str, words: int):
-        super().__init__(name, True, words)
-
-
-@dataclass
-class UnitType(PhysicalType):
+class UnitType(NamedType):
     def __init__(self):
-        super().__init__('unit', 1)
+        super().__init__('unit')
 
     def json(self):
         data = super().json()
         data.update({'Builtin': 'Unit'})
         return data
+
+
+@dataclass
+class PhysicalType(NamedType):
+    words: int
+
+    def __init__(self, name: str, words: int):
+        super().__init__(name)
+        self.words = words
 
 
 @dataclass

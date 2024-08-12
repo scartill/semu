@@ -29,7 +29,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
         data_n = n.KnownName.json(self)
-        data: n.JSON = {'Class': 'Module'}
+        data: b.JSON = {'Class': 'Module'}
         data.update(data_el)
         data.update(data_ns)
         data.update(data_n)
@@ -47,7 +47,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 
-        if not target_type.is_physical:
+        if not isinstance(target_type, t.PhysicalType):
             raise UserWarning(f'Type {name} must representable')
 
         lg.debug(f'Creating a global variable {name}')

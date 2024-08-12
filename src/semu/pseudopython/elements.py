@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as names
+import semu.pseudopython.names as n
 
 
 class Element:
@@ -27,7 +27,7 @@ class Element:
     def emit(self) -> Sequence[str]:
         raise NotImplementedError()
 
-    def json(self) -> names.JSON:
+    def json(self) -> b.JSON:
         return {}
 
 
@@ -41,7 +41,7 @@ class VoidElement(Element):
     def emit(self):
         return [f'// {self.comment}']
 
-    def json(self) -> names.JSON:
+    def json(self):
         data = Element.json(self)
         data.update({'void': self.comment})
         return data
@@ -67,9 +67,9 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
-class GlobalVariableCreate(Element, names.GlobalVariable):
-    def __init__(self, namespace: names.INamespace, name: str, target_type: b.TargetType):
-        names.KnownName.__init__(self, namespace, name, target_type)
+class GlobalVariableCreate(Element, n.GlobalVariable):
+    def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
+        n.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 
     def typelabel(self) -> str:
@@ -77,7 +77,7 @@ class GlobalVariableCreate(Element, names.GlobalVariable):
 
     def json(self):
         data = {'Create': 'global'}
-        data_kn = names.KnownName.json(self)
+        data_kn = n.KnownName.json(self)
         data_el = Element.json(self)
         data.update(data_kn)
         data.update(data_el)
@@ -85,6 +85,7 @@ class GlobalVariableCreate(Element, names.GlobalVariable):
 
     def emit(self):
         label = self.address_label()
+        assert isinstance(self.target_type, t.PhysicalType)
         words = self.target_type.words
 
         return [
@@ -120,7 +121,7 @@ class ConstantExpression(Expression):
 
 @dataclass
 class GlobalVariableAssignment(Element):
-    target: names.KnownName
+    target: n.KnownName
     expr: Expression
 
     def json(self):
@@ -148,9 +149,9 @@ class GlobalVariableAssignment(Element):
 
 @dataclass
 class GlobalVariableLoad(Expression):
-    name: names.KnownName
+    name: n.KnownName
 
-    def __init__(self, name: names.KnownName, target: regs.Register):
+    def __init__(self, name: n.KnownName, target: regs.Register):
         super().__init__(name.target_type, target)
         self.name = name
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -26,7 +27,7 @@ class Package(ns.Namespace, n.KnownName, el.Element):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
         data_n = n.KnownName.json(self)
-        data: n.JSON = {'Class': 'Package'}
+        data: b.JSON = {'Class': 'Package'}
         data.update(data_el)
         data.update(data_ns)
         data.update(data_n)
@@ -55,7 +56,7 @@ class TopLevel(ns.Namespace, el.Element):
     def json(self):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
-        data: n.JSON = {'Class': 'Package'}
+        data: b.JSON = {'Class': 'Package'}
         data.update(data_el)
         data.update(data_ns)
         return data

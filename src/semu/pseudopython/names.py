@@ -1,10 +1,7 @@
-from typing import Any, Dict
+from typing import Any
 from dataclasses import dataclass
 
 import semu.pseudopython.base as b
-
-
-JSON = Dict[str, Any]
 
 
 class INamespace:
@@ -27,7 +24,7 @@ class KnownName:
         self.name = name
         self.target_type = target_type
 
-    def json(self) -> JSON:
+    def json(self) -> b.JSON:
         return {'Name': self.name, 'Type': self.target_type.json()}
 
     def qualname(self) -> str:
@@ -50,7 +47,7 @@ class Constant(KnownName):
         super().__init__(namespace, name, target_type)
         self.value = value
 
-    def json(self) -> JSON:
+    def json(self):
         data = super().json()
         data.update({'Value': self.value})
         return data

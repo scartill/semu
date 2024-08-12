@@ -33,13 +33,13 @@ class ClassVariable(n.KnownName, el.Element):
 
 
 @dataclass
-class Class(t.NamedType, ns.Namespace, el.Element):
+class Class(t.PhysicalType, ns.Namespace, el.Element):
     ctor: calls.Function
     num_vars: int
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.NamedType.__init__(self, name, True, 0)
+        t.NamedType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
         self.num_vars = 0
 
@@ -60,7 +60,7 @@ class Class(t.NamedType, ns.Namespace, el.Element):
             f'// Class {self.qualname()} end'
         ])
 
-    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: t.PhysicalType) -> el.Element:
         var = ClassVariable(self, name, self.num_vars, target_type)
         self.words += target_type.words
         self.num_vars += 1
@@ -73,7 +73,7 @@ class InstanceType(b.TargetType):
     classdef: Class
 
     def __init__(self):
-        super().__init__(False, 0)
+        super().__init__()
 
     def json(self):
         data = super().json()
