@@ -1,10 +1,10 @@
-from typing import Any, Dict, Literal, Sequence
+from typing import Any, Dict
 from dataclasses import dataclass
+
+import semu.pseudopython.types as t
 
 
 JSON = Dict[str, Any]
-TargetType = Literal['unit', 'int32', 'bool32', 'callable', 'module', 'package', 'class']
-TargetTypes = Sequence[TargetType]
 
 
 class INamespace:
@@ -14,16 +14,16 @@ class INamespace:
 
 class KnownName:
     name: str
-    target_type: TargetType
+    target_type: t.TargetType
     parent: INamespace
 
-    def __init__(self, namespace: INamespace, name: str, target_type: TargetType):
+    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType):
         self.parent = namespace
         self.name = name
         self.target_type = target_type
 
     def json(self) -> JSON:
-        return {'Name': self.name, 'Type': self.target_type}
+        return {'Name': self.name, 'Type': self.target_type.json()}
 
     def qualname(self) -> str:
         return f'{self.parent.parent_prefix()}{self.name}'
@@ -38,7 +38,10 @@ class KnownName:
 class Constant(KnownName):
     value: Any
 
-    def __init__(self, namespace: INamespace, name: str, target_type: TargetType, value: Any):
+    def __init__(
+        self, namespace: INamespace, name: str,
+        target_type: t.TargetType, value: Any
+    ):
         super().__init__(namespace, name, target_type)
         self.value = value
 
@@ -49,7 +52,7 @@ class Constant(KnownName):
 
 
 class GlobalVariable(KnownName):
-    def __init__(self, namespace: INamespace, name: str, target_type: TargetType):
+    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType):
         super().__init__(namespace, name, target_type)
 
     def json(self):
@@ -62,7 +65,7 @@ class GlobalVariable(KnownName):
 class FormalParameter(KnownName):
     inx: int
 
-    def __init__(self, namespace: INamespace, name: str, inx: int, target_type: TargetType):
+    def __init__(self, namespace: INamespace, name: str, inx: int, target_type: t.TargetType):
         KnownName.__init__(self, namespace, name, target_type)
         self.inx = inx
 
@@ -76,7 +79,7 @@ class FormalParameter(KnownName):
 class LocalVariable(KnownName):
     inx: int
 
-    def __init__(self, namespace: INamespace, name: str, target_type: TargetType, inx: int):
+    def __init__(self, namespace: INamespace, name: str, target_type: t.TargetType, inx: int):
         KnownName.__init__(self, namespace, name, target_type)
         self.inx = inx
 

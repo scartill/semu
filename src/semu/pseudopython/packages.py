@@ -4,8 +4,9 @@ from pathlib import Path
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
-import semu.pseudopython.elements as el
+import semu.pseudopython.types as t
 import semu.pseudopython.names as n
+import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
@@ -18,7 +19,7 @@ class Package(ns.Namespace, n.KnownName, el.Element):
     def __init__(self, name: str, parent: ns.Namespace, path: Path):
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
-        n.KnownName.__init__(self, parent, name, 'package')
+        n.KnownName.__init__(self, parent, name, t.Package)
         self.path = path
 
     def json(self):

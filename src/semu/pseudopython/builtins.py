@@ -4,6 +4,7 @@ import logging as lg
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.types as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 
@@ -11,7 +12,7 @@ import semu.pseudopython.elements as el
 @dataclass
 class BuiltinInlineImpl(el.Expression):
     def __init__(
-            self, target_type: n.TargetType, args: el.Expressions, target: regs.Register
+            self, target_type: t.TargetType, args: el.Expressions, target: regs.Register
     ):
         super().__init__(target_type, target)
 
@@ -21,21 +22,21 @@ class BuiltinInlineImpl(el.Expression):
         return data
 
 
-Factory = Callable[[n.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
+Factory = Callable[[t.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
 
 
 @dataclass
 class BuiltinInline(n.KnownName, el.Expression):
     factory: Factory
-    return_type: n.TargetType
+    return_type: t.TargetType
 
     def __init__(
-        self, namespace: n.INamespace, name: str, target_type: n.TargetType,
+        self, namespace: n.INamespace, name: str, target_type: t.TargetType,
         factory: Factory
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
         # Builtin functions have no address
-        el.Expression.__init__(self, 'callable', regs.VOID_REGISTER)
+        el.Expression.__init__(self, t.Callable, regs.VOID_REGISTER)
         self.factory = factory
         self.return_type = target_type
 
@@ -88,7 +89,7 @@ class Assertion(BuiltinInlineImpl):
 
 
 def create_checkpoint(
-    target_type: n.TargetType, args: el.Expressions, target: regs.Register
+    target_type: t.TargetType, args: el.Expressions, target: regs.Register
 ):
     lg.debug('Checkpoint')
 
@@ -114,7 +115,7 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
-def create_assert(target_type: n.TargetType, args: el.Expressions, target: regs.Register):
+def create_assert(target_type: t.TargetType, args: el.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -124,12 +125,12 @@ def create_assert(target_type: n.TargetType, args: el.Expressions, target: regs.
     if not isinstance(value_expr, el.ConstantExpression):
         raise UserWarning(f"'assertion' expects a constant value, got {value_expr}")
 
-    if source.target_type != 'int32':
+    if source.target_type != t.Int32:
         raise UserWarning(
             f"'assertion' expects a int32 source, got {source.target_type}"
         )
 
-    if value_expr.target_type != 'int32':
+    if value_expr.target_type != t.Int32:
         raise UserWarning(
             f"'assertion' expects a int32 value, got {value_expr.target_type}"
         )
@@ -139,7 +140,7 @@ def create_assert(target_type: n.TargetType, args: el.Expressions, target: regs.
     return Assertion(target_type, target, source, value)
 
 
-def create_bool2int(target_type: n.TargetType, args: el.Expressions, target: regs.Register):
+def create_bool2int(target_type: t.TargetType, args: el.Expressions, target: regs.Register):
     lg.debug('BoolToInt')
 
     if len(args) != 1:
@@ -147,7 +148,7 @@ def create_bool2int(target_type: n.TargetType, args: el.Expressions, target: reg
 
     source = args[0]
 
-    if source.target_type != 'bool32':
+    if source.target_type != t.Bool32:
         raise UserWarning(f"'bool_to_int' expects a bool32 source, got {source.target_type}")
 
     return BoolToInt(target_type, target, source)
@@ -155,7 +156,7 @@ def create_bool2int(target_type: n.TargetType, args: el.Expressions, target: reg
 
 def get(namespace: n.INamespace) -> Sequence[BuiltinInline]:
     return [
-        BuiltinInline(namespace, 'checkpoint', 'unit', create_checkpoint),
-        BuiltinInline(namespace, 'assert_eq', 'unit', create_assert),
-        BuiltinInline(namespace, 'bool_to_int', 'int32', create_bool2int)
+        BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
+        BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
+        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int)
     ]

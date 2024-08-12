@@ -3,6 +3,7 @@ from typing import Sequence, List, Tuple
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
+import semu.pseudopython.types as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
@@ -33,7 +34,7 @@ class LoadActualParameter(el.Expression):
 @dataclass
 class LocalVariableCreate(n.LocalVariable, el.Element):
     def __init__(
-            self, namespace: n.INamespace, name: str, inx: int, target_type: n.TargetType
+            self, namespace: n.INamespace, name: str, inx: int, target_type: t.TargetType
     ):
         el.Element.__init__(self)
         n.LocalVariable.__init__(self, namespace, name, target_type, inx)
@@ -129,19 +130,19 @@ class LocalVariableLoad(el.Expression):
         ]
 
 
-ArgDefs = List[Tuple[str, n.TargetType]]
+ArgDefs = List[Tuple[str, t.TargetType]]
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
     body: el.Elements
-    return_type: n.TargetType
+    return_type: t.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
     def __init__(
             self, name: str, parent: ns.Namespace,
-            args: ArgDefs, return_type: n.TargetType
+            args: ArgDefs, return_type: t.TargetType
     ):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, return_type)
@@ -159,7 +160,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             'KnownName': n.KnownName.json(self),
             'Namespace': ns.Namespace.json(self),
             'Function': {
-                'ReturnType': self.return_type,
+                'ReturnType': self.return_type.json(),
                 'Body': [e.json() for e in self.body],
                 'Returns': self.returns,
                 'ReturnTarget': self.return_target
@@ -215,7 +216,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             'ret'
         ])
 
-    def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
         local = LocalVariableCreate(self, name, self.local_num, target_type)
         self.local_num += 1
         self.names[name] = local
@@ -296,7 +297,7 @@ class FunctionRef(el.Expression):
     func: Function
 
     def __init__(self, func: Function, target: regs.Register):
-        super().__init__('callable', target)
+        super().__init__(t.Callable, target)
         self.func = func
 
     def json(self):
@@ -313,12 +314,12 @@ class FunctionRef(el.Expression):
 
 @dataclass
 class Return(el.Element):
-    def return_type(self) -> n.TargetType:
+    def return_type(self) -> t.TargetType:
         raise NotImplementedError()
 
     def json(self):
         data = el.Element.json(self)
-        data.update({'Return': self.return_type()})
+        data.update({'Return': self.return_type().json()})
         return data
 
 
@@ -353,7 +354,7 @@ class ReturnUnit(el.Element):
     func: Function
 
     def return_type(self):
-        return 'unit'
+        return t.Unit
 
     def emit(self):
         return_label = self.func.return_label()

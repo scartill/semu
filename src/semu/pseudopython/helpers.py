@@ -5,7 +5,7 @@ from typing import List
 from pathlib import Path
 
 import semu.pseudopython.registers as regs
-import semu.pseudopython.names as n
+import semu.pseudopython.types as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
@@ -38,12 +38,12 @@ class CompileSettings:
 
 def get_constant_type(ast_const: ast.Constant):
     if isinstance(ast_const.value, bool):
-        return 'bool32'
+        return t.Bool32
 
     if isinstance(ast_const.value, int):
-        return 'int32'
+        return t.Int32
 
-    raise UserWarning(f'Unsupported constant type {type(ast_const.value)}')
+    raise UserWarning(f'Unsupported constant type {ast_const.value}')
 
 
 def int32const(ast_value: ast.AST):
@@ -66,30 +66,33 @@ def bool32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def get_constant_value(target_type: n.TargetType, source: ast.AST):
-    if target_type == 'int32':
+def get_constant_value(target_type: t.TargetType, source: ast.AST):
+    if target_type == t.Int32:
         return int32const(source)
 
-    if target_type == 'bool32':
+    if target_type == t.Bool32:
         return bool32const(source)
 
     raise UserWarning(f'Unsupported constant type {target_type}')
 
 
-def create_binop(left: el.Expression, right: el.Expression, op: ast.AST, target: regs.Register):
-    required_type = None
+def create_binop(
+    left: el.Expression, right: el.Expression, op: ast.AST,
+    target: regs.Register
+):
+    required_type: t.TargetType | None = None
     Op = None
 
     if isinstance(op, ast.Add):
-        required_type = 'int32'
+        required_type = t.Int32
         Op = intops.Add
 
     if isinstance(op, ast.Sub):
-        required_type = 'int32'
+        required_type = t.Int32
         Op = intops.Sub
 
     if isinstance(op, ast.Mult):
-        required_type = 'int32'
+        required_type = t.Int32
         Op = intops.Mul
 
     if Op is None:
@@ -107,15 +110,15 @@ def create_binop(left: el.Expression, right: el.Expression, op: ast.AST, target:
 
 
 def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
-    required_type = None
+    required_type: t.TargetType | None = None
     Op = None
 
     if isinstance(op, ast.Not):
-        required_type = 'bool32'
+        required_type = t.Bool32
         Op = boolops.Not
 
     if isinstance(op, ast.USub):
-        required_type = 'int32'
+        required_type = t.Int32
         Op = intops.Neg
 
     if Op is None:
@@ -130,10 +133,10 @@ def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
 
 
 def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
-    target_type = 'bool32'
+    target_type: t.TargetType = t.Bool32
 
     for arg in args:
-        if arg.target_type != 'bool32':
+        if arg.target_type != t.Bool32:
             raise UserWarning(f'Unsupported boolop type {arg.target_type}')
 
     if isinstance(op, ast.And):
@@ -173,13 +176,13 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: n.TargetType
+    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: t.TargetType
 ) -> calls.Function:
     return calls.Function(name, context, args, target_type)
 
 
 def validate_function(func: calls.Function):
-    if func.target_type != 'unit' and not func.returns:
+    if func.target_type != t.Unit and not func.returns:
         raise UserWarning(f'Function {func.name} does not return')
 
 

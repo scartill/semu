@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 
+import semu.pseudopython.types as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
@@ -18,7 +19,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
     def __init__(self, name: str, parent: ns.Namespace):
-        n.KnownName.__init__(self, parent, name, 'module')
+        n.KnownName.__init__(self, parent, name, t.Module)
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
@@ -41,7 +42,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     def typelabel(self) -> str:
         return 'module'
 
-    def create_variable(self, name: str, target_type: n.TargetType) -> el.Element:
+    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
         if name in self.names:
             raise UserWarning(f'Redefinition of the name {name}')
 

@@ -4,6 +4,7 @@ from random import randint
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.types as t
 import semu.pseudopython.names as names
 
 
@@ -47,17 +48,17 @@ class VoidElement(Element):
 
 @dataclass
 class Expression(Element):
-    target_type: names.TargetType
+    target_type: t.TargetType
     target: regs.Register
 
-    def __init__(self, target_type: names.TargetType, target: regs.Register):
+    def __init__(self, target_type: t.TargetType, target: regs.Register):
         super().__init__()
         self.target_type = target_type
         self.target = target
 
     def json(self):
         data = Element.json(self)
-        data.update({'Type': self.target_type, 'Target': self.target})
+        data.update({'Type': self.target_type.json(), 'Target': self.target})
         return data
 
 
@@ -66,7 +67,7 @@ Expressions = Sequence[Expression]
 
 @dataclass
 class GlobalVariableCreate(Element, names.GlobalVariable):
-    def __init__(self, namespace: names.INamespace, name: str, target_type: names.TargetType):
+    def __init__(self, namespace: names.INamespace, name: str, target_type: t.TargetType):
         names.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 
@@ -97,10 +98,10 @@ class ConstantExpression(Expression):
     value: int | bool
 
     def _convert_value(self) -> int:
-        if self.target_type == 'int32':
+        if self.target_type == t.Int32:
             return self.value
 
-        if self.target_type == 'bool32':
+        if self.target_type == t.Bool32:
             return 1 if self.value else 0
 
         raise NotImplementedError()

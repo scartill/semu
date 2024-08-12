@@ -7,9 +7,10 @@ import json
 
 import click
 
-import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
+import semu.pseudopython.types as t
 import semu.pseudopython.names as n
+import semu.pseudopython.elements as el
 import semu.pseudopython.builtins as builtins
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as h
@@ -55,7 +56,7 @@ class Translator:
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
 
-        if callable.target_type != 'callable':
+        if callable.target_type != t.Callable:
             raise UserWarning(f'Unsupported callable {callable}')
 
         args = [
@@ -79,7 +80,7 @@ class Translator:
             )
 
         value = h.int32const(ast_value)
-        self.context.names[name] = n.Constant(self.context, name, 'int32', value)
+        self.context.names[name] = n.Constant(self.context, name, t.Int32, value)
         return el.VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
@@ -193,9 +194,9 @@ class Translator:
 
         match ast_type.id:
             case 'int':
-                return 'int32'
+                return t.Int32
             case 'bool':
-                return 'bool32'
+                return t.Bool32
             case name:
                 raise UserWarning(f'Unsupported type found ({name})')
 
@@ -213,7 +214,7 @@ class Translator:
         test = self.translate_expression(ast_if.test, regs.DEFAULT_REGISTER)
         true_body = self.translate_body(ast_if.body)
 
-        if test.target_type != 'bool32':
+        if test.target_type != t.Bool32:
             raise UserWarning(f'If test must be of type bool32, got {test.target_type}')
 
         if ast_if.orelse:
@@ -227,7 +228,7 @@ class Translator:
         test = self.translate_expression(ast_while.test, regs.DEFAULT_REGISTER)
         body = self.translate_body(ast_while.body)
 
-        if test.target_type != 'bool32':
+        if test.target_type != t.Bool32:
             raise UserWarning(f'While test must be of type bool32, got {test.target_type}')
 
         return flow.While(test, body)
@@ -335,7 +336,7 @@ class Translator:
             func.returns = True
             return calls.ReturnValue(func, value)
         else:
-            if func.target_type != 'unit':
+            if func.target_type != t.Unit:
                 raise UserWarning('Function has no target type')
 
             return calls.ReturnUnit(func)
@@ -344,7 +345,7 @@ class Translator:
         name = ast_function.name
 
         if ast_function.returns is None:
-            target_type = 'unit'
+            target_type = t.Unit
         else:
             target_type = self.translate_type(ast_function.returns)
 

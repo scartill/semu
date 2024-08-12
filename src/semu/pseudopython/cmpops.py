@@ -3,6 +3,7 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import Element, Expression
+import semu.pseudopython.types as t
 import semu.pseudopython.registers as regs
 
 
@@ -10,24 +11,24 @@ import semu.pseudopython.registers as regs
 class CompareOp(Element):
     def json(self):
         data = super().json()
-        data.update({'Type': type(self).__name__})
+        data.update({'Type': 'compare'})
         return data
 
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         raise NotImplementedError()
 
 
 class Eq(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Equal',
@@ -44,10 +45,10 @@ class Eq(CompareOp):
 
 class NotEq(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Equal',
@@ -64,10 +65,10 @@ class NotEq(CompareOp):
 
 class Lt(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Less Than',
@@ -84,10 +85,10 @@ class Lt(CompareOp):
 
 class LtE(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Less Than or Equal',
@@ -109,10 +110,10 @@ class LtE(CompareOp):
 @dataclass
 class Gt(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Greater Than',
@@ -126,10 +127,10 @@ class Gt(CompareOp):
 
 class GtE(CompareOp):
     def emit(
-            self,
-            left: regs.Register, right: regs.Register,
-            address: regs.Register, temp: regs.Register,
-            label_true: str, label_false: str
+        self,
+        left: regs.Register, right: regs.Register,
+        address: regs.Register, temp: regs.Register,
+        label_true: str, label_false: str
     ):
         return [
             '// Greater Than or Equal',
@@ -152,7 +153,7 @@ class Compare(Expression):
     right: Expression
 
     def __init__(self, target: regs.Register, left: Expression, op: CompareOp, right: Expression):
-        super().__init__(target_type='bool32', target=target)
+        super().__init__(target_type=t.Bool32, target=target)
         self.left = left
         self.op = op
         self.right = right

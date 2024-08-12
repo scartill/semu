@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-import semu.pseudopython.elements as el
+import semu.pseudopython.types as t
 import semu.pseudopython.names as n
+import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 
@@ -13,7 +14,7 @@ class Class(n.KnownName, ns.Namespace, el.Element):
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, 'class')
+        n.KnownName.__init__(self, parent, name, t.Class)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
