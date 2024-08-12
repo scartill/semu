@@ -10,3 +10,4 @@ class A:
 # A.foo()
 
 a: A
+a.i = 1

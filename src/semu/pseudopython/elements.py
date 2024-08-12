@@ -67,6 +67,29 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
+class ConstantExpression(Expression):
+    value: int | bool
+
+    def _convert_value(self) -> int:
+        if self.target_type == t.Int32:
+            return self.value
+
+        if self.target_type == t.Bool32:
+            return 1 if self.value else 0
+
+        raise NotImplementedError()
+
+    def emit(self):
+        value = self._convert_value()
+        return f'ldc {value} {self.target}'
+
+    def json(self):
+        data = super().json()
+        data.update({'Constant': self.value})
+        return data
+
+
+@dataclass
 class GlobalVariableCreate(Element, n.GlobalVariable):
     def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
         n.KnownName.__init__(self, namespace, name, target_type)
@@ -94,29 +117,6 @@ class GlobalVariableCreate(Element, n.GlobalVariable):
             ['nop' for _ in range(words)],              # placeholder
             '// End variable'
         ]
-
-
-@dataclass
-class ConstantExpression(Expression):
-    value: int | bool
-
-    def _convert_value(self) -> int:
-        if self.target_type == t.Int32:
-            return self.value
-
-        if self.target_type == t.Bool32:
-            return 1 if self.value else 0
-
-        raise NotImplementedError()
-
-    def emit(self):
-        value = self._convert_value()
-        return f'ldc {value} {self.target}'
-
-    def json(self):
-        data = super().json()
-        data.update({'Constant': self.value})
-        return data
 
 
 @dataclass

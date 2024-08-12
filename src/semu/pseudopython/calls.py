@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Sequence, List, Tuple
 
+from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
 import semu.pseudopython.base as b
@@ -21,7 +22,7 @@ class LoadActualParameter(el.Expression):
         temp = available.pop()
 
         # NB: Note that the offset skips the return address and saved frame pointer
-        offset = (self.total - self.inx + 2) * 4
+        offset = (self.total - self.inx + 2) * WORD_SIZE
 
         return [
             f'// Loading actual parameter {self.inx} of {self.total} to {self.target}',
@@ -87,7 +88,7 @@ class LocalVariableAssignment(el.Element):
         temp = available.pop()
 
         # NB: Offset is calculated from the frame pointer
-        offset = inx * 4
+        offset = inx * WORD_SIZE
 
         return flatten([
             f'// Calculating {name} to reg:{target}',
@@ -120,7 +121,7 @@ class LocalVariableLoad(el.Expression):
 
         name = self.name.name
         inx = self.name.inx
-        offset = inx * 4
+        offset = inx * WORD_SIZE
 
         return [
             f'// Loading local variable {name} at {inx} to reg:{self.target}',

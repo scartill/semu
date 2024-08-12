@@ -44,6 +44,9 @@ class Translator:
         while path:
             next_name = path.pop(0)
 
+            if isinstance(lookup.known_name.target_type, cls.Class):
+                raise UserWarning('Class variable found')
+
             if not isinstance(lookup.known_name, ns.Namespace):
                 raise UserWarning(f'Unsupported path lookup {lookup.known_name}')
 

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
@@ -11,19 +12,20 @@ import semu.pseudopython.calls as calls
 
 @dataclass
 class ClassVariable(n.KnownName, el.Element):
-    inx: int
+    offset: int
 
     def __init__(
-        self, parent: 'Class', name: str, inx: int,
+        self, parent: 'Class', name: str, offset: int,
         target_type: b.TargetType
     ):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, target_type)
+        self.offset = offset
 
     def json(self):
         el_data = el.Element.json(self)
         n_data = n.KnownName.json(self)
-        data = {'Class': 'ClassVariable'}
+        data = {'Class': 'ClassVariable', 'Offset': self.offset}
         data.update(el_data)
         data.update(n_data)
         return data
@@ -35,13 +37,13 @@ class ClassVariable(n.KnownName, el.Element):
 @dataclass
 class Class(t.PhysicalType, ns.Namespace, el.Element):
     ctor: calls.Function
-    num_vars: int
+    current_offset: int
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.NamedType.__init__(self, name)
+        t.PhysicalType.__init__(self, name, words=0)
         ns.Namespace.__init__(self, name, parent)
-        self.num_vars = 0
+        self.current_offset = self.words * WORD_SIZE
 
     def json(self):
         el_data = el.Element.json(self)
@@ -61,28 +63,8 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
         ])
 
     def create_variable(self, name: str, target_type: t.PhysicalType) -> el.Element:
-        var = ClassVariable(self, name, self.num_vars, target_type)
+        var = ClassVariable(self, name, self.current_offset, target_type)
         self.words += target_type.words
-        self.num_vars += 1
+        self.current_offset += target_type.words * WORD_SIZE
         self.names[name] = var
         return var
-
-
-@dataclass
-class InstanceType(b.TargetType):
-    classdef: Class
-
-    def __init__(self):
-        super().__init__()
-
-    def json(self):
-        data = super().json()
-        data.update({'Class': self.classdef.name})
-        return data
-
-
-@dataclass
-class Instance(n.KnownName, el.Element):
-    def __init__(self, parent: ns.Namespace, name: str, target_type: InstanceType):
-        el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, target_type)
