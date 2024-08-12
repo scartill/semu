@@ -2,6 +2,7 @@
 
 class A:
     i: int
+    b: bool
 
     def foo():
         checkpoint(0)

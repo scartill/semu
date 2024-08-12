@@ -23,7 +23,7 @@ class Namespace(n.INamespace):
 
     def json(self) -> n.JSON:
         return {
-            'Namespace': self.name,
+            'Name': self.name,
             'Names': {name: known.json() for name, known in self.names.items()}
         }
 

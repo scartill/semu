@@ -22,8 +22,10 @@ class UnitType(TargetType):
     def __init__(self):
         super().__init__(False, 0)
 
-
-Unit = UnitType()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Unit'})
+        return data
 
 
 @dataclass
@@ -31,8 +33,10 @@ class Int32Type(TargetType):
     def __init__(self):
         super().__init__(True, 1)
 
-
-Int32 = Int32Type()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Int32'})
+        return data
 
 
 @dataclass
@@ -40,8 +44,10 @@ class Bool32Type(TargetType):
     def __init__(self):
         super().__init__(True, 1)
 
-
-Bool32 = Bool32Type()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Bool32'})
+        return data
 
 
 @dataclass
@@ -49,8 +55,10 @@ class ModuleType(TargetType):
     def __init__(self):
         super().__init__(False, 0)
 
-
-Module = ModuleType()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Module'})
+        return data
 
 
 @dataclass
@@ -58,8 +66,10 @@ class PackageType(TargetType):
     def __init__(self):
         super().__init__(False, 0)
 
-
-Package = PackageType()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Package'})
+        return data
 
 
 @dataclass
@@ -67,14 +77,28 @@ class CallableType(TargetType):
     def __init__(self):
         super().__init__(False, 0)
 
-
-Callable = CallableType()
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Callable'})  # TODO: Add more information
+        return data
 
 
 class ClassType(TargetType):
     def __init__(self):
         super().__init__(False, 0)
 
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Class'})
+        return data
 
-Class = ClassType()
+
 type TargetTypes = Sequence[TargetType]
+
+Unit = UnitType()
+Int32 = Int32Type()
+Bool32 = Bool32Type()
+Module = ModuleType()
+Package = PackageType()
+Callable = CallableType()
+Class = ClassType()

@@ -23,7 +23,14 @@ class Package(ns.Namespace, n.KnownName, el.Element):
         self.path = path
 
     def json(self):
-        return {'Package': True, 'Path:': str(self.path)}
+        data_el = el.Element.json(self)
+        data_ns = ns.Namespace.json(self)
+        data_n = n.KnownName.json(self)
+        data: n.JSON = {'Class': 'Package'}
+        data.update(data_el)
+        data.update(data_ns)
+        data.update(data_n)
+        return data
 
     def emit(self):
         return flatten([
@@ -46,8 +53,11 @@ class TopLevel(ns.Namespace, el.Element):
         self.names.update({b.name: b for b in bi.get(self)})
 
     def json(self):
-        data = ns.Namespace.json(self)
-        data.update({'Top': True})
+        data_el = el.Element.json(self)
+        data_ns = ns.Namespace.json(self)
+        data: n.JSON = {'Class': 'Package'}
+        data.update(data_el)
+        data.update(data_ns)
         return data
 
     def namespace(self) -> str:

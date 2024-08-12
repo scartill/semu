@@ -9,6 +9,24 @@ import semu.pseudopython.calls as calls
 
 
 @dataclass
+class ClassVariable(n.KnownName, el.Element):
+    def __init__(self, parent: n.INamespace, name: str, target_type: t.TargetType):
+        el.Element.__init__(self)
+        n.KnownName.__init__(self, parent, name, target_type)
+
+    def json(self):
+        el_data = el.Element.json(self)
+        n_data = n.KnownName.json(self)
+        data = {}
+        data.update(el_data)
+        data.update(n_data)
+        return data
+
+    def emit(self):
+        return f'// Class variable {self.qualname()}'
+
+
+@dataclass
 class Class(n.KnownName, ns.Namespace, el.Element):
     ctor: calls.Function
 
@@ -21,11 +39,10 @@ class Class(n.KnownName, ns.Namespace, el.Element):
         el_data = el.Element.json(self)
         ns_data = ns.Namespace.json(self)
         n_data = n.KnownName.json(self)
-        data = {}
+        data = {'Class': 'Class'}
         data.update(el_data)
         data.update(ns_data)
         data.update(n_data)
-        data.update({})  # 'Ctor': self.ctor.json()
         return data
 
     def emit(self):
@@ -34,3 +51,6 @@ class Class(n.KnownName, ns.Namespace, el.Element):
             [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
             f'// class {self.qualname()} end'
         ])
+
+    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+        return ClassVariable(self, name, target_type)
