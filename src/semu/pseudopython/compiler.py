@@ -271,6 +271,8 @@ class Translator:
         for alias in ast_import.names:
             self.translate_import_name(alias.name.split('.'))
 
+        return el.VoidElement('import')
+
     def translate_class(self, ast_class: ast.ClassDef):
         classdef = cls.Class(ast_class.name, self.context)
         self.context.names[ast_class.name] = classdef
@@ -280,10 +282,6 @@ class Translator:
         return classdef
 
     def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
-        ''' NB: Statement execution invalidates all registers.
-            Within a statement, each element is responsible for keeping
-            its own registers consistent.
-        '''
         lg.debug(f'Stmt {type(ast_element)}')
 
         match type(ast_element):
@@ -312,8 +310,7 @@ class Translator:
             case ast.ClassDef:
                 return self.translate_class(cast(ast.ClassDef, ast_element))
             case ast.Import:
-                self.translate_import(cast(ast.Import, ast_element))
-                return el.VoidElement('import')
+                return self.translate_import(cast(ast.Import, ast_element))
 
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
         return el.VoidElement('unsupported')
