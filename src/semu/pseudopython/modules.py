@@ -64,8 +64,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         address = self.address_label()
 
         result.extend([
-            '// -------------------------------------------',
-            f'// Module {self.qualname()} begin',
+            f'// --------- Module {self.qualname()} -----------',
             f'{address}:',
             f'// Module {self.qualname()} declarations guard',
             f'ldr &{declarations_end} {temp}',

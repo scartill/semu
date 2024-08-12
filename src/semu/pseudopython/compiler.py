@@ -410,6 +410,7 @@ def emit(settings: h.CompileSettings, translator: Translator):
     if settings.verbose:
         eprint('------------------ SASM ----------------------')
         eprint(sasm)
+        eprint('----------------------------------------------')
 
     return sasm
 
