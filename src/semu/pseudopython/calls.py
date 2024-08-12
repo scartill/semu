@@ -187,6 +187,16 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
         return LoadActualParameter(formal.target_type, target, formal.inx, total)
 
+    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
+        local = LocalVariableCreate(self, name, self.local_num, target_type)
+        self.local_num += 1
+        self.names[name] = local
+        return local
+
+    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+        assert isinstance(known_name, n.LocalVariable)
+        return LocalVariableLoad(known_name, target=target)
+
     def emit(self) -> Sequence[str]:
         name = self.name
         return_label = self.return_label()
@@ -202,31 +212,21 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         dump_target = regs.get_temp([self.return_target])
 
         return flatten([
-            f'// function {name} declaration',
+            f'// Function {name} declaration',
             [n.emit() for n in nested],
-            f'// function {name} entrypoint',
+            f'// Function {name} entrypoint',
             f'{entrypoint}:',
-            f'// function {name} prologue',
+            f'// Function {name} prologue',
             [d.emit() for d in locals],
-            f'// function {name} body',
+            f'// Function {name} body',
             f'{body_label}:',
             [e.emit() for e in body],
-            f'// function {name} epilogue',
+            f'// Function {name} epilogue',
             f'{return_label}:',
             [f'pop {dump_target}' for _ in locals],
-            f'// function {name} return',
+            f'// Function {name} return',
             'ret'
         ])
-
-    def create_variable(self, name: str, target_type: t.TargetType) -> el.Element:
-        local = LocalVariableCreate(self, name, self.local_num, target_type)
-        self.local_num += 1
-        self.names[name] = local
-        return local
-
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
-        assert isinstance(known_name, n.LocalVariable)
-        return LocalVariableLoad(known_name, target=target)
 
 
 @dataclass
@@ -252,7 +252,7 @@ class ActualParameter(el.Element):
 
     def emit(self):
         return flatten([
-            f'//Actual parameter {self.inx} calculating',
+            f'// Actual parameter {self.inx} calculating',
             self.expression.emit(),
             f'// Actual parameter {self.inx} storing',
             f'push {self.expression.target}'
