@@ -1,4 +1,4 @@
 # type: ignore
 
 a: int
-# pa: pointer(a)
+pa: ptr[int]

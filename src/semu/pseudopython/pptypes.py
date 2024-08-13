@@ -114,7 +114,7 @@ class PointerType(PhysicalType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'pointer', 'TargetType': self.ref_type.name})
+        data.update({'Builtin': 'pointer', 'TargetType': self.ref_type.json()})
         return data
 
 

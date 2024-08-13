@@ -186,3 +186,13 @@ class DecoratorApplication(Expression):
 
 
 type DecoratorApplications = Sequence[DecoratorApplication]
+
+
+class TypeWrapper(Expression):
+    def __init__(self, target_type: b.TargetType):
+        super().__init__(target_type, regs.VOID_REGISTER)
+
+    def json(self):
+        tt = self.target_type
+        descr = tt.name if isinstance(tt, t.NamedType) else tt.json()
+        return {'TypeWrapper': descr}

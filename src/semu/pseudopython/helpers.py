@@ -18,6 +18,7 @@ import semu.pseudopython.classes as cls
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
+import semu.pseudopython.pointers as ptrs
 
 
 @dataclass
@@ -346,3 +347,13 @@ def create_global_variable(
         lg.debug(f'Creating a global variable {name}')
         create = el.GlobalVariableCreate(parent, name, target_type)
         return create
+
+
+def create_subscript(value: el.Expression, slice: el.Expression, target):
+    if value != ptrs.PointerOperator:
+        raise UserWarning(f'Unsupported subscript value type {value}')
+
+    if not isinstance(slice.target_type, t.PhysicalType):
+        raise UserWarning(f'Unsupported subscript slice type {slice}')
+
+    return el.TypeWrapper(t.PointerType(slice.target_type))

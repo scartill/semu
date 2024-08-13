@@ -8,6 +8,7 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
+import semu.pseudopython.pointers as ptrs
 
 
 @dataclass
@@ -159,13 +160,15 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
     t.Unit.parent = namespace
     t.Int32.parent = namespace
     t.Bool32.parent = namespace
+    ptrs.PointerOperatorType.parent = namespace
 
     return [
         t.Unit,
         t.Int32,
         t.Bool32,
+        ptrs.PointerOperator,
         t.DecoratorType('staticmethod', namespace),
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
-        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
+        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int)
     ]

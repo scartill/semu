@@ -89,80 +89,6 @@ class Translator:
         args = [self.translate_expression(value) for value in values]
         return h.create_boolop(args, source.op, target)
 
-    def translate_expression(
-        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
-    ) -> el.Expression:
-
-        if isinstance(source, ast.Constant):
-            target_type = h.get_constant_type(source)
-            value = h.get_constant_value(target_type, source)
-
-            return el.ConstantExpression(
-                target_type=target_type, value=value,
-                target=target
-            )
-
-        if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
-            lookup = self.resolve_object(source)
-            namespace = lookup.namespace
-            known_name = lookup.known_name
-
-            if isinstance(known_name, n.Constant):
-                return namespace.load_const(known_name, target)
-
-            if isinstance(known_name, n.GlobalVariable):
-                return namespace.load_variable(known_name, target)
-
-            if isinstance(known_name, builtins.BuiltinInline):
-                return known_name  # as expression
-
-            if isinstance(known_name, calls.Function):
-                return calls.FunctionRef(known_name, target)
-
-            if isinstance(known_name, n.FormalParameter):
-                assert isinstance(namespace, calls.Function)
-                return namespace.load_actual(known_name, target)
-
-            if isinstance(known_name, n.LocalVariable):
-                assert isinstance(namespace, calls.Function)
-                return namespace.load_variable(known_name, target)
-
-            if isinstance(known_name, t.DecoratorType):
-                return el.DecoratorApplication(known_name, target)
-
-            return self.resolve_object(source).known_name
-
-        if isinstance(source, ast.BinOp):
-            left = self.translate_expression(source.left, regs.REGISTERS[0])
-            right = self.translate_expression(source.right, regs.REGISTERS[1])
-            return h.create_binop(left, right, source.op, target)
-
-        if isinstance(source, ast.Call):
-            return self.translate_call(source, target)
-
-        if isinstance(source, ast.UnaryOp):
-            right = self.translate_expression(source.operand, regs.REGISTERS[0])
-            return h.create_unary(right, source.op, target)
-
-        if isinstance(source, ast.BoolOp):
-            return self.translate_boolop(source, target)
-
-        if isinstance(source, ast.Compare):
-            left = self.translate_expression(source.left, regs.REGISTERS[0])
-            ops = source.ops
-
-            if len(source.comparators) != 1:
-                raise UserWarning(
-                    f'Unsupported number of comparators {len(source.comparators)}'
-                )
-
-            assert len(ops) == 1
-
-            right = self.translate_expression(source.comparators[0], regs.REGISTERS[1])
-            return h.create_compare(left, ops[0], right, target)
-
-        raise UserWarning(f'Unsupported assignment source {source}')
-
     def translate_var_assign(self, target: n.KnownName, source: ast.AST):
         expression = self.translate_expression(source)
         t_type = target.target_type
@@ -195,11 +121,7 @@ class Translator:
             raise UserWarning(f'Unsupported assignment target {known_name}')
 
     def translate_type(self, ast_type: ast.AST):
-        pp_type = self.translate_expression(ast_type)
-
-        if not isinstance(pp_type, b.TargetType):
-            raise UserWarning(f'The object is not a type ({pp_type})')
-
+        pp_type = self.translate_expression(ast_type).target_type
         return pp_type
 
     def translate_ann_assign(self, assign: ast.AnnAssign):
@@ -290,43 +212,6 @@ class Translator:
         self.context = cast(ns.Namespace, classdef.parent)
         return classdef
 
-    def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
-        lg.debug(f'Stmt {type(ast_element)}')
-
-        match type(ast_element):
-            case ast.Expr:
-                value = cast(ast.Expr, ast_element).value
-
-                if isinstance(value, ast.Compare):
-                    # NB: This is a hack to support `is` as a free operator
-                    return self.translate_free_is(value)
-                else:
-                    return self.translate_expression(value)
-            case ast.Pass:
-                return el.VoidElement('pass')
-            case ast.Assign:
-                return self.translate_assign(cast(ast.Assign, ast_element))
-            case ast.AnnAssign:
-                return self.translate_ann_assign(cast(ast.AnnAssign, ast_element))
-            case ast.If:
-                return self.translate_if(cast(ast.If, ast_element))
-            case ast.While:
-                return self.translate_while(cast(ast.While, ast_element))
-            case ast.FunctionDef:
-                return self.translate_function(cast(ast.FunctionDef, ast_element))
-            case ast.Return:
-                return self.translate_return(cast(ast.Return, ast_element))
-            case ast.ClassDef:
-                return self.translate_class(cast(ast.ClassDef, ast_element))
-            case ast.Import:
-                return self.translate_import(cast(ast.Import, ast_element))
-
-        lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
-        return el.VoidElement('unsupported')
-
-    def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[el.Element]:
-        return list(map(self.translate_stmt, ast_body))
-
     def translate_return(self, ast_return: ast.Return) -> el.Element:
         if isinstance(self.context, calls.Function):
             func = self.context
@@ -379,6 +264,133 @@ class Translator:
         h.validate_function(function)
         self.context = cast(ns.Namespace, function.parent)
         return function
+
+    def translate_subscript(self, source: ast.Subscript, target: regs.Register):
+        available = regs.get_available([target])
+        value_target = available.pop()
+        slice_target = available.pop()
+
+        value = self.translate_expression(source.value, value_target)
+        slice = self.translate_expression(source.slice, slice_target)
+        return h.create_subscript(value, slice, target)
+
+    def translate_expression(
+        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+    ) -> el.Expression:
+
+        if isinstance(source, ast.Constant):
+            target_type = h.get_constant_type(source)
+            value = h.get_constant_value(target_type, source)
+
+            return el.ConstantExpression(
+                target_type=target_type, value=value,
+                target=target
+            )
+
+        if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
+            lookup = self.resolve_object(source)
+            namespace = lookup.namespace
+            known_name = lookup.known_name
+
+            if isinstance(known_name, n.Constant):
+                return namespace.load_const(known_name, target)
+
+            if isinstance(known_name, n.GlobalVariable):
+                return namespace.load_variable(known_name, target)
+
+            if isinstance(known_name, builtins.BuiltinInline):
+                return known_name  # as expression
+
+            if isinstance(known_name, calls.Function):
+                return calls.FunctionRef(known_name, target)
+
+            if isinstance(known_name, n.FormalParameter):
+                assert isinstance(namespace, calls.Function)
+                return namespace.load_actual(known_name, target)
+
+            if isinstance(known_name, n.LocalVariable):
+                assert isinstance(namespace, calls.Function)
+                return namespace.load_variable(known_name, target)
+
+            if isinstance(known_name, t.DecoratorType):
+                return el.DecoratorApplication(known_name, target)
+
+            if isinstance(known_name, b.TargetType):
+                return el.TypeWrapper(known_name)
+
+            if isinstance(known_name, el.Expression):
+                return known_name
+
+        if isinstance(source, ast.BinOp):
+            left = self.translate_expression(source.left, regs.REGISTERS[0])
+            right = self.translate_expression(source.right, regs.REGISTERS[1])
+            return h.create_binop(left, right, source.op, target)
+
+        if isinstance(source, ast.Call):
+            return self.translate_call(source, target)
+
+        if isinstance(source, ast.UnaryOp):
+            right = self.translate_expression(source.operand, regs.REGISTERS[0])
+            return h.create_unary(right, source.op, target)
+
+        if isinstance(source, ast.BoolOp):
+            return self.translate_boolop(source, target)
+
+        if isinstance(source, ast.Compare):
+            left = self.translate_expression(source.left, regs.REGISTERS[0])
+            ops = source.ops
+
+            if len(source.comparators) != 1:
+                raise UserWarning(
+                    f'Unsupported number of comparators {len(source.comparators)}'
+                )
+
+            assert len(ops) == 1
+
+            right = self.translate_expression(source.comparators[0], regs.REGISTERS[1])
+            return h.create_compare(left, ops[0], right, target)
+
+        if isinstance(source, ast.Subscript):
+            return self.translate_subscript(source, target)
+
+        raise UserWarning(f'Unsupported assignment source {source}')
+
+    def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
+        lg.debug(f'Stmt {type(ast_element)}')
+
+        match type(ast_element):
+            case ast.Expr:
+                value = cast(ast.Expr, ast_element).value
+
+                if isinstance(value, ast.Compare):
+                    # NB: This is a hack to support `is` as a free operator
+                    return self.translate_free_is(value)
+                else:
+                    return self.translate_expression(value)
+            case ast.Pass:
+                return el.VoidElement('pass')
+            case ast.Assign:
+                return self.translate_assign(cast(ast.Assign, ast_element))
+            case ast.AnnAssign:
+                return self.translate_ann_assign(cast(ast.AnnAssign, ast_element))
+            case ast.If:
+                return self.translate_if(cast(ast.If, ast_element))
+            case ast.While:
+                return self.translate_while(cast(ast.While, ast_element))
+            case ast.FunctionDef:
+                return self.translate_function(cast(ast.FunctionDef, ast_element))
+            case ast.Return:
+                return self.translate_return(cast(ast.Return, ast_element))
+            case ast.ClassDef:
+                return self.translate_class(cast(ast.ClassDef, ast_element))
+            case ast.Import:
+                return self.translate_import(cast(ast.Import, ast_element))
+
+        lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
+        return el.VoidElement('unsupported')
+
+    def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[el.Element]:
+        return list(map(self.translate_stmt, ast_body))
 
     def translate_module(self, name: str, ast_module: ast.Module):
         module = mods.Module(name, self.context)

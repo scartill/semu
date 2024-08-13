@@ -1,8 +1,9 @@
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
-import semu.pseudopython.elements as el
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
+import semu.pseudopython.elements as el
 
 
 class Deref32(el.Expression):
@@ -54,3 +55,17 @@ class GlobalPointer32(el.Expression):
             f'// Loading global pointer to {self.known_name.name}',
             f'ldr &{label} {self.target}'
         ]
+
+
+class PointerOperatorType(n.KnownName, el.Expression):
+    def __init__(self):
+        n.KnownName.__init__(self, None, 'ptr', b.Builtin)
+        el.Expression.__init__(self, b.Builtin, regs.VOID_REGISTER)
+
+    def json(self):
+        data = n.KnownName.json(self)
+        data.update({'Class': 'PointerConstructor'})
+        return data
+
+
+PointerOperator = PointerOperatorType()

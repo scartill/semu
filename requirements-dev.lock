@@ -10,6 +10,8 @@
 #   universal: false
 
 -e file:.
+appdirs==1.4.4
+    # via ptpython
 click==8.1.7
     # via semu
 colorama==0.4.6
@@ -19,17 +21,29 @@ importlib-metadata==8.0.0
     # via yapf
 iniconfig==2.0.0
     # via pytest
+jedi==0.19.1
+    # via ptpython
 packaging==24.1
     # via pytest
+parso==0.8.4
+    # via jedi
+pip==24.2
 platformdirs==4.2.2
     # via yapf
 pluggy==1.5.0
     # via pytest
+prompt-toolkit==3.0.47
+    # via ptpython
+ptpython==3.0.29
+pygments==2.18.0
+    # via ptpython
 pyparsing==3.1.2
     # via semu
 pytest==8.2.2
 tomli==2.0.1
     # via yapf
+wcwidth==0.2.13
+    # via prompt-toolkit
 yapf==0.40.2
 zipp==3.19.2
     # via importlib-metadata
