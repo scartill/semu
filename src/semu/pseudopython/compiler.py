@@ -86,10 +86,13 @@ class Translator:
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
-        args = [self.translate_expression(value, regs.DEFAULT_REGISTER) for value in values]
+        args = [self.translate_expression(value) for value in values]
         return h.create_boolop(args, source.op, target)
 
-    def translate_expression(self, source: ast.AST, target: regs.Register) -> el.Expression:
+    def translate_expression(
+            self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+    ) -> el.Expression:
+
         if isinstance(source, ast.Constant):
             target_type = h.get_constant_type(source)
             value = h.get_constant_value(target_type, source)
@@ -123,6 +126,9 @@ class Translator:
             if isinstance(known_name, n.LocalVariable):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_variable(known_name, target)
+
+            if isinstance(known_name, t.DecoratorType):
+                return el.DecoratorApplication(known_name, target)
 
             raise UserWarning(f'Unsupported name {source}')
 
@@ -364,9 +370,14 @@ class Translator:
             arg_type = self.translate_type(ast_arg.annotation)
             args.append((arg_name, arg_type))
 
+        decors = [
+            self.translate_expression(ast_decor, regs.DEFAULT_REGISTER)
+            for ast_decor in ast_function.decorator_list
+        ]
+
         lg.debug(f'Found function {name}')
 
-        function = h.create_function(self.context, name, args, target_type)
+        function = h.create_function(self.context, name, args, decors, target_type)
         self.context.add_name(function)
         self.context = function
         function.body = self.translate_body(ast_function.body)

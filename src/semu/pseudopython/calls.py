@@ -136,24 +136,20 @@ ArgDefs = List[Tuple[str, b.TargetType]]
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
+    decorators: List[el.DecoratorApplication]
     body: el.Elements
     return_type: b.TargetType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
-    def __init__(
-            self, name: str, parent: ns.Namespace,
-            args: ArgDefs, return_type: b.TargetType
-    ):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, return_type)
         ns.Namespace.__init__(self, name, parent)
+        self.decorators = list()
         self.return_type = return_type
         self.body = list()
-
-        for inx, (arg_name, arg_type) in enumerate(args):
-            self.add_name(n.FormalParameter(self, arg_name, inx, arg_type))
 
     def json(self):
         data_el = el.Element.json(self)
@@ -172,6 +168,9 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         })
 
         return data
+
+    def add_decorator(self, decorator: el.DecoratorApplication):
+        self.decorators.append(decorator)
 
     def typelabel(self) -> str:
         return 'function'

@@ -147,7 +147,6 @@ class GlobalVariableAssignment(Element):
         ])
 
 
-@dataclass
 class GlobalVariableLoad(Expression):
     name: n.KnownName
 
@@ -170,3 +169,20 @@ class GlobalVariableLoad(Expression):
             f'// Setting var:{self.name} to reg:{self.target}',
             f'mmr {temp} {self.target}',
         ])
+
+
+class DecoratorApplication(Expression):
+    decorator: t.DecoratorType
+
+    def json(self):
+        return {'ApplyDecorator': self.decorator.name}
+
+    def __init__(self, decorator: t.DecoratorType, target: regs.Register):
+        super().__init__(t.Unit, target)
+        self.decorator = decorator
+
+    def name(self) -> str:
+        return self.decorator.name
+
+
+type DecoratorApplications = Sequence[DecoratorApplication]

@@ -1,5 +1,4 @@
 
-import logging as lg
 from typing import Sequence, cast
 from dataclasses import dataclass
 
@@ -9,6 +8,7 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
+import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
@@ -44,16 +44,12 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         return 'module'
 
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        if not isinstance(target_type, t.PhysicalType):
-            raise UserWarning(f'Type {name} must representable')
-
-        lg.debug(f'Creating a global variable {name}')
-        create = el.GlobalVariableCreate(self, name, target_type)
-        self.add_name(create)
-        return create
+        creator = h.create_global_variable(self, name, target_type)
+        self.add_name(creator)
+        return creator
 
     def load_variable(
-            self, known_name: n.KnownName, target: regs.Register
+        self, known_name: n.KnownName, target: regs.Register
     ) -> el.Expression:
         return el.GlobalVariableLoad(known_name, target=target)
 

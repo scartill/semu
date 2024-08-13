@@ -1,10 +1,7 @@
-from dataclasses import dataclass
-
 import semu.pseudopython.base as b
 import semu.pseudopython.names as n
 
 
-@dataclass
 class ModuleType(b.TargetType):
     def __init__(self):
         super().__init__()
@@ -15,7 +12,6 @@ class ModuleType(b.TargetType):
         return data
 
 
-@dataclass
 class PackageType(b.TargetType):
     def __init__(self):
         super().__init__()
@@ -26,7 +22,6 @@ class PackageType(b.TargetType):
         return data
 
 
-@dataclass
 class CallableType(b.TargetType):
     def __init__(self):
         super().__init__()
@@ -47,14 +42,12 @@ class ClassType(b.TargetType):
         return data
 
 
-@dataclass
 class NamedType(b.TargetType, n.KnownName):
-    def __init__(self, name: str):
+    def __init__(self, name: str, namespace: n.INamespace | None = None):
         b.TargetType.__init__(self)
-        n.KnownName.__init__(self, None, name, b.Builtin)
+        n.KnownName.__init__(self, namespace, name, b.Builtin)
 
 
-@dataclass
 class UnitType(NamedType):
     def __init__(self):
         super().__init__('unit')
@@ -65,7 +58,16 @@ class UnitType(NamedType):
         return data
 
 
-@dataclass
+class DecoratorType(NamedType):
+    def __init__(self, name: str, namespace: n.INamespace):
+        super().__init__(name, namespace)
+
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'Decorator', 'Name': self.name})
+        return data
+
+
 class PhysicalType(NamedType):
     words: int
 
@@ -74,25 +76,29 @@ class PhysicalType(NamedType):
         self.words = words
 
 
-@dataclass
 class Int32Type(PhysicalType):
     def __init__(self):
         super().__init__('int', 1)
 
+    def __str__(self):
+        return 'int32'
+
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Int32'})
+        data.update({'Builtin': 'int32'})
         return data
 
 
-@dataclass
 class Bool32Type(PhysicalType):
     def __init__(self):
         super().__init__('bool', 1)
 
+    def __str__(self):
+        return 'bool32'
+
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Bool32'})
+        data.update({'Builtin': 'bool32'})
         return data
 
 

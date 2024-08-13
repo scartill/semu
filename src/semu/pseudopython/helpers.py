@@ -8,11 +8,13 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
+import semu.pseudopython.names as n
 import semu.pseudopython.intops as intops
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
+import semu.pseudopython.classes as cls
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
@@ -177,9 +179,23 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: calls.ArgDefs, target_type: b.TargetType
+    context: ns.Namespace, name: str, args: calls.ArgDefs,
+    decors: el.Expressions, target_type: b.TargetType
 ) -> calls.Function:
-    return calls.Function(name, context, args, target_type)
+
+    function = calls.Function(name, context, target_type)
+
+    for d in decors:
+        if not isinstance(d, el.DecoratorApplication):
+            raise UserWarning('Unsupported decorator type {d}')
+
+        function.add_decorator(d)
+
+    for inx, (arg_name, arg_type) in enumerate(args):
+        formal = n.FormalParameter(function, arg_name, inx, arg_type)
+        function.add_name(formal)
+
+    return function
 
 
 def validate_function(func: calls.Function):
@@ -304,3 +320,29 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
         return (parent, name, ast.parse(head.with_suffix('.py').read_text()))
     else:
         raise UserWarning(f'No module found for {name}')
+
+
+def create_global_variable(
+        parent: ns.Namespace, name: str, target_type: b.TargetType
+) -> el.GlobalVariableCreate | cls.GlobalInstance:
+
+    if not isinstance(target_type, t.PhysicalType):
+        raise UserWarning(f'Type {name} must representable')
+
+    if isinstance(target_type, cls.Class):
+        lg.debug(f'Creating a global instance {name} of {target_type.name}')
+        instance = cls.GlobalInstance(parent, name, target_type)
+
+        is_classvar = lambda x: isinstance(x, cls.ClassVariable)
+
+        for classvar in filter(is_classvar, target_type.names.values()):
+            instance.add_name(
+                create_global_variable(instance, classvar.name, classvar.target_type)
+            )
+
+        return instance
+
+    else:
+        lg.debug(f'Creating a global variable {name}')
+        create = el.GlobalVariableCreate(parent, name, target_type)
+        return create
