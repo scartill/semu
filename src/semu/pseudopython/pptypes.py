@@ -111,6 +111,12 @@ class PointerType(PhysicalType):
         super().__init__('pointer')
         self.ref_type = ref_type
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, PointerType):
+            return False
+
+        return self.ref_type == value.ref_type
+
     def name(self):
         return f'pointer<{self.target_type}>'
 

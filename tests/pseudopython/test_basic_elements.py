@@ -73,3 +73,7 @@ def test_basicclasses(capsys):
 
 def test_globalpointers():
     simple_test('globalpointers')
+
+
+def test_moreglobalpointers():
+    simple_test('moreglobalpointers')
