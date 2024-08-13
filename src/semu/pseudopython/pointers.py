@@ -33,19 +33,17 @@ class Deref32(el.Expression):
         ])
 
 
-class GlobalPointer32(el.Expression):
+class PointerToGlobal(el.Expression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register):
-        if not isinstance(known_name.target_type, t.PhysicalType):
-            raise ValueError('GlobalPointer32 can only point to PhysicalType')
-
+        assert isinstance(known_name.target_type, t.PhysicalType)
         super().__init__(t.PointerType(known_name.target_type), target)
         self.known_name = known_name
 
     def json(self):
         data = el.Expression.json(self)
-        data.update({'GlobalPointerTo': self.known_name.name})
+        data.update({'PointerToGlobal': self.known_name.name})
         return data
 
     def emit(self):

@@ -2,3 +2,5 @@
 
 a: int
 pa: ptr[int]
+
+pa = a

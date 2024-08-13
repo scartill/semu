@@ -113,8 +113,8 @@ class GlobalVariableCreate(Element, n.GlobalVariable):
 
         return [
             f'// Begin variable {self.name} (size {words} words)',
-            f'{label}:',        # label
-            ['nop' for _ in range(words)],              # placeholder
+            f'{label}:',                     # label
+            ['nop' for _ in range(words)],   # placeholder
             '// End variable'
         ]
 

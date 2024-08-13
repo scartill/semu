@@ -357,3 +357,26 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
         raise UserWarning(f'Unsupported subscript slice type {slice}')
 
     return el.TypeWrapper(t.PointerType(slice.target_type))
+
+
+def build_pointer_assignment(target: n.KnownName, expression: el.Expression):
+    t_type = target.target_type
+    e_type = expression.target_type
+    assert isinstance(t_type, t.PointerType)
+
+    if not isinstance(e_type, t.PhysicalType):
+        raise ValueError('Pointers can only point to PhysicalType')
+
+    if t_type.ref_type != e_type:
+        raise UserWarning(f'Pointer type mismatch {t_type.ref_type} != {e_type}')
+
+    if isinstance(expression, el.GlobalVariableLoad):
+        to_known_name = expression.name
+    else:
+        raise UserWarning(f'Unsupported pointer assignment {expression}')
+
+    if isinstance(target, el.GlobalVariableCreate):
+        load_pointer = ptrs.PointerToGlobal(to_known_name, regs.DEFAULT_REGISTER)
+        return el.GlobalVariableAssignment(target, load_pointer)
+
+    raise UserWarning(f'Unsupported pointer assignment {target}')
