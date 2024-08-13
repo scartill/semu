@@ -1,36 +1,8 @@
-from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
-
-
-class Deref32(el.Expression):
-    value: el.Expression
-
-    def __init__(
-            self, target_type: t.PhysicalType, value: el.Expression,
-            target: regs.Register
-    ):
-        assert isinstance(value.target_type, t.PointerType)
-        super().__init__(target_type, target)
-        self.value = value
-
-    def json(self):
-        data = el.Expression.json(self)
-        data.update({'DerefOf': self.target_type.json()})
-        return data
-
-    def emit(self) -> el.Sequence[str]:
-        assert isinstance(self.target_type, t.PhysicalType)
-
-        return flatten([
-            f'// Pointer type: {self.target_type.name}',
-            self.value.emit(),
-            '// Dereference',
-            f'mmr {self.value.target} {self.target}'
-        ])
 
 
 class PointerToGlobal(el.Expression):

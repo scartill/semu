@@ -13,9 +13,7 @@ import semu.pseudopython.pointers as ptrs
 
 @dataclass
 class BuiltinInlineImpl(el.Expression):
-    def __init__(
-            self, target_type: b.TargetType, args: el.Expressions, target: regs.Register
-    ):
+    def __init__(self, target_type: b.TargetType, target: regs.Register):
         super().__init__(target_type, target)
 
     def json(self):
@@ -93,6 +91,30 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
+class Deref32(BuiltinInlineImpl):
+    source: el.Expression
+
+    def __init__(self, source: el.Expression, target: regs.Register):
+        assert isinstance(source.target_type, t.PointerType)
+        super().__init__(source.target_type.ref_type, target)
+        self.source = source
+
+    def json(self):
+        data = el.Expression.json(self)
+        data.update({'DerefOf': self.target_type.json()})
+        return data
+
+    def emit(self) -> el.Sequence[str]:
+        assert isinstance(self.target_type, t.PhysicalType)
+
+        return flatten([
+            f'// Pointer type: {self.target_type.name}',
+            self.source.emit(),
+            '// Dereference',
+            f'mmr {self.source.target} {self.target}'
+        ])
+
+
 def create_checkpoint(
     target_type: b.TargetType, args: el.Expressions, target: regs.Register
 ):
@@ -150,6 +172,20 @@ def create_bool2int(target_type: b.TargetType, args: el.Expressions, target: reg
     return BoolToInt(target_type, target, source)
 
 
+def create_deref(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+    lg.debug('Deref32')
+
+    if len(args) != 1:
+        raise UserWarning(f"'deref' expects 1 argument, got {len(args)}")
+
+    source = args[0]
+
+    if not isinstance(source.target_type, t.PointerType):
+        raise UserWarning(f"'deref' expects a pointer source, got {source.target_type}")
+
+    return Deref32(source, target)
+
+
 def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
     t.Unit.parent = namespace
     t.Int32.parent = namespace
@@ -164,5 +200,6 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         t.DecoratorType('staticmethod', namespace),
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
-        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int)
+        BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
+        BuiltinInline(namespace, 'deref', t.Lateinit, create_deref)
     ]

@@ -118,6 +118,16 @@ class PointerType(PhysicalType):
         return data
 
 
+class LateinitType(b.TargetType):
+    def __init__(self):
+        super().__init__()
+
+    def json(self):
+        data = super().json()
+        data.update({'Class': 'Builtin'})
+        return data
+
+
 Module = ModuleType()
 Package = PackageType()
 Class = ClassType()
@@ -126,3 +136,4 @@ Callable = CallableType()
 Unit = UnitType()
 Int32 = Int32Type()
 Bool32 = Bool32Type()
+Lateinit = LateinitType()

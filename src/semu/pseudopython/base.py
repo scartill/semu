@@ -1,12 +1,10 @@
 
-from dataclasses import dataclass
 from typing import Sequence, Dict, Any
 
 
 JSON = Dict[str, Any]
 
 
-@dataclass
 class TargetType:
     def json(self) -> JSON:
         return {'Class': 'Type'}
@@ -15,7 +13,6 @@ class TargetType:
         return self.__class__.__name__
 
 
-@dataclass
 class BuiltinType(TargetType):
     def __init__(self):
         super().__init__()
