@@ -193,7 +193,7 @@ def create_function(
         function.add_decorator(d)
 
     for inx, (arg_name, arg_type) in enumerate(args):
-        formal = n.FormalParameter(function, arg_name, inx, arg_type)
+        formal = calls.FormalParameter(function, arg_name, inx, arg_type)
         function.add_name(formal)
 
     return function

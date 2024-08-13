@@ -1,5 +1,4 @@
 from typing import Any
-from dataclasses import dataclass
 
 import semu.pseudopython.base as b
 
@@ -60,32 +59,4 @@ class GlobalVariable(KnownName):
     def json(self):
         data = super().json()
         data.update({'Variable': 'global'})
-        return data
-
-
-@dataclass
-class FormalParameter(KnownName):
-    inx: int
-
-    def __init__(self, namespace: INamespace, name: str, inx: int, target_type: b.TargetType):
-        KnownName.__init__(self, namespace, name, target_type)
-        self.inx = inx
-
-    def json(self):
-        data = super().json()
-        data['Index'] = self.inx
-        return data
-
-
-@dataclass
-class LocalVariable(KnownName):
-    inx: int
-
-    def __init__(self, namespace: INamespace, name: str, target_type: b.TargetType, inx: int):
-        KnownName.__init__(self, namespace, name, target_type)
-        self.inx = inx
-
-    def json(self):
-        data = KnownName.json(self)
-        data['Variable'] = 'local'
         return data

@@ -110,7 +110,7 @@ class Translator:
         if t_type == e_type:
             if isinstance(target, n.GlobalVariable):
                 return el.GlobalVariableAssignment(target, expression)
-            elif isinstance(target, n.LocalVariable):
+            elif isinstance(target, calls.LocalVariable):
                 return calls.LocalVariableAssignment(target, expression)
 
         # Type to pointer assignment
@@ -128,7 +128,7 @@ class Translator:
         lookup = self.resolve_object(ast_target)
         known_name = lookup.known_name
 
-        if isinstance(known_name, (n.GlobalVariable, n.LocalVariable)):
+        if isinstance(known_name, (n.GlobalVariable, calls.LocalVariable)):
             return self.translate_var_assign(known_name, ast_value)
         else:
             raise UserWarning(f'Unsupported assignment target {known_name}')
@@ -317,11 +317,11 @@ class Translator:
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
 
-            if isinstance(known_name, n.FormalParameter):
+            if isinstance(known_name, calls.FormalParameter):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_actual(known_name, target)
 
-            if isinstance(known_name, n.LocalVariable):
+            if isinstance(known_name, calls.LocalVariable):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_variable(known_name, target)
 

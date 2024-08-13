@@ -12,6 +12,48 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 
 
+class StackVariable(n.KnownName):
+    inx: int
+
+    def __init__(
+        self, namespace: n.INamespace, name: str, inx: int,
+        target_type: b.TargetType
+    ):
+        n.KnownName.__init__(self, namespace, name, target_type)
+        self.inx = inx
+
+    def json(self):
+        data = super().json()
+        data['Index'] = self.inx
+        return data
+
+
+class FormalParameter(StackVariable):
+    def __init__(
+        self, namespace: n.INamespace, name: str, inx: int,
+        target_type: b.TargetType
+    ):
+        super().__init__(namespace, name, inx, target_type)
+
+    def json(self):
+        data = super().json()
+        data['Kind'] = 'formal'
+        return data
+
+
+class LocalVariable(StackVariable):
+    def __init__(
+        self, namespace: n.INamespace, name: str, inx: int,
+        target_type: b.TargetType
+    ):
+        super().__init__(namespace, name, inx, target_type)
+
+    def json(self):
+        data = super().json()
+        data['Variable'] = 'local'
+        return data
+
+
 @dataclass
 class LoadActualParameter(el.Expression):
     inx: int
@@ -35,12 +77,12 @@ class LoadActualParameter(el.Expression):
 
 
 @dataclass
-class LocalVariableCreate(n.LocalVariable, el.Element):
+class LocalVariableCreate(LocalVariable, el.Element):
     def __init__(
             self, namespace: n.INamespace, name: str, inx: int, target_type: b.TargetType
     ):
         el.Element.__init__(self)
-        n.LocalVariable.__init__(self, namespace, name, target_type, inx)
+        LocalVariable.__init__(self, namespace, name, inx, target_type)
 
     def json(self):
         data = {'Create': 'global'}
@@ -63,10 +105,10 @@ class LocalVariableCreate(n.LocalVariable, el.Element):
 
 @dataclass
 class LocalVariableAssignment(el.Element):
-    target: n.LocalVariable
+    target: LocalVariable
     expr: el.Expression
 
-    def __init__(self, target: n.LocalVariable, expr: el.Expression):
+    def __init__(self, target: LocalVariable, expr: el.Expression):
         self.target = target
         self.expr = expr
 
@@ -104,9 +146,9 @@ class LocalVariableAssignment(el.Element):
 
 @dataclass
 class LocalVariableLoad(el.Expression):
-    name: n.LocalVariable
+    name: LocalVariable
 
-    def __init__(self, known_name: n.LocalVariable, target: regs.Register):
+    def __init__(self, known_name: LocalVariable, target: regs.Register):
         super().__init__(known_name.target_type, target)
         self.name = known_name
 
@@ -153,7 +195,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
         data_n = n.KnownName.json(self)
-        data: b.JSON = {'Class': 'Function'}
+        data: b.JSON = {'Class': 'function'}
         data.update(data_el)
         data.update(data_ns)
         data.update(data_n)
@@ -178,10 +220,10 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def formals(self):
         return list(filter(
-            lambda p: isinstance(p, n.FormalParameter), self.names.values()
+            lambda p: isinstance(p, FormalParameter), self.names.values()
         ))
 
-    def load_actual(self, formal: n.FormalParameter, target: regs.Register):
+    def load_actual(self, formal: FormalParameter, target: regs.Register):
         total = len(self.formals())
 
         return LoadActualParameter(formal.target_type, target, formal.inx, total)
@@ -193,7 +235,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         return local
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
-        assert isinstance(known_name, n.LocalVariable)
+        assert isinstance(known_name, LocalVariable)
         return LocalVariableLoad(known_name, target=target)
 
     def create_function(
@@ -276,7 +318,7 @@ class CallFrame(el.Expression):
         data = super().json()
 
         data.update({
-            'Frame': 'Call',
+            'Frame': 'call',
             'Actuals': [a.json() for a in self.actuals],
             'Call': self.call.json()
         })
