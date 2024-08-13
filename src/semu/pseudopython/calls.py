@@ -13,27 +13,27 @@ import semu.pseudopython.registers as regs
 
 
 class StackVariable(n.KnownName):
-    inx: int
+    offset: int
 
     def __init__(
-        self, namespace: n.INamespace, name: str, inx: int,
+        self, namespace: n.INamespace, name: str, offset: int,
         target_type: b.TargetType
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
-        self.inx = inx
+        self.offset = offset
 
     def json(self):
         data = super().json()
-        data['Index'] = self.inx
+        data['Offset'] = self.offset
         return data
 
 
 class FormalParameter(StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, inx: int,
+        self, namespace: n.INamespace, name: str, offset: int,
         target_type: b.TargetType
     ):
-        super().__init__(namespace, name, inx, target_type)
+        super().__init__(namespace, name, offset, target_type)
 
     def json(self):
         data = super().json()
@@ -43,10 +43,10 @@ class FormalParameter(StackVariable):
 
 class LocalVariable(StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, inx: int,
+        self, namespace: n.INamespace, name: str, offset: int,
         target_type: b.TargetType
     ):
-        super().__init__(namespace, name, inx, target_type)
+        super().__init__(namespace, name, offset, target_type)
 
     def json(self):
         data = super().json()
@@ -54,22 +54,27 @@ class LocalVariable(StackVariable):
         return data
 
 
-@dataclass
-class LoadActualParameter(el.Expression):
-    inx: int
-    total: int
+class LoadStackVariable(el.Expression):
+    variable: StackVariable
 
-    def emit(self) -> Sequence[str]:
+    def __init__(self, variable: StackVariable, target: regs.Register):
+        super().__init__(variable.target_type, target)
+        self.variable = variable
+
+    def json(self):
+        data = super().json()
+        data['Load'] = self.variable.name
+        return data
+
+    def emit(self):
         available = regs.get_available([self.target])
         temp_offset = available.pop()
         temp = available.pop()
-
-        # NB: Note that the offset skips the return address and saved frame pointer
-        offset = (self.total - self.inx + 2) * WORD_SIZE
+        offset = self.variable.offset
 
         return [
-            f'// Loading actual parameter {self.inx} of {self.total} to {self.target}',
-            f'ldc -{offset} {temp_offset}',
+            f'// Loading actual parameter at offset:{offset}',
+            f'ldc {offset} {temp_offset}',
             f'lla {temp_offset} {temp}',
             f'// Loading from address {temp} to {self.target}',
             f'mmr {temp} {self.target}'
@@ -79,10 +84,10 @@ class LoadActualParameter(el.Expression):
 @dataclass
 class LocalVariableCreate(LocalVariable, el.Element):
     def __init__(
-            self, namespace: n.INamespace, name: str, inx: int, target_type: b.TargetType
+            self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
     ):
         el.Element.__init__(self)
-        LocalVariable.__init__(self, namespace, name, inx, target_type)
+        LocalVariable.__init__(self, namespace, name, offset, target_type)
 
     def json(self):
         data = {'Create': 'global'}
@@ -103,7 +108,6 @@ class LocalVariableCreate(LocalVariable, el.Element):
         ]
 
 
-@dataclass
 class LocalVariableAssignment(el.Element):
     target: LocalVariable
     expr: el.Expression
@@ -124,55 +128,21 @@ class LocalVariableAssignment(el.Element):
 
     def emit(self):
         target = self.expr.target
-        inx = self.target.inx
+        offset = self.target.offset
         name = self.target.name
         available = regs.get_available([target])
         temp_offset = available.pop()
         temp = available.pop()
 
-        # NB: Offset is calculated from the frame pointer
-        offset = inx * WORD_SIZE
-
         return flatten([
             f'// Calculating {name} to reg:{target}',
             self.expr.emit(),
-            f'// Assigning reg:{target} to local variable {name} at {inx}',
+            f'// Assigning reg:{target} to local variable {name} at {offset}',
             f'ldc {offset} {temp_offset}',
             f'lla {temp_offset} {temp}',
             f'// Saving addr:{temp} to reg:{target}',
             f'mrm {target} {temp}'
         ])
-
-
-@dataclass
-class LocalVariableLoad(el.Expression):
-    name: LocalVariable
-
-    def __init__(self, known_name: LocalVariable, target: regs.Register):
-        super().__init__(known_name.target_type, target)
-        self.name = known_name
-
-    def json(self):
-        data = el.Expression.json(self)
-        data.update({'LocalLoad': self.name.name})
-        return data
-
-    def emit(self):
-        available = regs.get_available([self.target])
-        temp_offset = available.pop()
-        temp = available.pop()
-
-        name = self.name.name
-        inx = self.name.inx
-        offset = inx * WORD_SIZE
-
-        return [
-            f'// Loading local variable {name} at {inx} to reg:{self.target}',
-            f'ldc {offset} {temp_offset}',
-            f'lla {temp_offset} {temp}',
-            f'// Loading from addr:{temp} to reg:{self.target}',
-            f'mmr {temp} {self.target}'
-        ]
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
@@ -223,20 +193,16 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             lambda p: isinstance(p, FormalParameter), self.names.values()
         ))
 
-    def load_actual(self, formal: FormalParameter, target: regs.Register):
-        total = len(self.formals())
-
-        return LoadActualParameter(formal.target_type, target, formal.inx, total)
-
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        local = LocalVariableCreate(self, name, self.local_num, target_type)
+        offset = self.local_num * WORD_SIZE
         self.local_num += 1
+        local = LocalVariableCreate(self, name, offset, target_type)
         self.add_name(local)
         return local
 
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
-        assert isinstance(known_name, LocalVariable)
-        return LocalVariableLoad(known_name, target=target)
+    def load_variable(self, known_name: n.KnownName, target: regs.Register):
+        assert isinstance(known_name, StackVariable)
+        return LoadStackVariable(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,

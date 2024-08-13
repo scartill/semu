@@ -4,6 +4,8 @@ import logging as lg
 from typing import List
 from pathlib import Path
 
+from semu.common.hwconf import WORD_SIZE
+
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
@@ -192,8 +194,12 @@ def create_function(
 
         function.add_decorator(d)
 
+    total = len(args)
+
     for inx, (arg_name, arg_type) in enumerate(args):
-        formal = calls.FormalParameter(function, arg_name, inx, arg_type)
+        # NB: Note that the offset skips the return address and saved frame pointer
+        offset = -(total - inx + 2) * WORD_SIZE
+        formal = calls.FormalParameter(function, arg_name, offset, arg_type)
         function.add_name(formal)
 
     return function

@@ -317,11 +317,7 @@ class Translator:
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
 
-            if isinstance(known_name, calls.FormalParameter):
-                assert isinstance(namespace, calls.Function)
-                return namespace.load_actual(known_name, target)
-
-            if isinstance(known_name, calls.LocalVariable):
+            if isinstance(known_name, calls.StackVariable):
                 assert isinstance(namespace, calls.Function)
                 return namespace.load_variable(known_name, target)
 
