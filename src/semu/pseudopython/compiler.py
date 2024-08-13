@@ -130,7 +130,7 @@ class Translator:
             if isinstance(known_name, t.DecoratorType):
                 return el.DecoratorApplication(known_name, target)
 
-            raise UserWarning(f'Unsupported name {source}')
+            return self.resolve_object(source).known_name
 
         if isinstance(source, ast.BinOp):
             left = self.translate_expression(source.left, regs.REGISTERS[0])
@@ -195,13 +195,12 @@ class Translator:
             raise UserWarning(f'Unsupported assignment target {known_name}')
 
     def translate_type(self, ast_type: ast.AST):
-        lookup = self.resolve_object(ast_type)
-        known_name = lookup.known_name
+        pp_type = self.translate_expression(ast_type)
 
-        if not isinstance(known_name, b.TargetType):
-            raise UserWarning(f'The object is not a type ({known_name})')
+        if not isinstance(pp_type, b.TargetType):
+            raise UserWarning(f'The object is not a type ({pp_type})')
 
-        return known_name
+        return pp_type
 
     def translate_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
