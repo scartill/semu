@@ -109,12 +109,11 @@ class GlobalVariableCreate(Element, n.GlobalVariable):
     def emit(self):
         label = self.address_label()
         assert isinstance(self.target_type, t.PhysicalType)
-        words = self.target_type.words
 
         return [
-            f'// Begin variable {self.name} (size {words} words)',
-            f'{label}:',                     # label
-            ['nop' for _ in range(words)],   # placeholder
+            f'// Begin variable {self.name}',
+            f'{label}:',        # label
+            'nop',              # placeholder
             '// End variable'
         ]
 

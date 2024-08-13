@@ -69,16 +69,13 @@ class DecoratorType(NamedType):
 
 
 class PhysicalType(NamedType):
-    words: int
-
-    def __init__(self, name: str, words: int):
+    def __init__(self, name: str):
         super().__init__(name)
-        self.words = words
 
 
 class Int32Type(PhysicalType):
     def __init__(self):
-        super().__init__('int', 1)
+        super().__init__('int')
 
     def __str__(self):
         return 'int32'
@@ -91,7 +88,7 @@ class Int32Type(PhysicalType):
 
 class Bool32Type(PhysicalType):
     def __init__(self):
-        super().__init__('bool', 1)
+        super().__init__('bool')
 
     def __str__(self):
         return 'bool32'
@@ -104,14 +101,14 @@ class Bool32Type(PhysicalType):
 
 class AbstractPointerType(PhysicalType):
     def __init__(self):
-        super().__init__('pointer', 1)
+        super().__init__('pointer')
 
 
 class PointerType(PhysicalType):
     ref_type: PhysicalType
 
     def __init__(self, ref_type: PhysicalType):
-        super().__init__('pointer', 1)
+        super().__init__('pointer')
         self.ref_type = ref_type
 
     def name(self):

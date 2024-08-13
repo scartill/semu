@@ -1,4 +1,3 @@
-from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -11,20 +10,14 @@ import semu.pseudopython.calls as calls
 
 
 class ClassVariable(n.KnownName, el.Element):
-    offset: int
-
-    def __init__(
-        self, parent: 'Class', name: str, offset: int,
-        target_type: b.TargetType
-    ):
+    def __init__(self, parent: 'Class', name: str, target_type: b.TargetType):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, target_type)
-        self.offset = offset
 
     def json(self):
         el_data = el.Element.json(self)
         n_data = n.KnownName.json(self)
-        data = {'Class': 'ClassVariable', 'Offset': self.offset}
+        data = {'Class': 'ClassVariable'}
         data.update(el_data)
         data.update(n_data)
         return data
@@ -35,13 +28,11 @@ class ClassVariable(n.KnownName, el.Element):
 
 class Class(t.PhysicalType, ns.Namespace, el.Element):
     ctor: calls.Function
-    current_offset: int
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.PhysicalType.__init__(self, name, words=0)
+        t.PhysicalType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
-        self.current_offset = self.words * WORD_SIZE
 
     def json(self):
         el_data = el.Element.json(self)
@@ -54,9 +45,7 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
         return data
 
     def create_variable(self, name: str, target_type: t.PhysicalType) -> el.Element:
-        var = ClassVariable(self, name, self.current_offset, target_type)
-        self.words += target_type.words
-        self.current_offset += target_type.words * WORD_SIZE
+        var = ClassVariable(self, name, target_type)
         self.add_name(var)
         return var
 
