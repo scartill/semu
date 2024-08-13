@@ -66,15 +66,9 @@ class Assertion(BuiltinInlineImpl):
 
     def emit(self) -> Sequence[str]:
         return flatten([
+            self.source.emit(),
             '// Assertion',
-            '// Ignore the second param',
-            f'pop {self.target}',
-            '// Take the first param',
-            f'pop {self.target}',
             f'%assert {self.source.target} {self.value}',
-            '// Restoring the stack',
-            f'push {self.target}',
-            f'push {self.target}',
             '// Return null',
             f'ldc 0 {self.target}'
         ])
@@ -88,6 +82,15 @@ class Assertion(BuiltinInlineImpl):
         })
 
         return data
+
+
+@dataclass
+class BoolToInt(BuiltinInlineImpl):
+    source: el.Expression
+
+    def emit(self) -> Sequence[str]:
+        # Does nothing on the assembly level
+        return self.source.emit()
 
 
 def create_checkpoint(
@@ -106,15 +109,6 @@ def create_checkpoint(
     # Inlining the checkpoint number
     value = arg.value
     return Checkpoint(target_type, target, value)
-
-
-@dataclass
-class BoolToInt(BuiltinInlineImpl):
-    source: el.Expression
-
-    def emit(self) -> Sequence[str]:
-        # Does nothing on the assembly level
-        return self.source.emit()
 
 
 def create_assert(target_type: b.TargetType, args: el.Expressions, target: regs.Register):

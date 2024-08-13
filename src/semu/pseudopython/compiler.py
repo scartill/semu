@@ -12,7 +12,7 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
-import semu.pseudopython.builtins as builtins
+import semu.pseudopython.builtins as bi
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
@@ -54,8 +54,23 @@ class Translator:
 
         return lookup
 
+    def translate_builtin_call(
+        self, callable: bi.BuiltinInline, ast_args: List[ast.expr],
+        target: regs.Register
+    ):
+        assert len(ast_args) <= len(regs.REGISTERS)
+        args = []
+
+        for i, ast_arg in enumerate(ast_args):
+            args.append(self.translate_expression(ast_arg, regs.REGISTERS[i]))
+
+        return h.create_inline(callable, args, target)
+
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.translate_expression(ast_call.func)
+
+        if isinstance(callable, bi.BuiltinInline):
+            return self.translate_builtin_call(callable, ast_call.args, target)
 
         if callable.target_type != t.Callable:
             raise UserWarning(f'Unsupported callable {callable}')
@@ -65,13 +80,10 @@ class Translator:
             for ast_arg in ast_call.args
         ]
 
-        if isinstance(callable, builtins.BuiltinInline):
-            call = h.create_inline(callable, args, target)
-        elif isinstance(callable, calls.FunctionRef):
-            call = h.make_call(callable, args, target)
-        else:
+        if not isinstance(callable, calls.FunctionRef):
             raise UserWarning(f'Unsupported call {ast_call}')
 
+        call = h.make_call(callable, args, target)
         return h.create_call_frame(call, args)
 
     def translate_const_assign(self, name: str, ast_value: ast.AST):
@@ -299,7 +311,7 @@ class Translator:
             if isinstance(known_name, n.GlobalVariable):
                 return namespace.load_variable(known_name, target)
 
-            if isinstance(known_name, builtins.BuiltinInline):
+            if isinstance(known_name, bi.BuiltinInline):
                 return known_name  # as expression
 
             if isinstance(known_name, calls.Function):
