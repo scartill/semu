@@ -66,5 +66,5 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
         var = ClassVariable(self, name, self.current_offset, target_type)
         self.words += target_type.words
         self.current_offset += target_type.words * WORD_SIZE
-        self.names[name] = var
+        self.add_name(var)
         return var

@@ -34,6 +34,13 @@ class Namespace(n.INamespace):
     def parent_prefix(self) -> str:
         return f'{self.namespace()}.'
 
+    def add_name(self, known_name: n.KnownName):
+        if known_name.name in self.names:
+            raise UserWarning(f'Redefinition of the name {known_name.name}')
+
+        lg.debug(f'Adding {known_name.name} to {self.namespace()}')
+        self.names[known_name.name] = known_name
+
     def get_name(self, name: str) -> NameLookup | None:
         lg.debug(f'Looking up {name} in {self.namespace()}')
 

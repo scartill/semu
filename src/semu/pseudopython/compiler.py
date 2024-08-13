@@ -44,9 +44,6 @@ class Translator:
         while path:
             next_name = path.pop(0)
 
-            if isinstance(lookup.known_name.target_type, cls.Class):
-                raise UserWarning('Class variable found')
-
             if not isinstance(lookup.known_name, ns.Namespace):
                 raise UserWarning(f'Unsupported path lookup {lookup.known_name}')
 
@@ -84,7 +81,7 @@ class Translator:
             )
 
         value = h.int32const(ast_value)
-        self.context.names[name] = n.Constant(self.context, name, t.Int32, value)
+        self.context.add_name(n.Constant(self.context, name, t.Int32, value))
         return el.VoidElement(f'Const {name} = {value}')
 
     def translate_boolop(self, source: ast.BoolOp, target: regs.Register):
@@ -267,7 +264,7 @@ class Translator:
         current_context = self.context
         self.context = parent
         module = self.translate_module(name, ast_module)
-        parent.names[name] = module
+        parent.add_name(module)
         self.context = current_context
         return module
 
@@ -279,7 +276,7 @@ class Translator:
 
     def translate_class(self, ast_class: ast.ClassDef):
         classdef = cls.Class(ast_class.name, self.context)
-        self.context.names[ast_class.name] = classdef
+        self.context.add_name(classdef)
         self.context = classdef
 
         for ast_statement in ast_class.body:
@@ -370,7 +367,7 @@ class Translator:
         lg.debug(f'Found function {name}')
 
         function = h.create_function(self.context, name, args, target_type)
-        self.context.names[name] = function
+        self.context.add_name(function)
         self.context = function
         function.body = self.translate_body(ast_function.body)
         h.validate_function(function)
@@ -387,7 +384,7 @@ class Translator:
     def translate(self, name: str, ast_module: ast.Module):
         module = self.translate_module(name, ast_module)
         assert isinstance(self.context, pack.TopLevel)
-        self.context.names[name] = module
+        self.context.add_name(module)
         self.context.main = module
 
     def top(self) -> pack.TopLevel:

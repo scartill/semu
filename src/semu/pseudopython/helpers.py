@@ -288,7 +288,7 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
     while names:
         lg.debug(f'Creating package {name} from {head}')
         package = pack.Package(name, parent, head)
-        parent.names[name] = package
+        parent.add_name(package)
         parent = package
         name = names.pop(0)
         head = head / name

@@ -44,15 +44,12 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         return 'module'
 
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        if name in self.names:
-            raise UserWarning(f'Redefinition of the name {name}')
-
         if not isinstance(target_type, t.PhysicalType):
             raise UserWarning(f'Type {name} must representable')
 
         lg.debug(f'Creating a global variable {name}')
         create = el.GlobalVariableCreate(self, name, target_type)
-        self.names[name] = create
+        self.add_name(create)
         return create
 
     def load_variable(

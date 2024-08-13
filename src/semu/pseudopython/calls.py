@@ -153,7 +153,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         self.body = list()
 
         for inx, (arg_name, arg_type) in enumerate(args):
-            self.names[arg_name] = n.FormalParameter(self, arg_name, inx, arg_type)
+            self.add_name(n.FormalParameter(self, arg_name, inx, arg_type))
 
     def json(self):
         data_el = el.Element.json(self)
@@ -192,7 +192,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         local = LocalVariableCreate(self, name, self.local_num, target_type)
         self.local_num += 1
-        self.names[name] = local
+        self.add_name(local)
         return local
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
