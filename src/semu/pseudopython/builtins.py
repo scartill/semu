@@ -201,5 +201,5 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
         BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
-        BuiltinInline(namespace, 'deref', t.Lateinit, create_deref)
+        BuiltinInline(namespace, 'deref', t.AbstractPointer, create_deref)
     ]

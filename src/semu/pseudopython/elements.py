@@ -148,25 +148,25 @@ class GlobalVariableAssignment(Element):
 
 
 class GlobalVariableLoad(Expression):
-    name: n.KnownName
+    known_name: n.KnownName
 
     def __init__(self, name: n.KnownName, target: regs.Register):
         super().__init__(name.target_type, target)
-        self.name = name
+        self.known_name = name
 
     def json(self):
         data = super().json()
-        data.update({'GlobalLoad': self.name.name})
+        data.update({'GlobalLoad': self.known_name.name})
         return data
 
     def emit(self):
         temp = regs.get_temp([self.target])
-        label = self.name.address_label()
+        label = self.known_name.address_label()
 
         return flatten([
-            f'// Loading var:{self.name} address',
+            f'// Loading var:{self.known_name.name} address',
             f'ldr &{label} {temp}',
-            f'// Setting var:{self.name} to reg:{self.target}',
+            f'// Setting var:{self.known_name.name} to reg:{self.target}',
             f'mmr {temp} {self.target}',
         ])
 

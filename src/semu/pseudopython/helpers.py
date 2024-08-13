@@ -371,7 +371,7 @@ def build_pointer_assignment(target: n.KnownName, expression: el.Expression):
         raise UserWarning(f'Pointer type mismatch {t_type.ref_type} != {e_type}')
 
     if isinstance(expression, el.GlobalVariableLoad):
-        to_known_name = expression.name
+        to_known_name = expression.known_name
     else:
         raise UserWarning(f'Unsupported pointer assignment {expression}')
 
