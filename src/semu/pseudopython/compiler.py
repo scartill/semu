@@ -195,9 +195,6 @@ class Translator:
             raise UserWarning(f'Unsupported assignment target {known_name}')
 
     def translate_type(self, ast_type: ast.AST):
-        if not isinstance(ast_type, (ast.Name, ast.Attribute)):
-            raise UserWarning('Compount types are not supported')
-
         lookup = self.resolve_object(ast_type)
         known_name = lookup.known_name
 

@@ -102,6 +102,22 @@ class Bool32Type(PhysicalType):
         return data
 
 
+class PointerType(PhysicalType):
+    ref_type: PhysicalType
+
+    def __init__(self, ref_type: PhysicalType):
+        super().__init__('pointer', 1)
+        self.ref_type = ref_type
+
+    def name(self):
+        return f'pointer<{self.target_type}>'
+
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'pointer', 'TargetType': self.ref_type.name})
+        return data
+
+
 Module = ModuleType()
 Package = PackageType()
 Class = ClassType()
