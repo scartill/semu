@@ -55,13 +55,13 @@ class Translator:
         return lookup
 
     def translate_call(self, ast_call: ast.Call, target: regs.Register):
-        callable = self.translate_expression(ast_call.func, regs.DEFAULT_REGISTER)
+        callable = self.translate_expression(ast_call.func)
 
         if callable.target_type != t.Callable:
             raise UserWarning(f'Unsupported callable {callable}')
 
         args = [
-            self.translate_expression(ast_arg, regs.DEFAULT_REGISTER)
+            self.translate_expression(ast_arg)
             for ast_arg in ast_call.args
         ]
 
@@ -90,7 +90,7 @@ class Translator:
         return h.create_boolop(args, source.op, target)
 
     def translate_expression(
-            self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
     ) -> el.Expression:
 
         if isinstance(source, ast.Constant):
@@ -164,7 +164,7 @@ class Translator:
         raise UserWarning(f'Unsupported assignment source {source}')
 
     def translate_var_assign(self, target: n.KnownName, source: ast.AST):
-        expression = self.translate_expression(source, regs.DEFAULT_REGISTER)
+        expression = self.translate_expression(source)
         t_type = target.target_type
         e_type = expression.target_type
 
@@ -217,7 +217,7 @@ class Translator:
         return self.context.create_variable(assign.target.id, target_type)
 
     def translate_if(self, ast_if: ast.If):
-        test = self.translate_expression(ast_if.test, regs.DEFAULT_REGISTER)
+        test = self.translate_expression(ast_if.test)
         true_body = self.translate_body(ast_if.body)
 
         if test.target_type != t.Bool32:
@@ -231,7 +231,7 @@ class Translator:
         return flow.If(test, true_body, false_body)
 
     def translate_while(self, ast_while: ast.While):
-        test = self.translate_expression(ast_while.test, regs.DEFAULT_REGISTER)
+        test = self.translate_expression(ast_while.test)
         body = self.translate_body(ast_while.body)
 
         if test.target_type != t.Bool32:
@@ -305,7 +305,7 @@ class Translator:
                     # NB: This is a hack to support `is` as a free operator
                     return self.translate_free_is(value)
                 else:
-                    return self.translate_expression(value, regs.DEFAULT_REGISTER)
+                    return self.translate_expression(value)
             case ast.Pass:
                 return el.VoidElement('pass')
             case ast.Assign:
@@ -338,7 +338,7 @@ class Translator:
             raise UserWarning('Return statement outside a function')
 
         if ast_return.value:
-            value = self.translate_expression(ast_return.value, regs.DEFAULT_REGISTER)
+            value = self.translate_expression(ast_return.value)
             f_type = func.target_type
             e_type = value.target_type
 
@@ -371,7 +371,7 @@ class Translator:
             args.append((arg_name, arg_type))
 
         decors = [
-            self.translate_expression(ast_decor, regs.DEFAULT_REGISTER)
+            self.translate_expression(ast_decor)
             for ast_decor in ast_function.decorator_list
         ]
 
