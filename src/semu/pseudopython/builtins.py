@@ -91,7 +91,7 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
-class Deref32(BuiltinInlineImpl):
+class Deref(BuiltinInlineImpl):
     source: el.Expression
 
     def __init__(self, source: el.Expression, target: regs.Register):
@@ -112,6 +112,38 @@ class Deref32(BuiltinInlineImpl):
             self.source.emit(),
             '// Dereference',
             f'mmr {self.source.target} {self.target}'
+        ])
+
+
+class GlobalRefSet(BuiltinInlineImpl):
+    variable: n.GlobalVariable
+    source: el.Expression
+
+    def __init__(self, variable: n.GlobalVariable, source: el.Expression):
+        super().__init__(t.Unit, regs.VOID_REGISTER)
+        self.variable = variable
+        self.source = source
+
+    def json(self):
+        data = super().json()
+        data.update({'RefSet': self.variable.name, 'Source': self.source.json()})
+        return data
+
+    def emit(self) -> el.Sequence[str]:
+        assert isinstance(self.variable.target_type, t.PointerType)
+
+        address_label = self.variable.address_label()
+        address = regs.get_temp([self.source.target])
+
+        return flatten([
+            '// RefSet target address load',
+            f'ldr &{address_label} {address}',
+            f'push {address}',
+            '// RefSet source calculation',
+            self.source.emit(),
+            f'pop {address}',
+            f'mmr {address} {address}',   # dereference
+            f'mrm {self.source.target} {address}'
         ])
 
 
@@ -183,7 +215,34 @@ def create_deref(target_type: b.TargetType, args: el.Expressions, target: regs.R
     if not isinstance(source.target_type, t.PointerType):
         raise UserWarning(f"'deref' expects a pointer source, got {source.target_type}")
 
-    return Deref32(source, target)
+    return Deref(source, target)
+
+
+def create_refset(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+    lg.debug('RefSet')
+
+    ref_target = args[0]
+    ref_source = args[1]
+
+    if not isinstance(ref_target, el.GlobalVariableLoad):
+        raise UserWarning(f"'refset' expects a global variable target, got {ref_target}")
+
+    global_var = ref_target.known_name
+    assert isinstance(global_var, n.GlobalVariable)
+
+    if not isinstance(ref_source.target_type, t.PhysicalType):
+        raise UserWarning(f"'refset' expects a physical source, got {ref_source.target_type}")
+
+    if not isinstance(ref_target.target_type, t.PointerType):
+        raise UserWarning(f"'refset' expects a pointer target, got {ref_target.target_type}")
+
+    if ref_source.target_type != ref_target.target_type.ref_type:
+        raise UserWarning(
+            f"'refset' expects a source of type {ref_target.target_type.ref_type}, "
+            "got {source.target_type}"
+        )
+
+    return GlobalRefSet(global_var, ref_source)
 
 
 def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
@@ -201,5 +260,6 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
         BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
-        BuiltinInline(namespace, 'deref', t.AbstractPointer, create_deref)
+        BuiltinInline(namespace, 'deref', t.AbstractPointer, create_deref),
+        BuiltinInline(namespace, 'refset', t.AbstractPointer, create_refset)
     ]

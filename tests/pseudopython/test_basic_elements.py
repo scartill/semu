@@ -69,3 +69,7 @@ def test_nestedfunc():
 
 def test_basicclasses(capsys):
     simple_with_capture('basicclasses', capsys)
+
+
+def test_globalpointers():
+    simple_test('globalpointers')
