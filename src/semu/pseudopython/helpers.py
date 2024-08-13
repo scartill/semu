@@ -179,7 +179,7 @@ def create_compare(
 
 
 def create_function(
-    context: ns.Namespace, name: str, args: calls.ArgDefs,
+    context: ns.Namespace, name: str, args: ns.ArgDefs,
     decors: el.Expressions, target_type: b.TargetType
 ) -> calls.Function:
 

@@ -2,6 +2,7 @@ from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
+import semu.pseudopython.helpers as h
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -52,21 +53,31 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
         data.update(n_data)
         return data
 
-    def add_name(self, known_name: n.KnownName):
-        if isinstance(known_name, calls.Function):
-            static = any(lambda d: x.name == 'staticmethod' for x in known_name.decorators)
-
-            if not static:
-                raise UserWarning(f'Class {self.qualname()} cannot have non-static methods')
-
-        return super().add_name(known_name)
-
     def create_variable(self, name: str, target_type: t.PhysicalType) -> el.Element:
         var = ClassVariable(self, name, self.current_offset, target_type)
         self.words += target_type.words
         self.current_offset += target_type.words * WORD_SIZE
         self.add_name(var)
         return var
+
+    def create_function(
+        self, name: str, args: ns.ArgDefs,
+        decors: el.Expressions, target_type: b.TargetType
+    ) -> ns.Namespace:
+
+        static = any(
+            lambda d: x.name == 'staticmethod'
+            for x in decors
+            if isinstance(x, el.DecoratorApplication)
+        )
+
+        if static:
+            function = h.create_function(self, name, args, decors, target_type)
+        else:
+            raise UserWarning(f'Class {self.qualname()} cannot have non-static methods')
+
+        self.add_name(function)
+        return function
 
     def emit(self):
         return flatten([

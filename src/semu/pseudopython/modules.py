@@ -51,7 +51,17 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     def load_variable(
         self, known_name: n.KnownName, target: regs.Register
     ) -> el.Expression:
+
         return el.GlobalVariableLoad(known_name, target=target)
+
+    def create_function(
+        self, name: str, args: ns.ArgDefs,
+        decors: el.Expressions, target_type: b.TargetType
+    ) -> ns.Namespace:
+
+        function = h.create_function(self, name, args, decors, target_type)
+        self.add_name(function)
+        return function
 
     def emit(self):
         result: Sequence[str] = []

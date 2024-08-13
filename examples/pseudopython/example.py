@@ -7,6 +7,10 @@ class A:
     @staticmethod
     def foo():
         checkpoint(0)
+    
+    def bar():
+        checkpoint(1)
+
 
 A.foo()
 

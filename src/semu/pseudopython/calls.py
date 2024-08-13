@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Sequence, List, Tuple
+from typing import Sequence, List
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
 import semu.pseudopython.base as b
+import semu.pseudopython.helpers as h
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
@@ -132,9 +133,6 @@ class LocalVariableLoad(el.Expression):
         ]
 
 
-ArgDefs = List[Tuple[str, b.TargetType]]
-
-
 class Function(n.KnownName, ns.Namespace, el.Element):
     decorators: List[el.DecoratorApplication]
     body: el.Elements
@@ -197,6 +195,15 @@ class Function(n.KnownName, ns.Namespace, el.Element):
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         assert isinstance(known_name, n.LocalVariable)
         return LocalVariableLoad(known_name, target=target)
+
+    def create_function(
+        self, name: str, args: ns.ArgDefs,
+        decors: el.Expressions, target_type: b.TargetType
+    ) -> ns.Namespace:
+
+        function = h.create_function(self, name, args, decors, target_type)
+        self.add_name(function)
+        return function
 
     def emit(self) -> Sequence[str]:
         name = self.name

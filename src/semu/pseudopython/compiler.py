@@ -355,6 +355,7 @@ class Translator:
 
     def translate_function(self, ast_function: ast.FunctionDef):
         name = ast_function.name
+        lg.debug(f'Found function {name}')
 
         if ast_function.returns is None:
             target_type = t.Unit
@@ -375,11 +376,9 @@ class Translator:
             for ast_decor in ast_function.decorator_list
         ]
 
-        lg.debug(f'Found function {name}')
-
-        function = h.create_function(self.context, name, args, decors, target_type)
-        self.context.add_name(function)
+        function = self.context.create_function(name, args, decors, target_type)
         self.context = function
+        assert isinstance(function, calls.Function)
         function.body = self.translate_body(ast_function.body)
         h.validate_function(function)
         self.context = cast(ns.Namespace, function.parent)
