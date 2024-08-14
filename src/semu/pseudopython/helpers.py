@@ -211,7 +211,7 @@ def validate_function(func: calls.Function):
 
 
 def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
-    return inline.factory(inline.return_type, args, target)
+    return inline.factory(args, target)
 
 
 def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):

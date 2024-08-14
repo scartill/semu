@@ -23,7 +23,7 @@ class BuiltinInlineImpl(el.Expression):
         return data
 
 
-Factory = Callable[[b.TargetType, el.Expressions, regs.Register], BuiltinInlineImpl]
+Factory = Callable[[el.Expressions, regs.Register], BuiltinInlineImpl]
 
 
 @dataclass
@@ -46,6 +46,10 @@ class BuiltinInline(n.KnownName, el.Expression):
 class Checkpoint(BuiltinInlineImpl):
     arg: int
 
+    def __init__(self, arg: int):
+        super().__init__(t.Unit, regs.VOID_REGISTER)
+        self.arg = arg
+
     def emit(self) -> Sequence[str]:
         return [
             '// Checkpoint',
@@ -63,13 +67,16 @@ class Assertion(BuiltinInlineImpl):
     source: el.Expression
     value: int
 
+    def __init__(self, source: el.Expression, value: int):
+        super().__init__(t.Unit, regs.VOID_REGISTER)
+        self.source = source
+        self.value = value
+
     def emit(self) -> Sequence[str]:
         return flatten([
             self.source.emit(),
             '// Assertion',
             f'%assert {self.source.target} {self.value}',
-            '// Return null',
-            f'ldc 0 {self.target}'
         ])
 
     def json(self):
@@ -86,6 +93,10 @@ class Assertion(BuiltinInlineImpl):
 @dataclass
 class BoolToInt(BuiltinInlineImpl):
     source: el.Expression
+
+    def __init__(self, source: el.Expression, target: regs.Register):
+        super().__init__(t.Int32, target)
+        self.source = source
 
     def emit(self) -> Sequence[str]:
         # Does nothing on the assembly level
@@ -194,9 +205,7 @@ class LocalRefSet(BuiltinInlineImpl):
         ])
 
 
-def create_checkpoint(
-    target_type: b.TargetType, args: el.Expressions, target: regs.Register
-):
+def create_checkpoint(args: el.Expressions, target: regs.Register):
     lg.debug('Checkpoint')
 
     if len(args) != 1:
@@ -209,10 +218,10 @@ def create_checkpoint(
 
     # Inlining the checkpoint number
     value = arg.value
-    return Checkpoint(target_type, target, value)
+    return Checkpoint(value)
 
 
-def create_assert(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+def create_assert(args: el.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
@@ -234,10 +243,10 @@ def create_assert(target_type: b.TargetType, args: el.Expressions, target: regs.
 
     # Inlining the value
     value = value_expr.value
-    return Assertion(target_type, target, source, value)
+    return Assertion(source, value)
 
 
-def create_bool2int(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+def create_bool2int(args: el.Expressions, target: regs.Register):
     lg.debug('BoolToInt')
 
     if len(args) != 1:
@@ -248,10 +257,10 @@ def create_bool2int(target_type: b.TargetType, args: el.Expressions, target: reg
     if source.target_type != t.Bool32:
         raise UserWarning(f"'bool_to_int' expects a bool32 source, got {source.target_type}")
 
-    return BoolToInt(target_type, target, source)
+    return BoolToInt(source, target)
 
 
-def create_deref(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+def create_deref(args: el.Expressions, target: regs.Register):
     lg.debug('Deref32')
 
     if len(args) != 1:
@@ -265,7 +274,7 @@ def create_deref(target_type: b.TargetType, args: el.Expressions, target: regs.R
     return Deref(source, target)
 
 
-def create_refset(target_type: b.TargetType, args: el.Expressions, target: regs.Register):
+def create_refset(args: el.Expressions, target: regs.Register):
     lg.debug('RefSet')
 
     ref_target = args[0]
