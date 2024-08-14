@@ -29,28 +29,40 @@ class StackVariable(n.KnownName):
 
 class FormalParameter(StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int,
-        target_type: b.TargetType
+        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
     ):
         super().__init__(namespace, name, offset, target_type)
 
     def json(self):
         data = super().json()
-        data['Kind'] = 'formal'
+        data['Variable'] = 'formal'
         return data
 
 
-class LocalVariable(StackVariable):
+class LocalVariable(StackVariable, el.Element):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int,
-        target_type: b.TargetType
+        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
     ):
-        super().__init__(namespace, name, offset, target_type)
+        el.Element.__init__(self)
+        StackVariable.__init__(self, namespace, name, offset, target_type)
 
     def json(self):
-        data = super().json()
-        data['Variable'] = 'local'
-        return data
+        data = {'Variable': 'local'}
+        data_kn = n.KnownName.json(self)
+        data_el = el.Element.json(self)
+        data.update(data_kn)
+        data.update(data_el)
+        return data_kn
+
+    def emit(self):
+        temp = regs.get_temp([])
+
+        return [
+            f'// Creating local variable {self.name} of type {self.target_type}',
+            f'ldc 0 {temp}',
+            f'push {temp}',
+            f'// End variable {self.name}'
+        ]
 
 
 class LoadStackVariable(el.Expression):
@@ -77,33 +89,6 @@ class LoadStackVariable(el.Expression):
             f'lla {temp_offset} {temp}',
             f'// Loading from address {temp} to {self.target}',
             f'mmr {temp} {self.target}'
-        ]
-
-
-@dataclass
-class LocalVariableCreate(LocalVariable, el.Element):
-    def __init__(
-            self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
-    ):
-        el.Element.__init__(self)
-        LocalVariable.__init__(self, namespace, name, offset, target_type)
-
-    def json(self):
-        data = {'Create': 'global'}
-        data_kn = n.KnownName.json(self)
-        data_el = el.Element.json(self)
-        data.update(data_kn)
-        data.update(data_el)
-        return data_kn
-
-    def emit(self):
-        temp = regs.get_temp([])
-
-        return [
-            f'// Creating local variable {self.name} of type {self.target_type}',
-            f'ldc 0 {temp}',
-            f'push {temp}',
-            f'// End variable {self.name}'
         ]
 
 
@@ -197,7 +182,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         offset = self.local_num * WORD_SIZE
         self.local_num += 1
-        local = LocalVariableCreate(self, name, offset, target_type)
+        local = LocalVariable(self, name, offset, target_type)
         self.add_name(local)
         return local
 
@@ -221,7 +206,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         entrypoint = self.address_label()
         body_label = self._make_label(f'{name}_body')
 
-        is_local = lambda e: isinstance(e, LocalVariableCreate)
+        is_local = lambda e: isinstance(e, LocalVariable)
         is_nested = lambda e: isinstance(e, Function)
         is_body = lambda e: not is_local(e) and not is_nested(e)
         locals = list(filter(is_local, self.body))
@@ -247,7 +232,6 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
 
-@dataclass
 class ActualParameter(el.Element):
     inx: int
     expression: el.Expression
@@ -312,7 +296,6 @@ class CallFrame(el.Expression):
         ])
 
 
-@dataclass
 class FunctionRef(el.Expression):
     func: Function
 
