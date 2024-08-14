@@ -329,6 +329,9 @@ class Translator:
             if isinstance(known_name, el.Expression):
                 return known_name
 
+            if isinstance(known_name, cls.GlobalInstance):
+                raise UserWarning('Global instances are not supported')
+
         if isinstance(source, ast.BinOp):
             left = self.translate_expression(source.left, regs.REGISTERS[0])
             right = self.translate_expression(source.right, regs.REGISTERS[1])
@@ -361,7 +364,7 @@ class Translator:
         if isinstance(source, ast.Subscript):
             return self.translate_subscript(source, target)
 
-        raise UserWarning(f'Unsupported assignment source {source}')
+        raise UserWarning(f'Unsupported expression {source}')
 
     def translate_stmt(self, ast_element: ast.stmt) -> el.Element:
         lg.debug(f'Stmt {type(ast_element)}')

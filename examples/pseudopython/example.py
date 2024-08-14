@@ -1,30 +1,14 @@
 # type: ignore
 
-def foo(pa: ptr[int], b: int, c: bool):
-    a: int
-    a = deref(pa)
-    assert_eq(a, 1)
+class C:
+    i: int
+    b: bool
 
-    pc: ptr[int]
-    pc = pa
-    assert_eq(deref(pc), 1)
+c: C
 
-    refset(pa, 21 + b)
+c.i = 42
+c.b = True
 
-    if c:
-        checkpoint(0)
-    else:
-        checkpoint(1)
+pc: ptr[C]
 
-a: int
-a = 1
-
-b: int
-b = 21
-
-pa: ptr[a]
-pa = ref(a)
-
-assert_eq(a, 1)
-foo(pa, 21, True)
-assert_eq(a, 42)
+pc = ref(c)
