@@ -52,7 +52,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self, known_name: n.KnownName, target: regs.Register
     ) -> el.Expression:
 
-        assert isinstance(known_name, n.GlobalVariable)
+        assert isinstance(known_name, el.GlobalVariable)
         return el.GlobalVariableLoad(known_name, target=target)
 
     def create_function(
@@ -79,7 +79,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
             f'jmp {temp}'
         ])
 
-        globals = lambda n: isinstance(n, el.GlobalVariableCreate)
+        globals = lambda n: isinstance(n, el.GlobalVariable)
         functions = lambda n: isinstance(n, calls.Function)
         classes = lambda n: isinstance(n, cls.Class)
         others = lambda n: not globals(n) and not functions(n) and not classes(n)

@@ -330,7 +330,7 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
 
 def create_global_variable(
         parent: ns.Namespace, name: str, target_type: b.TargetType
-) -> el.GlobalVariableCreate | cls.GlobalInstance:
+) -> el.GlobalVariable | cls.GlobalInstance:
 
     if not isinstance(target_type, t.PhysicalType):
         raise UserWarning(f'Type {name} must representable')
@@ -350,7 +350,7 @@ def create_global_variable(
 
     else:
         lg.debug(f'Creating a global variable {name}')
-        create = el.GlobalVariableCreate(parent, name, target_type)
+        create = el.GlobalVariable(parent, name, target_type)
         return create
 
 

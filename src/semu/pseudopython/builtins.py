@@ -151,10 +151,10 @@ class Deref(BuiltinInlineImpl):
 
 
 class GlobalRefSet(BuiltinInlineImpl):
-    variable: n.GlobalVariable
+    variable: el.GlobalVariable
     source: el.Expression
 
-    def __init__(self, variable: n.GlobalVariable, source: el.Expression):
+    def __init__(self, variable: el.GlobalVariable, source: el.Expression):
         super().__init__(t.Unit, regs.VOID_REGISTER)
         self.variable = variable
         self.source = source

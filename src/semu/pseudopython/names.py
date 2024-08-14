@@ -50,13 +50,3 @@ class Constant(KnownName):
         data = super().json()
         data.update({'Value': self.value})
         return data
-
-
-class GlobalVariable(KnownName):
-    def __init__(self, namespace: INamespace, name: str, target_type: b.TargetType):
-        super().__init__(namespace, name, target_type)
-
-    def json(self):
-        data = super().json()
-        data.update({'Variable': 'global'})
-        return data

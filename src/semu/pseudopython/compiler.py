@@ -111,7 +111,7 @@ class Translator:
         e_type = expression.target_type
 
         if t_type == e_type:
-            if isinstance(target, n.GlobalVariable):
+            if isinstance(target, el.GlobalVariable):
                 return el.GlobalVariableAssignment(target, expression)
             elif isinstance(target, calls.LocalVariable):
                 return calls.LocalVariableAssignment(target, expression)
@@ -127,7 +127,7 @@ class Translator:
         lookup = self.resolve_object(ast_target)
         known_name = lookup.known_name
 
-        if isinstance(known_name, (n.GlobalVariable, calls.LocalVariable)):
+        if isinstance(known_name, (el.GlobalVariable, calls.LocalVariable)):
             return self.translate_var_assign(known_name, ast_value)
         else:
             raise UserWarning(f'Unsupported assignment target {known_name}')
@@ -307,7 +307,7 @@ class Translator:
             if isinstance(known_name, n.Constant):
                 return namespace.load_const(known_name, target)
 
-            if isinstance(known_name, n.GlobalVariable):
+            if isinstance(known_name, el.GlobalVariable):
                 return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, bi.BuiltinInline):

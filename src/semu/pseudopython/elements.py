@@ -90,7 +90,7 @@ class ConstantExpression(Expression):
 
 
 @dataclass
-class GlobalVariableCreate(Element, n.GlobalVariable):
+class GlobalVariable(Element, n.KnownName):
     def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
         n.KnownName.__init__(self, namespace, name, target_type)
         Element.__init__(self)
@@ -147,9 +147,9 @@ class GlobalVariableAssignment(Element):
 
 
 class GlobalVariableLoad(Expression):
-    variable: n.GlobalVariable
+    variable: GlobalVariable
 
-    def __init__(self, variable: n.GlobalVariable, target: regs.Register):
+    def __init__(self, variable: GlobalVariable, target: regs.Register):
         super().__init__(variable.target_type, target)
         self.variable = variable
 

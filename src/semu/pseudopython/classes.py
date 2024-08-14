@@ -92,7 +92,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         var = self.names.get(known_name.name)
 
-        if not isinstance(var, el.GlobalVariableCreate):
+        if not isinstance(var, el.GlobalVariable):
             raise UserWarning(f'Variable {known_name.name} not found')
 
         return el.GlobalVariableLoad(var, target=target)
