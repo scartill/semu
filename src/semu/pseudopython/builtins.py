@@ -349,7 +349,7 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
     t.Unit.parent = namespace
     t.Int32.parent = namespace
     t.Bool32.parent = namespace
-    ptrs.PointerOperatorType.parent = namespace
+    ptrs.PointerOperator.parent = namespace
 
     return [
         t.Unit,

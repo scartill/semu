@@ -326,7 +326,7 @@ class Translator:
             if isinstance(known_name, b.TargetType):
                 return el.TypeWrapper(known_name)
 
-            if isinstance(known_name, el.Expression):
+            if isinstance(known_name, el.BuiltinMetaoperator):
                 return known_name
 
             if isinstance(known_name, cls.GlobalInstance):

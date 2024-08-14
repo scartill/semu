@@ -195,3 +195,15 @@ class TypeWrapper(Expression):
         tt = self.target_type
         descr = tt.name if isinstance(tt, t.NamedType) else tt.json()
         return {'TypeWrapper': descr}
+
+
+# Built-in operator with no physical representation (e.g. type declaration)
+class BuiltinMetaoperator(n.KnownName, Expression):
+    def __init__(self, name: str):
+        n.KnownName.__init__(self, None, name, b.Builtin)
+        Expression.__init__(self, b.Builtin, regs.VOID_REGISTER)
+
+    def json(self):
+        data = n.KnownName.json(self)
+        data.update({'Class': 'Metaoperator', 'Name': self.name})
+        return data

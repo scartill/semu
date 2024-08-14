@@ -1,5 +1,4 @@
 import semu.pseudopython.registers as regs
-import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
@@ -27,15 +26,9 @@ class PointerToGlobal(el.Expression):
         ]
 
 
-class PointerOperatorType(n.KnownName, el.Expression):
+class PointerOperatorType(el.BuiltinMetaoperator):
     def __init__(self):
-        n.KnownName.__init__(self, None, 'ptr', b.Builtin)
-        el.Expression.__init__(self, b.Builtin, regs.VOID_REGISTER)
-
-    def json(self):
-        data = n.KnownName.json(self)
-        data.update({'Class': 'PointerConstructor'})
-        return data
+        super().__init__('ptr')
 
 
 PointerOperator = PointerOperatorType()
