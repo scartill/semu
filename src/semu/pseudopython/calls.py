@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from typing import Sequence, List
+from typing import Sequence, List, Callable
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.names as n
 import semu.pseudopython.base as b
-import semu.pseudopython.helpers as h
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
@@ -146,6 +145,8 @@ class LocalVariableAssignment(el.Element):
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
+    factory: Callable | None = None
+
     decorators: List[el.DecoratorApplication]
     body: el.Elements
     return_type: b.TargetType
@@ -209,7 +210,8 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         decors: el.Expressions, target_type: b.TargetType
     ) -> ns.Namespace:
 
-        function = h.create_function(self, name, args, decors, target_type)
+        assert Function.factory
+        function = Function.factory(self, name, args, decors, target_type)
         self.add_name(function)
         return function
 

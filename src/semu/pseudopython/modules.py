@@ -52,6 +52,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self, known_name: n.KnownName, target: regs.Register
     ) -> el.Expression:
 
+        assert isinstance(known_name, n.GlobalVariable)
         return el.GlobalVariableLoad(known_name, target=target)
 
     def create_function(

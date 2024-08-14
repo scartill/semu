@@ -22,6 +22,10 @@ import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 
 
+# Late binding
+calls.Function.factory = h.create_function
+
+
 class Translator:
     top_level: pack.TopLevel
     settings: h.CompileSettings

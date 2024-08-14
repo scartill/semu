@@ -12,10 +12,10 @@ import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.names as n
 import semu.pseudopython.intops as intops
+import semu.pseudopython.calls as calls
 import semu.pseudopython.boolops as boolops
 import semu.pseudopython.cmpops as cmpops
 import semu.pseudopython.namespaces as ns
-import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
@@ -377,7 +377,7 @@ def build_pointer_assignment(target: n.KnownName, expression: el.Expression):
         raise UserWarning(f'Pointer type mismatch {t_type.ref_type} != {e_type}')
 
     if isinstance(expression, el.GlobalVariableLoad):
-        to_known_name = expression.known_name
+        to_known_name = expression.variable
     else:
         raise UserWarning(f'Unsupported pointer assignment {expression}')
 

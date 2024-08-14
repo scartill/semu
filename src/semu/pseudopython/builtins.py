@@ -4,9 +4,10 @@ import logging as lg
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
-import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
+import semu.pseudopython.base as b
 import semu.pseudopython.names as n
+import semu.pseudopython.calls as calls
 import semu.pseudopython.elements as el
 import semu.pseudopython.pointers as ptrs
 
@@ -126,7 +127,13 @@ class GlobalRefSet(BuiltinInlineImpl):
 
     def json(self):
         data = super().json()
-        data.update({'RefSet': self.variable.name, 'Source': self.source.json()})
+
+        data.update({
+            'Mode': 'global',
+            'RefSet': self.variable.name,
+            'Source': self.source.json()
+        })
+
         return data
 
     def emit(self) -> el.Sequence[str]:
@@ -136,8 +143,48 @@ class GlobalRefSet(BuiltinInlineImpl):
         address = regs.get_temp([self.source.target])
 
         return flatten([
-            '// RefSet target address load',
+            '// RefSet global target address load',
             f'ldr &{address_label} {address}',
+            f'push {address}',
+            '// RefSet source calculation',
+            self.source.emit(),
+            f'pop {address}',
+            f'mmr {address} {address}',   # dereference
+            f'mrm {self.source.target} {address}'
+        ])
+
+
+class LocalRefSet(BuiltinInlineImpl):
+    variable: calls.StackVariable
+    source: el.Expression
+
+    def __init__(self, variable: calls.StackVariable, source: el.Expression):
+        super().__init__(t.Unit, regs.VOID_REGISTER)
+        self.variable = variable
+        self.source = source
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Mode': 'local',
+            'RefSet': self.variable.name,
+            'Source': self.source.json()
+        })
+
+        return data
+
+    def emit(self) -> el.Sequence[str]:
+        assert isinstance(self.variable.target_type, t.PointerType)
+        offset = self.variable.offset
+        available = regs.get_available([self.source.target])
+        address = available.pop()
+        offset_temp = available.pop()
+
+        return flatten([
+            '// RefSet local target  address load',
+            f'ldc {offset} {offset_temp}',
+            f'lla {offset_temp} {address}',
             f'push {address}',
             '// RefSet source calculation',
             self.source.emit(),
@@ -224,12 +271,6 @@ def create_refset(target_type: b.TargetType, args: el.Expressions, target: regs.
     ref_target = args[0]
     ref_source = args[1]
 
-    if not isinstance(ref_target, el.GlobalVariableLoad):
-        raise UserWarning(f"'refset' expects a global variable target, got {ref_target}")
-
-    global_var = ref_target.known_name
-    assert isinstance(global_var, n.GlobalVariable)
-
     if not isinstance(ref_source.target_type, t.PhysicalType):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source.target_type}")
 
@@ -242,7 +283,12 @@ def create_refset(target_type: b.TargetType, args: el.Expressions, target: regs.
             "got {source.target_type}"
         )
 
-    return GlobalRefSet(global_var, ref_source)
+    if isinstance(ref_target, el.GlobalVariableLoad):
+        return GlobalRefSet(ref_target.variable, ref_source)
+    elif isinstance(ref_target, calls.LoadStackVariable):
+        return LocalRefSet(ref_target.variable, ref_source)
+    else:
+        raise UserWarning(f"Unsupported refset target: {ref_target}")
 
 
 def get(namespace: n.INamespace) -> Sequence[n.KnownName]:

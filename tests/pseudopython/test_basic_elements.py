@@ -77,3 +77,7 @@ def test_globalpointers():
 
 def test_moreglobalpointers():
     simple_test('moreglobalpointers')
+
+
+def test_localpointers(capsys):
+    simple_with_capture('localpointers', capsys)
