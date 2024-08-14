@@ -164,8 +164,8 @@ COMPARE_OPS = {
 
 
 def create_compare(
-        left: el.Expression, ast_op: ast.AST, right: el.Expression,
-        target: regs.Register
+    left: el.Expression, ast_op: ast.AST, right: el.Expression,
+    target: regs.Register
 ):
     operand_type = left.target_type
 
@@ -329,7 +329,7 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
 
 
 def create_global_variable(
-        parent: ns.Namespace, name: str, target_type: b.TargetType
+    parent: ns.Namespace, name: str, target_type: b.TargetType
 ) -> el.GlobalVariable | cls.GlobalInstance:
 
     if not isinstance(target_type, t.PhysicalType):

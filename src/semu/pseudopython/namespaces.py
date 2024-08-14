@@ -68,7 +68,7 @@ class Namespace(n.INamespace):
         raise NotImplementedError()
 
     def create_function(
-        self, name: str, args: ArgDefs,
-        decors: el.Expressions, target_type: b.TargetType
+        self, name: str, args: ArgDefs, decors: el.Expressions, target_type: b.TargetType
     ) -> 'Namespace':
+
         raise NotImplementedError()
