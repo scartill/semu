@@ -103,6 +103,29 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
+class Ref(BuiltinInlineImpl):
+    address: el.Expression
+
+    def __init__(
+        self, target_type: t.PointerType, address: el.Expression, target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.address = address
+
+    def json(self):
+        data = el.Expression.json(self)
+        assert isinstance(self.target_type, t.PointerType)
+        data.update({'RefOf': self.target_type.name})
+        return data
+
+    def emit(self) -> el.Sequence[str]:
+        return flatten([
+            '// Ref target address fetch',
+            self.address.emit(),
+            f'mrr {self.address.target} {self.target}'
+        ])
+
+
 class Deref(BuiltinInlineImpl):
     source: el.Expression
 
@@ -300,6 +323,28 @@ def create_refset(args: el.Expressions, target: regs.Register):
         raise UserWarning(f"Unsupported refset target: {ref_target}")
 
 
+def create_ref(args: el.Expressions, target: regs.Register):
+    lg.debug('Ref')
+
+    if len(args) != 1:
+        raise UserWarning(f"'ref' expects 1 argument, got {len(args)}")
+
+    source = args[0]
+    s_type = source.target_type
+
+    if not isinstance(s_type, t.PhysicalType):
+        raise ValueError('Pointers can only point to PhysicalType')
+
+    if isinstance(source, el.GlobalVariableLoad):
+        to_known_name = source.variable
+    else:
+        raise UserWarning(f'Unsupported pointer assignment {source}')
+
+    temp = regs.get_temp([source.target, target])
+    load_pointer = ptrs.PointerToGlobal(to_known_name, temp)
+    return Ref(t.PointerType(s_type), load_pointer, target)
+
+
 def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
     t.Unit.parent = namespace
     t.Int32.parent = namespace
@@ -315,6 +360,7 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
         BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),
-        BuiltinInline(namespace, 'deref', t.AbstractPointer, create_deref),
-        BuiltinInline(namespace, 'refset', t.AbstractPointer, create_refset)
+        BuiltinInline(namespace, 'ref', t.AbstractPointer, create_ref),
+        BuiltinInline(namespace, 'deref', t.AbstractPhysical, create_deref),
+        BuiltinInline(namespace, 'refset', t.Unit, create_refset)
     ]

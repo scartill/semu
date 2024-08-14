@@ -110,16 +110,11 @@ class Translator:
         t_type = target.target_type
         e_type = expression.target_type
 
-        # Peer assignment
         if t_type == e_type:
             if isinstance(target, n.GlobalVariable):
                 return el.GlobalVariableAssignment(target, expression)
             elif isinstance(target, calls.LocalVariable):
                 return calls.LocalVariableAssignment(target, expression)
-
-        # Type to pointer assignment
-        if isinstance(t_type, t.PointerType):
-            return h.build_pointer_assignment(target, expression)
 
         raise UserWarning(f'Unsupported assign target {target} ({e_type} -> {t_type})')
 

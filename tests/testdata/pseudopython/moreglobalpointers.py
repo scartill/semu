@@ -7,8 +7,8 @@ pc: ptr[int]
 
 a = 42
 
-pa = a
-pb = a
+pa = ref(a)
+pb = ref(a)
 pc = pa
 
 assert_eq(a, 42)

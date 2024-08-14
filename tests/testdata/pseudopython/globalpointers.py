@@ -5,7 +5,7 @@ pa: ptr[int]
 
 a = 1
 
-pa = a
+pa = ref(a)
 
 b: int
 b = deref(pa)
