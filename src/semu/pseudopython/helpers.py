@@ -286,7 +286,7 @@ def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
 
 def find_module(namespace: ns.Namespace, names: List[str]):
     name = names.pop(0)
-    lookup = namespace.get_name(name)
+    lookup = namespace.lookup_name_upwards(name)
 
     if not lookup:
         return (False, namespace, name, names)

@@ -47,7 +47,7 @@ class Namespace(n.INamespace):
         lg.debug(f'Adding {known_name.name} to {self.namespace()}')
         self.names[known_name.name] = known_name
 
-    def get_name(self, name: str) -> NameLookup | None:
+    def lookup_name_upwards(self, name: str) -> NameLookup | None:
         lg.debug(f'Looking up {name} in {self.namespace()}')
 
         known_name = self.names.get(name)
@@ -55,7 +55,15 @@ class Namespace(n.INamespace):
         if known_name:
             return NameLookup(self, known_name)
 
-        return self.parent.get_name(name)
+        return self.parent.lookup_name_upwards(name)
+
+    def get_own_name(self, name: str) -> NameLookup:
+        known_name = self.names.get(name)
+
+        if not known_name:
+            raise UserWarning(f'Unknown reference {name} in {self.namespace()}')
+
+        return NameLookup(self, known_name)
 
     def load_const(self, known_name: n.KnownName, target: regs.Register):
         if not isinstance(known_name, n.Constant):

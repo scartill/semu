@@ -40,7 +40,7 @@ class Translator:
     def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
         path = h.collect_path_from_attribute(ast_name)
         top_name = path.pop(0)
-        lookup = self.context.get_name(top_name)
+        lookup = self.context.lookup_name_upwards(top_name)
 
         if lookup is None:
             raise UserWarning(f'Unknown reference {top_name}')
@@ -51,7 +51,7 @@ class Translator:
             if not isinstance(lookup.known_name, ns.Namespace):
                 raise UserWarning(f'Unsupported path lookup {lookup.known_name}')
 
-            lookup = lookup.known_name.get_name(next_name)
+            lookup = lookup.known_name.get_own_name(next_name)
 
             if lookup is None:
                 raise UserWarning(f'Unknown nested reference {next_name}')

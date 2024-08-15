@@ -122,12 +122,24 @@ class InstancePointerType(t.NamedType):
         self.ref_type = ref_type
 
 
-class GlobalInstancePointer(el.GlobalVariable):
+class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
+    def __init__(self, parent: ns.Namespace, name: str, target_type: InstancePointerType):
+        el.GlobalVariable.__init__(self, parent, name, target_type)
+        ns.Namespace.__init__(self, name, parent)
+
     def json(self):
-        data = super().json()
-        assert isinstance(self.target_type, InstancePointerType)
-        data.update({'GlobalInstancePointer': self.target_type.name})
+        data = {'Class': 'GlobalInstancePointer'}
+        gv_data = el.GlobalVariable.json(self)
+        ns_data = ns.Namespace.json(self)
+        data.update(gv_data)
+        data.update(ns_data)
         return data
+
+    def load_variable(
+        self, known_name: n.KnownName, target: regs.Register
+    ) -> el.PhysicalExpression:
+
+        raise UserWarning('Attribute dereference not supported for global instances')
 
 
 class GlobalInstanceLoad(el.PhysicalExpression):

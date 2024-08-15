@@ -67,7 +67,7 @@ class TopLevel(ns.Namespace, el.Element):
     def parent_prefix(self) -> str:
         return ''
 
-    def get_name(self, name: str) -> ns.NameLookup | None:
+    def lookup_name_upwards(self, name: str) -> ns.NameLookup | None:
         lg.debug(f'Looking up {name} on the top level')
 
         if known_name := self.names.get(name):
