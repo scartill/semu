@@ -12,12 +12,7 @@ c.b = True
 pc: ptr[C]
 pc = c
 
-i: int
-i = c.i
+j: int
+j = pc.j
 
-assert_eq(i, 42)
-
-# j: int
-# j = pc.j
-
-# assert_eq(j, 42)
+assert_eq(j, 42)
