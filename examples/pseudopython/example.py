@@ -10,4 +10,4 @@ c.i = 42
 c.b = True
 
 pc: ptr[C]
-# pc = ref(c)
+# pc = c

@@ -9,21 +9,15 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 
 
-class ClassVariable(n.KnownName, el.Element):
+class ClassVariable(n.KnownName):
     def __init__(self, parent: 'Class', name: str, target_type: b.TargetType):
-        el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, target_type)
 
     def json(self):
-        el_data = el.Element.json(self)
         n_data = n.KnownName.json(self)
         data = {'Class': 'ClassVariable'}
-        data.update(el_data)
         data.update(n_data)
         return data
-
-    def emit(self):
-        return f'// Class variable def {self.qualname()}:{self.target_type}'
 
 
 class Class(t.PhysicalType, ns.Namespace, el.Element):
@@ -44,7 +38,7 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
         data.update(n_data)
         return data
 
-    def create_variable(self, name: str, target_type: t.PhysicalType) -> el.Element:
+    def create_variable(self, name: str, target_type: t.PhysicalType) -> n.KnownName:
         var = ClassVariable(self, name, target_type)
         self.add_name(var)
         return var
