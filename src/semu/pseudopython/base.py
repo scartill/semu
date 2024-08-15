@@ -7,10 +7,7 @@ JSON = Dict[str, Any]
 
 class TargetType:
     def json(self) -> JSON:
-        return {'Class': 'Type'}
-
-    def __str__(self):
-        return self.__class__.__name__
+        return {'Builtin': 'TargetType'}
 
 
 class BuiltinType(TargetType):
@@ -19,7 +16,7 @@ class BuiltinType(TargetType):
 
     def json(self):
         data = super().json()
-        data.update({'Class': 'Builtin'})
+        data.update({'Builtin': 'BuiltinType'})
         return data
 
 

@@ -82,6 +82,16 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         n.KnownName.__init__(self, parent, name, target_type)
         ns.Namespace.__init__(self, name, parent)
 
+    def json(self):
+        data = {'Class': 'GlobalInstance'}
+        el_data = el.Element.json(self)
+        ns_data = ns.Namespace.json(self)
+        n_data = n.KnownName.json(self)
+        data.update(el_data)
+        data.update(ns_data)
+        data.update(n_data)
+        return data
+
     def emit(self):
         return flatten([
             f'// Global instance {self.qualname()}',
