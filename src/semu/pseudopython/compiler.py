@@ -350,6 +350,8 @@ class Translator:
             if isinstance(known_name, cls.GlobalInstance):
                 return cls.GlobalInstanceLoad(known_name, target)
 
+            raise UserWarning(f'Unsupported name {known_name} as expression')
+
         if isinstance(source, ast.BinOp):
             left = self.tx_expression(source.left, regs.REGISTERS[0])
             right = self.tx_expression(source.right, regs.REGISTERS[1])

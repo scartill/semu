@@ -1,3 +1,5 @@
+import logging as lg
+
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -10,8 +12,11 @@ import semu.pseudopython.calls as calls
 
 
 class ClassVariable(n.KnownName):
-    def __init__(self, parent: 'Class', name: str, target_type: b.TargetType):
+    inx: int
+
+    def __init__(self, parent: 'Class', name: str, inx: int, target_type: b.TargetType):
         n.KnownName.__init__(self, parent, name, target_type)
+        self.inx = inx
 
     def json(self):
         n_data = n.KnownName.json(self)
@@ -39,7 +44,8 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         return data
 
     def create_variable(self, name: str, target_type: t.PhysicalType) -> n.KnownName:
-        var = ClassVariable(self, name, target_type)
+        n_vars = len([x for x in self.names.values() if isinstance(x, ClassVariable)])
+        var = ClassVariable(self, name, n_vars, target_type)
         self.add_name(var)
         return var
 
@@ -122,10 +128,33 @@ class InstancePointerType(t.NamedType):
         self.ref_type = ref_type
 
 
+class MemberPointer(n.KnownName):
+    variable: ClassVariable
+
+    def __init__(self, parent: ns.Namespace, variable: ClassVariable):
+        assert isinstance(variable.target_type, t.PhysicalType)
+        super().__init__(parent, variable.name, t.PointerType(variable.target_type))
+        self.variable = variable
+
+
 class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
-    def __init__(self, parent: ns.Namespace, name: str, target_type: InstancePointerType):
+    def __init__(
+        self, parent: ns.Namespace, name: str, target_type: InstancePointerType
+    ):
         el.GlobalVariable.__init__(self, parent, name, target_type)
         ns.Namespace.__init__(self, name, parent)
+
+        class_vars = [
+            cv for cv in target_type.ref_type.names.values()
+            if isinstance(cv, ClassVariable)
+        ]
+
+        lg.debug(f'Found {len(class_vars)} class variables')
+
+        for cv in sorted(class_vars, key=lambda x: x.inx):
+            lg.debug(f'Creating member pointer for {cv.name}')
+            mp = MemberPointer(self, cv)
+            self.add_name(mp)
 
     def json(self):
         data = {'Class': 'GlobalInstancePointer'}

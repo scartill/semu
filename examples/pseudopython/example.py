@@ -13,6 +13,6 @@ pc: ptr[C]
 pc = c
 
 j: int
-j = pc.j
+j = pc.i
 
 # assert_eq(j, 42)
