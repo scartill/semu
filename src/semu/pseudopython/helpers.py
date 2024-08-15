@@ -357,9 +357,6 @@ def create_global_variable(
     parent: ns.Namespace, name: str, target_type: b.TargetType
 ) -> el.GlobalVariable | cls.GlobalInstance:
 
-    if not isinstance(target_type, t.PhysicalType):
-        raise UserWarning(f'Type {name} must representable')
-
     if isinstance(target_type, cls.Class):
         lg.debug(f'Creating a global instance {name} of {target_type.name}')
         instance = cls.GlobalInstance(parent, name, target_type)
@@ -372,8 +369,12 @@ def create_global_variable(
             )
 
         return instance
-
+    if isinstance(target_type, cls.InstancePointerType):
+        return cls.GlobalInstancePointer(parent, name, target_type)
     else:
+        if not isinstance(target_type, t.PhysicalType):
+            raise UserWarning(f'Type {name} must be representable')
+
         lg.debug(f'Creating a global variable {name}')
         create = el.GlobalVariable(parent, name, target_type)
         return create
@@ -383,7 +384,10 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
     if value != ptrs.PointerOperator:
         raise UserWarning(f'Unsupported subscript value type {value}')
 
-    if not isinstance(slice.target_type, t.PhysicalType):
-        raise UserWarning(f'Unsupported subscript slice type {slice}')
+    if isinstance(slice.target_type, cls.Class):
+        return el.TypeWrapper(cls.InstancePointerType(slice.target_type))
 
-    return el.TypeWrapper(t.PointerType(slice.target_type))
+    if isinstance(slice.target_type, t.PhysicalType):
+        return el.TypeWrapper(t.PointerType(slice.target_type))
+
+    raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')

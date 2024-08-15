@@ -99,7 +99,7 @@ class Bool32Type(PhysicalType):
         return data
 
 
-class AbstractPointerType(PhysicalType):
+class AbstractPointerType(NamedType):
     def __init__(self):
         super().__init__('pointer')
 

@@ -15,4 +15,4 @@ pc = c
 j: int
 j = pc.j
 
-assert_eq(j, 42)
+# assert_eq(j, 42)

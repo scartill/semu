@@ -96,7 +96,6 @@ class ConstantExpression(PhysicalExpression):
 PhysicalExpressions = Sequence[PhysicalExpression]
 
 
-@dataclass
 class GlobalVariable(Element, n.KnownName):
     def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
         n.KnownName.__init__(self, namespace, name, target_type)
@@ -115,10 +114,11 @@ class GlobalVariable(Element, n.KnownName):
 
     def emit(self):
         label = self.address_label()
-        assert isinstance(self.target_type, t.PhysicalType)
+        tt = self.target_type
+        type_name = tt.name if isinstance(tt, t.NamedType) else '<dynamic>'
 
         return [
-            f'// Begin variable {self.name}',
+            f'// Begin variable {self.name} of type {type_name}',
             f'{label}:',        # label
             'nop',              # placeholder
             '// End variable'

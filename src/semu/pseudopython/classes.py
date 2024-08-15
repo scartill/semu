@@ -20,12 +20,12 @@ class ClassVariable(n.KnownName):
         return data
 
 
-class Class(t.PhysicalType, ns.Namespace, el.Element):
+class Class(t.NamedType, ns.Namespace, el.Element):
     ctor: calls.Function
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.PhysicalType.__init__(self, name)
+        t.NamedType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
@@ -108,12 +108,34 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         ])
 
 
+class InstancePointerType(t.NamedType):
+    ref_type: Class
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, InstancePointerType):
+            return False
+
+        return self.ref_type == value.ref_type
+
+    def __init__(self, ref_type: Class):
+        super().__init__(f'pointer<{ref_type.name}>')
+        self.ref_type = ref_type
+
+
+class GlobalInstancePointer(el.GlobalVariable):
+    def json(self):
+        data = super().json()
+        assert isinstance(self.target_type, InstancePointerType)
+        data.update({'GlobalInstancePointer': self.target_type.name})
+        return data
+
+
 class GlobalInstanceLoad(el.PhysicalExpression):
     instance: GlobalInstance
 
     def __init__(self, instance: GlobalInstance, target: regs.Register):
-        assert isinstance(instance.target_type, t.PhysicalType)
-        pointer_type = t.PointerType(instance.target_type)
+        assert isinstance(instance.target_type, Class)
+        pointer_type = InstancePointerType(instance.target_type)
         super().__init__(pointer_type, target)
         self.instance = instance
 
