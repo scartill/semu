@@ -81,3 +81,7 @@ def test_moreglobalpointers():
 
 def test_localpointers(capsys):
     simple_with_capture('localpointers', capsys)
+
+
+def test_memberpointerderef():
+    simple_test('memberpointerderef')

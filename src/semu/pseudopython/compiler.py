@@ -350,6 +350,9 @@ class Translator:
             if isinstance(known_name, cls.GlobalInstance):
                 return cls.GlobalInstanceLoad(known_name, target)
 
+            if isinstance(known_name, cls.GlobalMemberPointer):
+                return cls.GlobalMemberPointerLoad(known_name, target)
+
             raise UserWarning(f'Unsupported name {known_name} as expression')
 
         if isinstance(source, ast.BinOp):
