@@ -1,20 +1,21 @@
 # type: ignore
 
 class C:
-    i: int
     b: bool
+    i: int
 
 c: C
 
-c.i = 42
 c.b = True
+c.i = 21
 
 pc: ptr[C]
 pc = c
 
-def bar(po: ptr[C]):
+def bar(po: ptr[C], k: int):
     j: int
-    j = deref(po.i)
+    # j = deref(po.i)
+    j = j + k
     assert_eq(j, 42)
 
-bar(pc)
+bar(pc, 21)

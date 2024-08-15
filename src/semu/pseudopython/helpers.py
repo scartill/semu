@@ -216,6 +216,9 @@ def create_function(
     for inx, (arg_name, arg_type) in enumerate(args):
         # NB: Note that the offset skips the return address and saved frame pointer
         offset = -(total - inx + 2) * WORD_SIZE
+
+        lg.debug(f'Adding formal {arg_name} at {offset} of type {arg_type}')
+
         formal = calls.FormalParameter(function, arg_name, offset, arg_type)
         function.add_name(formal)
 
@@ -235,7 +238,7 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
     f_name = func_ref.func.name
     f_type = func_ref.func.target_type
 
-    lg.debug(f'Making call to {f_name}({args}) -> {f_type}')
+    lg.debug(f'Making call to {f_name}')
 
     formal_args = func_ref.func.formals()
 

@@ -115,18 +115,20 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         ])
 
 
-class InstancePointerType(t.NamedType):
+class InstancePointerType(b.TargetType):
     ref_type: Class
+
+    def __init__(self, ref_type: Class):
+        self.ref_type = ref_type
+
+    def __str__(self):
+        return f'pointer<{self.ref_type.name}>'
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, InstancePointerType):
             return False
 
         return self.ref_type == value.ref_type
-
-    def __init__(self, ref_type: Class):
-        super().__init__(f'pointer<{ref_type.name}>')
-        self.ref_type = ref_type
 
 
 class GlobalMemberPointer(n.KnownName):
