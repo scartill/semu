@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Element, Expression
+from semu.pseudopython.elements import Element, PhysicalExpression
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.registers as regs
 
@@ -147,12 +147,15 @@ class GtE(CompareOp):
 
 
 @dataclass
-class Compare(Expression):
-    left: Expression
+class Compare(PhysicalExpression):
+    left: PhysicalExpression
     op: CompareOp
-    right: Expression
+    right: PhysicalExpression
 
-    def __init__(self, target: regs.Register, left: Expression, op: CompareOp, right: Expression):
+    def __init__(
+        self, target: regs.Register,
+        left: PhysicalExpression, op: CompareOp, right: PhysicalExpression
+    ):
         super().__init__(target_type=t.Bool32, target=target)
         self.left = left
         self.op = op

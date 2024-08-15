@@ -65,7 +65,7 @@ class LocalVariable(StackVariable, el.Element):
         ]
 
 
-class LoadStackVariable(el.Expression):
+class LoadStackVariable(el.PhysicalExpression):
     variable: StackVariable
 
     def __init__(self, variable: StackVariable, target: regs.Register):
@@ -94,9 +94,9 @@ class LoadStackVariable(el.Expression):
 
 class LocalVariableAssignment(el.Element):
     target: LocalVariable
-    expr: el.Expression
+    expr: el.PhysicalExpression
 
-    def __init__(self, target: LocalVariable, expr: el.Expression):
+    def __init__(self, target: LocalVariable, expr: el.PhysicalExpression):
         self.target = target
         self.expr = expr
 
@@ -234,9 +234,9 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
 class ActualParameter(el.Element):
     inx: int
-    expression: el.Expression
+    expression: el.PhysicalExpression
 
-    def __init__(self, inx: int, expression: el.Expression):
+    def __init__(self, inx: int, expression: el.PhysicalExpression):
         super().__init__()
         self.inx = inx
         self.expression = expression
@@ -262,9 +262,9 @@ class ActualParameter(el.Element):
 
 
 @dataclass
-class CallFrame(el.Expression):
+class CallFrame(el.PhysicalExpression):
     actuals: list[ActualParameter]
-    call: el.Expression
+    call: el.PhysicalExpression
 
     def json(self):
         data = super().json()
@@ -329,7 +329,7 @@ class Return(el.Element):
 @dataclass
 class ReturnValue(Return):
     func: Function
-    expression: el.Expression
+    expression: el.PhysicalExpression
 
     def return_type(self):
         return self.expression.target_type
@@ -372,7 +372,7 @@ class ReturnUnit(el.Element):
 
 
 @dataclass
-class FunctionCall(el.Expression):
+class FunctionCall(el.PhysicalExpression):
     func_ref: FunctionRef
 
     def json(self):

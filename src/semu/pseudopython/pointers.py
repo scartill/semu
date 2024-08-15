@@ -4,7 +4,7 @@ import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 
 
-class PointerToGlobal(el.Expression):
+class PointerToGlobal(el.PhysicalExpression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register):

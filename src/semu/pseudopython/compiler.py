@@ -105,8 +105,19 @@ class Translator:
         args = [self.translate_expression(value) for value in values]
         return h.create_boolop(args, source.op, target)
 
+    def translate_phy_expression(
+        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+    ) -> el.PhysicalExpression:
+
+        expression = self.translate_expression(source, target)
+
+        if not isinstance(expression, el.PhysicalExpression):
+            raise UserWarning(f'Physical value required {expression}')
+
+        return expression
+
     def translate_var_assign(self, target: n.KnownName, source: ast.AST):
-        expression = self.translate_expression(source)
+        expression = self.translate_phy_expression(source)
         t_type = target.target_type
         e_type = expression.target_type
 
@@ -147,7 +158,7 @@ class Translator:
         return self.context.create_variable(assign.target.id, target_type)
 
     def translate_if(self, ast_if: ast.If):
-        test = self.translate_expression(ast_if.test)
+        test = self.translate_phy_expression(ast_if.test)
         true_body = self.translate_body(ast_if.body)
 
         if test.target_type != t.Bool32:
@@ -163,6 +174,9 @@ class Translator:
     def translate_while(self, ast_while: ast.While):
         test = self.translate_expression(ast_while.test)
         body = self.translate_body(ast_while.body)
+
+        if not isinstance(test, el.PhysicalExpression):
+            raise UserWarning(f'While test must be a physical expression, got {test}')
 
         if test.target_type != t.Bool32:
             raise UserWarning(f'While test must be of type bool32, got {test.target_type}')
@@ -238,6 +252,9 @@ class Translator:
             if f_type != e_type:
                 raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
 
+            if not isinstance(value, el.PhysicalExpression):
+                raise UserWarning(f'Unsupported return value {value}')
+
             func.returns = True
             return calls.ReturnValue(func, value)
         else:
@@ -248,6 +265,7 @@ class Translator:
 
     def translate_function(self, ast_function: ast.FunctionDef):
         name = ast_function.name
+
         lg.debug(f'Found function {name}')
 
         if ast_function.returns is None:
@@ -377,7 +395,7 @@ class Translator:
                     # NB: This is a hack to support `is` as a free operator
                     return self.translate_free_is(value)
                 else:
-                    return self.translate_expression(value)
+                    return self.translate_phy_expression(value)
             case ast.Pass:
                 return el.VoidElement('pass')
             case ast.Assign:
@@ -400,8 +418,11 @@ class Translator:
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
         return el.VoidElement('unsupported')
 
-    def translate_body(self, ast_body: Sequence[ast.stmt]) -> Sequence[el.Element]:
-        return list(map(self.translate_stmt, ast_body))
+    def translate_body(self, ast_body: Sequence[ast.stmt]) -> el.Elements:
+        return cast(el.Elements, list(filter(
+            lambda x: isinstance(x, el.Element),
+            (self.translate_stmt(ast_element) for ast_element in ast_body)
+        )))
 
     def translate_module(self, name: str, ast_module: ast.Module):
         module = mods.Module(name, self.context)

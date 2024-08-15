@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression
+from semu.pseudopython.elements import PhysicalExpression
 import semu.pseudopython.registers as regs
 
 
 @dataclass
-class UOp(Expression):
-    operand: Expression
+class UOp(PhysicalExpression):
+    operand: PhysicalExpression
 
     def json(self):
         data = super().json()
@@ -37,9 +37,9 @@ class Neg(UOp):
 
 
 @dataclass
-class BinOp(Expression):
-    left: Expression
-    right: Expression
+class BinOp(PhysicalExpression):
+    left: PhysicalExpression
+    right: PhysicalExpression
 
     def json(self):
         data = super().json()

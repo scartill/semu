@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Expression
+from semu.pseudopython.elements import PhysicalExpression
 import semu.pseudopython.registers as regs
 
 
 @dataclass
-class Unary(Expression):
-    right: Expression
+class Unary(PhysicalExpression):
+    right: PhysicalExpression
 
 
 @dataclass
@@ -32,8 +32,8 @@ class Not(Unary):
 
 
 @dataclass
-class BoolOp(Expression):
-    values: Sequence[Expression]
+class BoolOp(PhysicalExpression):
+    values: Sequence[PhysicalExpression]
 
     def _initial(self) -> int:
         raise NotImplementedError()

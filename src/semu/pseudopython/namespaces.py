@@ -1,6 +1,6 @@
 import logging as lg
 from typing import Dict, List, Tuple
-from collections import namedtuple
+from dataclasses import dataclass
 
 import semu.pseudopython.base as b
 import semu.pseudopython.names as n
@@ -8,8 +8,13 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
 
 
-NameLookup = namedtuple('NameLookup', ['namespace', 'known_name'])
 ArgDefs = List[Tuple[str, b.TargetType]]
+
+
+@dataclass
+class NameLookup:
+    namespace: 'Namespace'
+    known_name: n.KnownName
 
 
 class Namespace(n.INamespace):
@@ -64,7 +69,10 @@ class Namespace(n.INamespace):
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
         raise NotImplementedError()
 
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(
+        self, known_name: n.KnownName, target: regs.Register
+    ) -> el.PhysicalExpression:
+
         raise NotImplementedError()
 
     def create_function(

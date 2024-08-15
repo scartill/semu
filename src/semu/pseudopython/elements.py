@@ -48,7 +48,7 @@ class VoidElement(Element):
 
 
 @dataclass
-class Expression(Element):
+class Expression:
     target_type: b.TargetType
     target: regs.Register
 
@@ -58,16 +58,20 @@ class Expression(Element):
         self.target = target
 
     def json(self):
-        data = Element.json(self)
-        data.update({'Type': self.target_type.json(), 'Target': self.target})
+        data = ({'Type': self.target_type.json(), 'Target': self.target})
         return data
+
+
+class PhysicalExpression(Expression, Element):
+    def __init__(self, target_type: b.TargetType, target: regs.Register):
+        super().__init__(target_type, target)
 
 
 Expressions = Sequence[Expression]
 
 
 @dataclass
-class ConstantExpression(Expression):
+class ConstantExpression(PhysicalExpression):
     value: int | bool
 
     def _convert_value(self) -> int:
@@ -79,14 +83,17 @@ class ConstantExpression(Expression):
 
         raise NotImplementedError()
 
-    def emit(self):
-        value = self._convert_value()
-        return f'ldc {value} {self.target}'
-
     def json(self):
         data = super().json()
         data.update({'Constant': self.value})
         return data
+
+    def emit(self):
+        value = self._convert_value()
+        return f'ldc {value} {self.target}'
+
+
+PhysicalExpressions = Sequence[PhysicalExpression]
 
 
 @dataclass
@@ -121,7 +128,7 @@ class GlobalVariable(Element, n.KnownName):
 @dataclass
 class GlobalVariableAssignment(Element):
     target: n.KnownName
-    expr: Expression
+    expr: PhysicalExpression
 
     def json(self):
         data = Element.json(self)
@@ -146,7 +153,7 @@ class GlobalVariableAssignment(Element):
         ])
 
 
-class GlobalVariableLoad(Expression):
+class GlobalVariableLoad(PhysicalExpression):
     variable: GlobalVariable
 
     def __init__(self, variable: GlobalVariable, target: regs.Register):
