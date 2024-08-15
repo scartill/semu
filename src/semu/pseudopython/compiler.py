@@ -348,7 +348,7 @@ class Translator:
                 return known_name
 
             if isinstance(known_name, cls.GlobalInstance):
-                raise UserWarning('Global instances are not supported')
+                return cls.GlobalInstanceLoad(known_name, target)
 
         if isinstance(source, ast.BinOp):
             left = self.translate_expression(source.left, regs.REGISTERS[0])

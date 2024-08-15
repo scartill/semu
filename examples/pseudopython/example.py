@@ -10,4 +10,14 @@ c.i = 42
 c.b = True
 
 pc: ptr[C]
-# pc = c
+pc = c
+
+i: int
+i = c.i
+
+assert_eq(i, 42)
+
+# j: int
+# j = pc.j
+
+# assert_eq(j, 42)

@@ -71,7 +71,7 @@ class Class(t.PhysicalType, ns.Namespace, el.Element):
 
 
 class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
-    def __init__(self, parent: ns.Namespace, name: str, target_type: t.PhysicalType):
+    def __init__(self, parent: ns.Namespace, name: str, target_type: Class):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, target_type)
         ns.Namespace.__init__(self, name, parent)
@@ -86,12 +86,8 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         data.update(n_data)
         return data
 
-    def emit(self):
-        return flatten([
-            f'// Global instance {self.qualname()}',
-            [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
-            f'// Global instance {self.qualname()} end'
-        ])
+    def typelabel(self):
+        return 'global_instance'
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         var = self.names.get(known_name.name)
@@ -100,3 +96,34 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
             raise UserWarning(f'Variable {known_name.name} not found')
 
         return el.GlobalVariableLoad(var, target=target)
+
+    def emit(self):
+        label = self.address_label()
+
+        return flatten([
+            f'// Global instance {self.qualname()}',
+            f'{label}:',  # instance label
+            [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
+            f'// Global instance {self.qualname()} end'
+        ])
+
+
+class GlobalInstanceLoad(el.PhysicalExpression):
+    instance: GlobalInstance
+
+    def __init__(self, instance: GlobalInstance, target: regs.Register):
+        assert isinstance(instance.target_type, t.PhysicalType)
+        pointer_type = t.PointerType(instance.target_type)
+        super().__init__(pointer_type, target)
+        self.instance = instance
+
+    def json(self):
+        data = super().json()
+        data.update({'GlobalInstanceLoad': self.instance.name})
+        return data
+
+    def emit(self):
+        return [
+            f'// Creating pointer to global instance {self.instance.qualname()}',
+            f'ldr &{self.instance.address_label()} {self.target}',
+        ]
