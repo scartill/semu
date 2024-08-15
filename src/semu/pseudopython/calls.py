@@ -65,7 +65,7 @@ class LocalVariable(StackVariable, el.Element):
         ]
 
 
-class LoadStackVariable(el.PhysicalExpression):
+class StackVariableLoad(el.PhysicalExpression):
     variable: StackVariable
 
     def __init__(self, variable: StackVariable, target: regs.Register):
@@ -188,7 +188,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register):
         assert isinstance(known_name, StackVariable)
-        return LoadStackVariable(known_name, target)
+        return StackVariableLoad(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,

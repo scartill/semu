@@ -331,7 +331,7 @@ def create_refset(args: el.Expressions, target: regs.Register):
 
     if isinstance(ref_target, el.GlobalVariableLoad):
         return GlobalRefSet(ref_target.variable, ref_source)
-    elif isinstance(ref_target, calls.LoadStackVariable):
+    elif isinstance(ref_target, calls.StackVariableLoad):
         return LocalRefSet(ref_target.variable, ref_source)
     else:
         raise UserWarning(f"Unsupported refset target: {ref_target}")
