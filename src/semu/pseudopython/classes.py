@@ -177,7 +177,8 @@ class GlobalMemberPointerLoad(el.PhysicalExpression):
             f'ldr &{address} {temp_address}',
             f'mmr {temp_address} {temp_address}',  # dereference
             f'ldc {offset} {temp_offset}',
-            f'add {temp_address} {temp_offset} {temp_address}'
+            f'add {temp_address} {temp_offset} {temp_address}',
+            f'mrr {temp_address} {self.target}'
         ]
 
 

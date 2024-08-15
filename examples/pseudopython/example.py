@@ -12,7 +12,9 @@ c.b = True
 pc: ptr[C]
 pc = c
 
-j: int
-j = deref(pc.i)
+def bar(po: ptr[C]):
+    j: int
+    j = deref(po.i)
+    assert_eq(j, 42)
 
-assert_eq(j, 42)
+bar(pc)
