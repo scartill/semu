@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Sequence, List, Callable
+import logging as lg
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -201,6 +202,12 @@ class StackMemberPointerLoad(el.PhysicalExpression):
         temp_address = available.pop()
         temp_s_offset = available.pop()
         temp_m_offset = available.pop()
+
+        lg.debug(
+            f'Emitting member pointer {self.m_pointer.name}'
+            f' from stack offset {stack_offset}'
+            f' and member offset {member_offset}'
+        )
 
         return [
             f'// Loading member pointer {self.m_pointer.name}',

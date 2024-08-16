@@ -223,8 +223,7 @@ def create_function(
             formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
         elif isinstance(arg_type, cls.InstancePointerType):
             lg.debug(f'Adding instance formal {arg_name} at {offset} of type {arg_type}')
-
-            formal = calls.InstanceFormalParameter(function, arg_name, inx, arg_type)
+            formal = calls.InstanceFormalParameter(function, arg_name, offset, arg_type)
         else:
             raise UserWarning(f'Unsupported formal type {arg_type}')
 

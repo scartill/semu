@@ -85,3 +85,7 @@ def test_localpointers(capsys):
 
 def test_memberpointerderef():
     simple_test('memberpointerderef')
+
+
+def test_stackmembersderef(capsys):
+    simple_with_capture('stackmembersderef', capsys)

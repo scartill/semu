@@ -19,7 +19,3 @@ def read(po: ptr[C]):
 
 read(pc)
 read(c)
-
-
-# def change(pc: ptr[C]):
-#     pc.b = False
