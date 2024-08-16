@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Sequence, Callable
 import logging as lg
 
+from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
@@ -202,14 +203,14 @@ class LocalRefSet(BuiltinInlineImpl):
         data = super().json()
 
         data.update({
-            'Mode': 'local',
+            'Class': 'LocalRefSet',
             'RefSet': self.variable.name,
             'Source': self.source.json()
         })
 
         return data
 
-    def emit(self) -> el.Sequence[str]:
+    def emit(self):
         assert isinstance(self.variable.target_type, t.PointerType)
         offset = self.variable.offset
         available = regs.get_available([self.source.target])
@@ -217,7 +218,7 @@ class LocalRefSet(BuiltinInlineImpl):
         offset_temp = available.pop()
 
         return flatten([
-            '// RefSet local target  address load',
+            '// RefSet local target address load',
             f'ldc {offset} {offset_temp}',
             f'lla {offset_temp} {address}',
             f'push {address}',
@@ -225,6 +226,50 @@ class LocalRefSet(BuiltinInlineImpl):
             self.source.emit(),
             f'pop {address}',
             f'mmr {address} {address}',   # dereference
+            f'mrm {self.source.target} {address}'
+        ])
+
+
+class LocalMemberRefSet(BuiltinInlineImpl):
+    m_pointer: calls.StackMemberPointer
+    source: el.PhysicalExpression
+
+    def __init__(self, m_pointer: calls.StackMemberPointer, source: el.PhysicalExpression):
+        super().__init__(t.Unit, regs.VOID_REGISTER)
+        self.m_pointer = m_pointer
+        self.source = source
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'LocalRefSet',
+            'RefSetInstance': self.m_pointer.instance_parameter.name,
+            'RefSetMember': self.m_pointer.name,
+            'Source': self.source.json()
+        })
+
+        return data
+
+    def emit(self):
+        available = regs.get_available([self.source.target, self.target])
+        stack_offset = self.m_pointer.instance_parameter.offset
+        member_offset = self.m_pointer.variable.inx * WORD_SIZE
+        temp_s_offset = available.pop()
+        temp_m_offset = available.pop()
+        address = available.pop()
+
+        return flatten([
+            '// RefSet local member target address load',
+            f'ldc {stack_offset} {temp_s_offset}',
+            f'lla {temp_s_offset} {address}',
+            f'mmr {address} {address}',  # dereference
+            f'ldc {member_offset} {temp_m_offset}',
+            f'add {address} {temp_m_offset} {address}',
+            f'push {address}',
+            '// RefSet source calculation',
+            self.source.emit(),
+            f'pop {address}',
             f'mrm {self.source.target} {address}'
         ])
 
@@ -333,6 +378,8 @@ def create_refset(args: el.Expressions, target: regs.Register):
         return GlobalRefSet(ref_target.variable, ref_source)
     elif isinstance(ref_target, calls.StackVariableLoad):
         return LocalRefSet(ref_target.variable, ref_source)
+    elif isinstance(ref_target, calls.StackMemberPointerLoad):
+        return LocalMemberRefSet(ref_target.m_pointer, ref_source)
     else:
         raise UserWarning(f"Unsupported refset target: {ref_target}")
 

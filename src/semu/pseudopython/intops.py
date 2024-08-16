@@ -45,6 +45,7 @@ class BinOp(PhysicalExpression):
         data = super().json()
 
         data.update({
+            'Class': 'BinOp',
             'Left': self.left.json(),
             'Operator': self.op(),
             'Right': self.right.json()
@@ -58,6 +59,16 @@ class BinOp(PhysicalExpression):
 
 @dataclass
 class IntBinOp(BinOp):
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'IntBinOp',
+            'Operator': self.op(),
+        })
+
+        return data
+
     def emit(self):
         l_target = self.left.target
         r_target = self.right.target

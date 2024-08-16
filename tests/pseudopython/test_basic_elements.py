@@ -89,3 +89,7 @@ def test_memberpointerderef():
 
 def test_stackmembersderef(capsys):
     simple_with_capture('stackmembersderef', capsys)
+
+
+def test_localmembersetref():
+    simple_test('localmembersetref')
