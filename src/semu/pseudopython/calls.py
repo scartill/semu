@@ -25,6 +25,7 @@ class StackVariable(n.KnownName):
 
     def json(self):
         data = super().json()
+        data['Class'] = 'StackVariable'
         data['Offset'] = self.offset
         return data
 
@@ -34,6 +35,11 @@ class FormalParameter(StackVariable):
         self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
     ):
         super().__init__(namespace, name, offset, target_type)
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'FormalParameter'
+        return data
 
 
 class SimpleFormalParameter(FormalParameter):
@@ -57,12 +63,11 @@ class LocalVariable(StackVariable, el.Element):
         StackVariable.__init__(self, namespace, name, offset, target_type)
 
     def json(self):
-        data = {'Variable': 'local'}
-        data_kn = n.KnownName.json(self)
-        data_el = el.Element.json(self)
-        data.update(data_kn)
-        data.update(data_el)
-        return data_kn
+        data = super().json()
+        data['Class'] = 'LocalVariable'
+        data['KnownName'] = n.KnownName.json(self)
+        data['Element'] = el.Element.json(self)
+        return data
 
     def emit(self):
         temp = regs.get_temp([])
@@ -84,7 +89,8 @@ class StackVariableLoad(el.PhysicalExpression):
 
     def json(self):
         data = super().json()
-        data['Load'] = self.variable.name
+        data['Class'] = 'StackVariableLoad'
+        data['Variable'] = self.variable.name
         return data
 
     def emit(self):
@@ -114,7 +120,7 @@ class LocalVariableAssignment(el.Element):
         data = el.Element.json(self)
 
         data.update({
-            'LocalAssign': self.target.json(),
+            'Target': str(self.target),
             'Expression': self.expr.json()
         })
 
@@ -153,8 +159,8 @@ class StackMemberPointer(n.KnownName):
         self.instance_parameter = instance_parameter
 
     def json(self):
-        return ({
-            'KnownName': super().json(),
+        data = super().json()
+        data.update({
             'Class': 'StackMemberPointer',
             'MemberPointerTo': self.variable.name
         })
@@ -239,16 +245,13 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         self.body = list()
 
     def json(self):
-        data_el = el.Element.json(self)
-        data_ns = ns.Namespace.json(self)
-        data_n = n.KnownName.json(self)
-        data: b.JSON = {'Class': 'function'}
-        data.update(data_el)
-        data.update(data_ns)
-        data.update(data_n)
+        data: b.JSON = {'Class': 'Function'}
+        data['Element'] = el.Element.json(self)
+        data['Namespace'] = ns.Namespace.json(self)
+        data['Knownname'] = n.KnownName.json(self)
 
         data.update({
-            'ReturnType': self.return_type.json(),
+            'ReturnType': str(self.return_type),
             'Body': [e.json() for e in self.body],
             'Returns': self.returns,
             'ReturnTarget': self.return_target
@@ -333,10 +336,10 @@ class ActualParameter(el.Element):
         self.expression = expression
 
     def json(self):
-        data = el.Element.json(self)
+        data = super().json()
 
         data.update({
-            'Parameter': 'actual',
+            'Class': 'ActualParameter',
             'Index': self.inx,
             'Expression': self.expression.json()
         })
@@ -361,7 +364,7 @@ class CallFrame(el.PhysicalExpression):
         data = super().json()
 
         data.update({
-            'Frame': 'call',
+            'Class': 'CallFrame',
             'Actuals': [a.json() for a in self.actuals],
             'Call': self.call.json()
         })
@@ -396,7 +399,12 @@ class FunctionRef(el.Expression):
 
     def json(self):
         data = super().json()
-        data.update({'Function': self.func.name})
+
+        data.update({
+            'Class': 'FunctionRef',
+            'Function': self.func.name
+        })
+
         return data
 
     def emit(self):
@@ -413,7 +421,8 @@ class Return(el.Element):
 
     def json(self):
         data = el.Element.json(self)
-        data.update({'Return': self.return_type().json()})
+        data['Class'] = 'Return'
+        data['ReturnType'] = str(self.return_type())
         return data
 
 
@@ -424,6 +433,16 @@ class ReturnValue(Return):
 
     def return_type(self):
         return self.expression.target_type
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'ReturnValue',
+            'Function': self.func.name,
+            'Expression': self.expression.json()
+        })
+
+        return data
 
     def emit(self):
         return_label = self.func.return_label()
@@ -450,6 +469,15 @@ class ReturnUnit(el.Element):
     def return_type(self):
         return t.Unit
 
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'ReturnUnit',
+            'Function': self.func.name,
+        })
+
+        return data
+
     def emit(self):
         return_label = self.func.return_label()
         temp = regs.get_temp([self.func.return_target])
@@ -468,7 +496,8 @@ class FunctionCall(el.PhysicalExpression):
 
     def json(self):
         data = super().json()
-        data.update({'FunctionCall': self.func_ref.json()})
+        data['Class'] = 'FunctionCall'
+        data['FunctionCall'] = self.func_ref.json()
         return data
 
     def emit(self):

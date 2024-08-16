@@ -47,6 +47,15 @@ class NamedType(b.TargetType, n.KnownName):
         b.TargetType.__init__(self)
         n.KnownName.__init__(self, namespace, name, b.Builtin)
 
+    def json(self):
+        data: b.JSON = {'Class': 'NamedType'}
+        data['TargetType'] = b.TargetType.json(self)
+        data['KnownName'] = n.KnownName.json(self)
+        return data
+
+    def __str__(self) -> str:
+        return self.name
+
 
 class UnitType(NamedType):
     def __init__(self):
@@ -54,7 +63,7 @@ class UnitType(NamedType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Unit'})
+        data.update({'Class': 'UnitType', 'Builtin': 'unit'})
         return data
 
 
@@ -64,7 +73,7 @@ class DecoratorType(NamedType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Decorator', 'Name': self.name})
+        data.update({'Class': 'DecoratorType'})
         return data
 
 
@@ -82,7 +91,7 @@ class Int32Type(PhysicalType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'int32'})
+        data.update({'Class': 'Int32Type', 'Builtin': 'int32'})
         return data
 
 
@@ -95,13 +104,18 @@ class Bool32Type(PhysicalType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'bool32'})
+        data.update({'Class': 'Bool32Type', 'Builtin': 'bool32'})
         return data
 
 
 class AbstractPointerType(NamedType):
     def __init__(self):
         super().__init__('pointer')
+
+    def json(self):
+        data = super().json()
+        data.update({'Class': 'AbstractPointerType', 'Builtin': 'pointer'})
+        return data
 
 
 class PointerType(PhysicalType):
@@ -122,9 +136,8 @@ class PointerType(PhysicalType):
 
     def json(self):
         data = super().json()
-        rt = self.ref_type
-        description = rt.name if isinstance(rt, NamedType) else rt.json()
-        data.update({'Builtin': 'pointer', 'TargetType': description})
+        data['Class'] = 'PointerType'
+        data['RefType'] = str(self.ref_type)
         return data
 
 

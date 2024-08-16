@@ -10,9 +10,20 @@ import semu.pseudopython.registers as regs
 class Unary(PhysicalExpression):
     right: PhysicalExpression
 
+    def json(self):
+        data = super().json()
+        data['Class'] = 'Unary'
+        data['Right'] = self.right.json()
+        return data
+
 
 @dataclass
 class Not(Unary):
+    def json(self):
+        data = super().json()
+        data['Class'] = 'Not'
+        return data
+
     def emit(self) -> Sequence[str]:
         available = regs.get_available([
             self.target,
@@ -41,6 +52,13 @@ class BoolOp(PhysicalExpression):
     def _op(self) -> str:
         raise NotImplementedError()
 
+    def json(self):
+        data = super().json()
+        data['Class'] = 'BoolOp'
+        data['Values'] = [value.json() for value in self.values]
+        data['Operator'] = self._op()
+        return data
+
     def emit(self) -> Sequence[str]:
         used: Sequence[regs.Register] = [value.target for value in self.values]
         used.append(self.target)
@@ -66,12 +84,6 @@ class BoolOp(PhysicalExpression):
             f'mrr {result_temp} {self.target}',
             '// End boolean operator'
         ])
-
-    def json(self):
-        data = super().json()
-        data['Values'] = [value.json() for value in self.values]
-        data['Operator'] = self._op()
-        return data
 
 
 @dataclass

@@ -7,7 +7,10 @@ JSON = Dict[str, Any]
 
 class TargetType:
     def json(self) -> JSON:
-        return {'Builtin': 'TargetType'}
+        return {'Class': 'TargetType'}
+
+    def __str__(self) -> str:
+        return 'TargetType'
 
 
 class BuiltinType(TargetType):
@@ -16,8 +19,11 @@ class BuiltinType(TargetType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'BuiltinType'})
+        data.update({'Class': 'BuiltinType'})
         return data
+
+    def __str__(self) -> str:
+        return 'BuiltinType'
 
 
 type TargetTypes = Sequence[TargetType]
