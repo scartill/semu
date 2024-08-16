@@ -3,12 +3,13 @@ from typing import Sequence, List, Callable
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
-import semu.pseudopython.names as n
+import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
+import semu.pseudopython.names as n
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
-import semu.pseudopython.registers as regs
+import semu.pseudopython.classes as cls
 
 
 class StackVariable(n.KnownName):
@@ -36,13 +37,14 @@ class FormalParameter(StackVariable):
 
 class SimpleFormalParameter(FormalParameter):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
+        self, namespace: n.INamespace, name: str, offset: int,
+        target_type: t.PhysicalType
     ):
         super().__init__(namespace, name, offset, target_type)
 
     def json(self):
         data = super().json()
-        data['Variable'] = 'formal'
+        data['Class'] = 'SimpleFormalParameter'
         return data
 
 
@@ -134,6 +136,81 @@ class LocalVariableAssignment(el.Element):
             f'// Saving addr:{temp} to reg:{target}',
             f'mrm {target} {temp}'
         ])
+
+
+class StackMemberPointer(n.KnownName):
+    variable: cls.ClassVariable
+    instance_parameter: 'InstanceFormalParameter'
+
+    def __init__(
+        self, instance_parameter: 'InstanceFormalParameter', variable: cls.ClassVariable
+    ):
+        assert isinstance(variable.target_type, t.PhysicalType)
+        target_type = t.PointerType(variable.target_type)
+        super().__init__(instance_parameter, variable.name, target_type)
+        self.variable = variable
+        self.instance_parameter = instance_parameter
+
+    def json(self):
+        return ({
+            'KnownName': super().json(),
+            'Class': 'StackMemberPointer',
+            'MemberPointerTo': self.variable.name
+        })
+
+
+class InstanceFormalParameter(FormalParameter, ns.Namespace):
+    def __init__(
+        self, namespace: ns.Namespace, name: str, offset: int,
+        instance_type: cls.InstancePointerType
+    ):
+        FormalParameter.__init__(self, namespace, name, offset, instance_type)
+        ns.Namespace.__init__(self, name, namespace)
+
+        for cls_var in instance_type.ref_type.names.values():
+            if isinstance(cls_var, cls.ClassVariable):
+                member_pointer = StackMemberPointer(self, cls_var)
+                self.add_name(member_pointer)
+
+    def json(self):
+        return {
+            'Class': 'InstanceFormalParameter',
+            'FormalParameter': FormalParameter.json(self),
+            'Namespace': ns.Namespace.json(self)
+        }
+
+
+class StackMemberPointerLoad(el.PhysicalExpression):
+    m_pointer: StackMemberPointer
+
+    def __init__(self, m_pointer: StackMemberPointer, target: regs.Register):
+        super().__init__(m_pointer.target_type, target)
+        self.m_pointer = m_pointer
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'StackMemberPointerLoad'
+        data['MemberPointer'] = self.m_pointer.name
+        return data
+
+    def emit(self):
+        assert isinstance(self.m_pointer.instance_parameter, InstanceFormalParameter)
+        stack_offset = self.m_pointer.instance_parameter.offset
+        member_offset = self.m_pointer.variable.inx * WORD_SIZE
+        available = regs.get_available([self.target])
+        temp_address = available.pop()
+        temp_s_offset = available.pop()
+        temp_m_offset = available.pop()
+
+        return [
+            f'// Loading member pointer {self.m_pointer.name}',
+            f'ldc {stack_offset} {temp_s_offset}',
+            f'lla {temp_s_offset} {temp_address}',
+            f'mmr {temp_address} {temp_address}',  # dereference
+            f'ldc {member_offset} {temp_m_offset}',
+            f'add {temp_address} {temp_m_offset} {temp_address}',
+            f'mrr {temp_address} {self.target}'
+        ]
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):

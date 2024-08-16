@@ -14,7 +14,7 @@ pc = c
 
 def bar(po: ptr[C], k: int):
     j: int
-    # j = deref(po.i)
+    j = deref(po.i)
     j = j + k
     assert_eq(j, 42)
 

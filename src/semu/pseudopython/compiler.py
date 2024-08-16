@@ -24,6 +24,7 @@ import semu.pseudopython.packages as pack
 
 # Late binding
 calls.Function.factory = h.create_function
+cls.Class.fun_factory = h.create_function
 
 
 class Translator:
@@ -352,6 +353,9 @@ class Translator:
 
             if isinstance(known_name, cls.GlobalMemberPointer):
                 return cls.GlobalMemberPointerLoad(known_name, target)
+            
+            if isinstance(known_name, calls.StackMemberPointer):
+                return calls.StackMemberPointerLoad(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 

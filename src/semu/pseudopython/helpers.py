@@ -216,10 +216,18 @@ def create_function(
     for inx, (arg_name, arg_type) in enumerate(args):
         # NB: Note that the offset skips the return address and saved frame pointer
         offset = -(total - inx + 2) * WORD_SIZE
-
         lg.debug(f'Adding formal {arg_name} at {offset} of type {arg_type}')
 
-        formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
+        if isinstance(arg_type, t.PhysicalType):
+            lg.debug(f'Adding physical formal {arg_name} at {offset} of type {arg_type}')
+            formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
+        elif isinstance(arg_type, cls.InstancePointerType):
+            lg.debug(f'Adding instance formal {arg_name} at {offset} of type {arg_type}')
+
+            formal = calls.InstanceFormalParameter(function, arg_name, inx, arg_type)
+        else:
+            raise UserWarning(f'Unsupported formal type {arg_type}')
+
         function.add_name(formal)
 
     return function

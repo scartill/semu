@@ -1,15 +1,14 @@
 import logging as lg
+from typing import Callable
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
-import semu.pseudopython.helpers as h
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
-import semu.pseudopython.calls as calls
 
 
 class ClassVariable(n.KnownName):
@@ -27,7 +26,7 @@ class ClassVariable(n.KnownName):
 
 
 class Class(t.NamedType, ns.Namespace, el.Element):
-    ctor: calls.Function
+    fun_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
@@ -61,8 +60,10 @@ class Class(t.NamedType, ns.Namespace, el.Element):
             if isinstance(x, el.DecoratorApplication)
         )
 
+        assert Class.fun_factory
+
         if static:
-            function = h.create_function(self, name, args, decors, target_type)
+            function = Class.fun_factory(self, name, args, decors, target_type)
         else:
             raise UserWarning(f'Class {self.qualname()} cannot have non-static methods')
 
