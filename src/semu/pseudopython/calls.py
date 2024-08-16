@@ -33,6 +33,13 @@ class FormalParameter(StackVariable):
     ):
         super().__init__(namespace, name, offset, target_type)
 
+
+class SimpleFormalParameter(FormalParameter):
+    def __init__(
+        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
+    ):
+        super().__init__(namespace, name, offset, target_type)
+
     def json(self):
         data = super().json()
         data['Variable'] = 'formal'

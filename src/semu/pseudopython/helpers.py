@@ -219,7 +219,7 @@ def create_function(
 
         lg.debug(f'Adding formal {arg_name} at {offset} of type {arg_type}')
 
-        formal = calls.FormalParameter(function, arg_name, offset, arg_type)
+        formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
         function.add_name(formal)
 
     return function
