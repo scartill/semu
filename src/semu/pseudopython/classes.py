@@ -27,6 +27,7 @@ class ClassVariable(n.KnownName):
 
 class Class(t.NamedType, ns.Namespace, el.Element):
     fun_factory: Callable | None = None
+    method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
@@ -60,12 +61,16 @@ class Class(t.NamedType, ns.Namespace, el.Element):
             if isinstance(x, el.DecoratorApplication)
         )
 
-        assert Class.fun_factory
-
         if static:
+            lg.debug(f'Creating static method {name}')
+            assert Class.fun_factory
             function = Class.fun_factory(self, name, args, decors, target_type)
         else:
-            raise UserWarning(f'Class {self.qualname()} cannot have non-static methods')
+            lg.debug(f'Creating instance method {name}')
+            full_args: ns.ArgDefs = [('this', InstancePointerType(self))]
+            full_args.extend(args)
+            assert Class.method_factory
+            function = Class.method_factory(self, name, full_args, decors, target_type)
 
         self.add_name(function)
         return function

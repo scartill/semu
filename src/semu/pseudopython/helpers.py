@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import ast
 import logging as lg
-from typing import List, cast
+from typing import List, cast, Type, TypeVar
 from pathlib import Path
 
 from semu.common.hwconf import WORD_SIZE
@@ -198,12 +198,16 @@ def create_compare(
     return cmpops.Compare(target, left, Op(), right)
 
 
-def create_function(
+TFunction = TypeVar('TFunction', calls.Function, calls.Method)
+
+
+def create_callable(
+    Cls: Type[TFunction],
     context: ns.Namespace, name: str, args: ns.ArgDefs,
     decors: el.Expressions, target_type: b.TargetType
-) -> calls.Function:
+) -> TFunction:
 
-    function = calls.Function(name, context, target_type)
+    function = Cls(name, context, target_type)
 
     for d in decors:
         if not isinstance(d, el.DecoratorApplication):
@@ -232,6 +236,22 @@ def create_function(
     return function
 
 
+def create_function(
+    context: ns.Namespace, name: str, args: ns.ArgDefs,
+    decors: el.Expressions, target_type: b.TargetType
+) -> calls.Function:
+
+    return create_callable(calls.Function, context, name, args, decors, target_type)
+
+
+def create_method(
+    context: ns.Namespace, name: str, args: ns.ArgDefs,
+    decors: el.Expressions, target_type: b.TargetType
+) -> calls.Method:
+
+    return create_callable(calls.Method, context, name, args, decors, target_type)
+
+
 def validate_function(func: calls.Function):
     if func.target_type != t.Unit and not func.returns:
         raise UserWarning(f'Function {func.name} does not return')
@@ -241,13 +261,13 @@ def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.R
     return inline.factory(args, target)
 
 
-def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):
-    f_name = func_ref.func.name
-    f_type = func_ref.func.target_type
+def validate_call(func: calls.Function, args: el.Expressions):
+    f_name = func.name
+    f_type = func.target_type
 
     lg.debug(f'Making call to {f_name}')
 
-    formal_args = func_ref.func.formals()
+    formal_args = func.formals()
 
     if len(formal_args) != len(args):
         raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
@@ -258,7 +278,15 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
                 f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
             )
 
-    return calls.FunctionCall(f_type, target, func_ref)
+
+def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):
+    validate_call(func_ref.func, args)
+    return calls.FunctionCall(func_ref, target)
+
+
+def make_method_call(m_ref: calls.MethodRef, args: el.Expressions, target: regs.Register):
+    validate_call(m_ref.instance_method.method, args)
+    return calls.MethodCall(m_ref, target)
 
 
 def create_call_frame(call: el.Expression, args: el.Expressions):
@@ -378,7 +406,19 @@ def create_global_variable(
                 create_global_variable(instance, classvar.name, classvar.target_type)
             )
 
+        is_method = lambda x: isinstance(x, calls.Method)
+
+        for method in filter(is_method, target_type.names.values()):
+
+            method = calls.GlobalInstanceMethod(
+                instance,
+                cast(calls.Method, method)
+            )
+
+            instance.add_name(method)
+
         return instance
+
     if isinstance(target_type, cls.InstancePointerType):
         return cls.GlobalInstancePointer(parent, name, target_type)
     else:

@@ -326,6 +326,39 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
 
+class Method(Function):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
+        super().__init__(name, parent, return_type)
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'Method'
+        return data
+
+
+class GlobalInstanceMethod(n.KnownName):
+    instance: cls.GlobalInstance
+    method: Method
+
+    def __init__(self, instance: cls.GlobalInstance, method: Method):
+        super().__init__(method, method.name, t.Callable)
+        self.instance = instance
+        self.method = method
+
+    def __str__(self) -> str:
+        return f'{self.method.name}@{self.instance.name}'
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'GlobalInstanceMethod',
+            'Instance': self.instance.name,
+            'Method': self.method.name
+        })
+
+        return data
+
+
 class ActualParameter(el.Element):
     inx: int
     expression: el.PhysicalExpression
@@ -490,9 +523,12 @@ class ReturnUnit(el.Element):
         ])
 
 
-@dataclass
 class FunctionCall(el.PhysicalExpression):
     func_ref: FunctionRef
+
+    def __init__(self, func_ref: FunctionRef, target: regs.Register):
+        super().__init__(func_ref.func.return_type, target)
+        self.func_ref = func_ref
 
     def json(self):
         data = super().json()
@@ -506,6 +542,59 @@ class FunctionCall(el.PhysicalExpression):
             self.func_ref.emit(),
             '// Calling',
             f'cll {self.func_ref.target}',
+            '// Store return value',
+            f'mrr {Function.return_target} {self.target}',
+        ])
+
+
+class MethodRef(el.Expression):
+    instance_method: GlobalInstanceMethod
+
+    def __init__(self, instance_method: GlobalInstanceMethod, target: regs.Register):
+        super().__init__(t.Callable, target)
+        self.instance_method = instance_method
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'MethodRef',
+            'Method': f'{self.instance_method.name}@{self.instance_method.instance.name}'
+        })
+
+        return data
+
+    def __str__(self):
+        return f'{self.instance_method.name}@{self.instance_method.instance.name}'
+
+    def emit(self):
+        return [
+            f'// Method reference {self.instance_method.name}',
+            f'ldr &{self.instance_method.method.address_label()} {self.target}'
+        ]
+
+
+class MethodCall(el.PhysicalExpression):
+    method_ref: MethodRef
+
+    def __init__(self, method_ref: MethodRef, target: regs.Register):
+        super().__init__(method_ref.instance_method.method.return_type, target)
+        self.method_ref = method_ref
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'MethodCall'
+        data['Method'] = str(self.method_ref)
+        return data
+
+    def emit(self):
+        name = str(self.method_ref.instance_method)
+
+        return flatten([
+            f'// Begin method call {name}',
+            self.method_ref.emit(),
+            '// Calling',
+            f'cll {self.method_ref.target}',
             '// Store return value',
             f'mrr {Function.return_target} {self.target}',
         ])

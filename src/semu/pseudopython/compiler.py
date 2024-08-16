@@ -25,6 +25,7 @@ import semu.pseudopython.packages as pack
 # Late binding
 calls.Function.factory = h.create_function
 cls.Class.fun_factory = h.create_function
+cls.Class.method_factory = h.create_method
 
 
 class Translator:
@@ -85,11 +86,20 @@ class Translator:
             for ast_arg in ast_call.args
         ]
 
-        if not isinstance(callable, calls.FunctionRef):
-            raise UserWarning(f'Unsupported call {ast_call}')
+        if isinstance(callable, calls.FunctionRef):
+            call = h.make_call(callable, args, target)
+            return h.create_call_frame(call, args)
+        elif isinstance(callable, calls.MethodRef):
+            # 'this' pointer is the first argument
+            this_pointer = cls.GlobalInstanceLoad(
+                callable.instance_method.instance, regs.DEFAULT_REGISTER
+            )
 
-        call = h.make_call(callable, args, target)
-        return h.create_call_frame(call, args)
+            full_args = [this_pointer] + args
+            call = h.make_method_call(callable, full_args, target)
+            return h.create_call_frame(call, full_args)
+        else:
+            raise UserWarning(f'Unsupported callable {callable}')
 
     def tx_const_assign(self, name: str, ast_value: ast.AST):
         if not isinstance(ast_value, ast.Constant):
@@ -356,6 +366,9 @@ class Translator:
 
             if isinstance(known_name, calls.StackMemberPointer):
                 return calls.StackMemberPointerLoad(known_name, target)
+
+            if isinstance(known_name, calls.GlobalInstanceMethod):
+                return calls.MethodRef(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 
