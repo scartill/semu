@@ -12,10 +12,15 @@ c.i = 21
 pc: ptr[C]
 pc = c
 
-def bar(po: ptr[C], k: int):
+def read(po: ptr[C], k: int):
     j: int
     j = deref(po.i)
     j = j + k
     assert_eq(j, 42)
+    assert_eq(bool_to_int(deref(po.b)), 1)
 
-bar(pc, 21)
+# read(pc, 21)
+
+
+# def change(pc: ptr[C]):
+#     pc.b = False
