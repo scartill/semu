@@ -287,7 +287,9 @@ def make_direct_call(
 def make_pointer_call(
     pointer: el.GlobalVariableLoad, args: el.Expressions, target: regs.Register
 ):
-    if not isinstance(pointer.target_type, ptrs.FunctionPointerType):
+    callable_pointers = (ptrs.FunctionPointerType, ptrs.MethodPointerType)
+
+    if not isinstance(pointer.target_type, callable_pointers):
         raise UserWarning(f'Unsupported pointer type {pointer.target_type}')
 
     t_type = pointer.target_type
@@ -297,7 +299,7 @@ def make_pointer_call(
 
 
 def make_method_call(
-    m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register
+    m_ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
 ):
     lg.debug(f'Direct method call to {m_ref.method.name}')
     validate_call(m_ref.method.callable_type().arg_types, args)
@@ -513,7 +515,9 @@ def create_methptr_type(slice: el.Expression):
 
     class_type = class_type_expr.target_type
     (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
-    return el.TypeWrapper(ptrs.MethodPointerType(class_type, arg_types, return_type))
+    this_type = cls.InstancePointerType(class_type)
+    full_arg_types = [this_type] + arg_types
+    return el.TypeWrapper(ptrs.MethodPointerType(class_type, full_arg_types, return_type))
 
 
 def create_subscript(value: el.Expression, slice: el.Expression, target):

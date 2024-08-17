@@ -95,7 +95,7 @@ class Translator:
             call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        elif isinstance(callable, meth.MethodRef):
+        elif isinstance(callable, meth.BoundMethodRef):
             # 'this' pointer is the first argument
             this_pointer = callable.instance_load(regs.DEFAULT_REGISTER)
             full_args = [this_pointer] + args
@@ -372,13 +372,13 @@ class Translator:
                 return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
-                return meth.MethodRef.from_GIM(known_name, target)
+                return meth.BoundMethodRef.from_GIM(known_name, target)
 
             if isinstance(known_name, meth.GlobalPointerMethod):
-                return meth.MethodRef.from_GPM(known_name, target)
+                return meth.BoundMethodRef.from_GPM(known_name, target)
 
             if isinstance(known_name, meth.StackPointerMethod):
-                return meth.MethodRef.from_SPM(known_name, target)
+                return meth.BoundMethodRef.from_SPM(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 

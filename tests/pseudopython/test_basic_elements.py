@@ -109,3 +109,7 @@ def test_boolassert():
 
 def test_funcpointer():
     simple_test('funcpointer')
+
+
+def test_boundmethodcall():
+    simple_test('boundmethodcall')

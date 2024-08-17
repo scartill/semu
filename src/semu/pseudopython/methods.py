@@ -333,25 +333,28 @@ class UnboundMethodRef(el.PhysicalExpression):
             f'ldr &{self.method.address_label()} {self.target}'
         ]
 
+    def bind(self, instance_load: LoadFactory):
+        return BoundMethodRef(self.method, instance_load, self.target)
 
-class MethodRef(el.PhysicalExpression):
+
+class BoundMethodRef(el.PhysicalExpression):
     instance_load: LoadFactory
     method: Method
 
     @staticmethod
     def from_GIM(instance_method: GlobalInstanceMethod, target: regs.Register):
         load = lambda t: cls.GlobalInstanceLoad(instance_method.instance, t)
-        return MethodRef(instance_method.method, load, target)
+        return BoundMethodRef(instance_method.method, load, target)
 
     @staticmethod
     def from_GPM(global_method: GlobalPointerMethod, target: regs.Register):
         load = lambda t: GlobalInstancePointerLoad(global_method.instance_pointer, t)
-        return MethodRef(global_method.method, load, target)
+        return BoundMethodRef(global_method.method, load, target)
 
     @staticmethod
     def from_SPM(stack_method: StackPointerMethod, target: regs.Register):
         load = lambda t: StackInstancePointerLoad(stack_method.instance_parameter, t)
-        return MethodRef(stack_method.method, load, target)
+        return BoundMethodRef(stack_method.method, load, target)
 
     def __init__(self, method: Method, instance_load: LoadFactory, target: regs.Register):
         super().__init__(method.callable_type(), target)
@@ -362,7 +365,7 @@ class MethodRef(el.PhysicalExpression):
         data = super().json()
 
         data.update({
-            'Class': 'MethodRef',
+            'Class': 'BoundMethodRef',
             'Method': f'method:{self.method.name}'
         })
 
@@ -379,9 +382,9 @@ class MethodRef(el.PhysicalExpression):
 
 
 class MethodCall(el.PhysicalExpression):
-    method_ref: MethodRef
+    method_ref: BoundMethodRef
 
-    def __init__(self, method_ref: MethodRef, target: regs.Register):
+    def __init__(self, method_ref: BoundMethodRef, target: regs.Register):
         super().__init__(method_ref.method.return_type, target)
         self.method_ref = method_ref
 

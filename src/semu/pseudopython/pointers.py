@@ -109,7 +109,7 @@ class MethodPointerType(t.AbstractCallableType):
     def __str__(self) -> str:
         return (
             f'<{self.class_type.name}::'
-            f'{", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>'
+            f'({", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>)'
         )
 
     def json(self):
