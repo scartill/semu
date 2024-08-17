@@ -362,7 +362,9 @@ class Translator:
                 return cls.GlobalInstanceLoad(known_name, target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
-                return meth.GlobalPointerMemberLoad(known_name, target)
+                address = regs.get_temp([target])
+                load = meth.GlobalInstancePointerLoad(known_name.instance_pointer, address)
+                return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.StackPointerMember):
                 return meth.StackPointerMemberLoad(known_name, target)

@@ -178,41 +178,6 @@ class GlobalInstancePointerLoad(el.PhysicalExpression):
         ]
 
 
-class GlobalPointerMemberLoad(el.PhysicalExpression):
-    member: GlobalPointerMember
-
-    def __init__(self, member: GlobalPointerMember, target: regs.Register):
-        super().__init__(member.target_type, target)
-        self.member = member
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'GlobalPointerMemberLoad',
-            'Instance': self.member.instance_pointer.name,
-            'Member': self.member.name
-        })
-
-        return data
-
-    def emit(self):
-        address = self.member.instance_pointer.address_label()
-        offset = self.member.variable.inx * WORD_SIZE
-        available = regs.get_available([self.target])
-        temp_address = available.pop()
-        temp_offset = available.pop()
-
-        return [
-            f'// Loading member pointer {self.member.name}',
-            f'ldr &{address} {temp_address}',
-            f'mmr {temp_address} {temp_address}',  # dereference
-            f'ldc {offset} {temp_offset}',
-            f'add {temp_address} {temp_offset} {temp_address}',
-            f'mmr {temp_address} {self.target}'    # load result
-        ]
-
-
 class StackPointerMemberAssignment(el.Element):
     target: StackPointerMember
     source: el.PhysicalExpression

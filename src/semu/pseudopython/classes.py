@@ -1,6 +1,7 @@
 import logging as lg
 from typing import Callable
 
+from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -154,4 +155,43 @@ class GlobalInstanceLoad(el.PhysicalExpression):
         return [
             f'// Creating pointer to global instance {self.instance.qualname()}',
             f'ldr &{self.instance.address_label()} {self.target}',
+        ]
+
+
+class ClassMemberLoad(el.PhysicalExpression):
+    instance_load: el.PhysicalExpression
+    member: ClassVariable
+
+    def __init__(
+        self, instance_load: el.PhysicalExpression, member: ClassVariable,
+        target: regs.Register
+    ):
+        super().__init__(member.target_type, target)
+        self.instance_load = instance_load
+        self.member = member
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'ClassMemberLoad',
+            'InstanceLoad': self.instance_load.json(),
+            'Member': self.member.name
+        })
+
+        return data
+
+    def emit(self):
+        offset = self.member.inx * WORD_SIZE
+        available = regs.get_available([self.instance_load.target, self.target])
+        temp_offset = available.pop()
+        address = self.instance_load.target
+
+        return [
+            '// Loading instance pointer',
+            self.instance_load.emit(),
+            f'// Loading member {self.member.name}',
+            f'ldc {offset} {temp_offset}',
+            f'add {address} {temp_offset} {address}',
+            f'mmr {address} {self.target}'
         ]
