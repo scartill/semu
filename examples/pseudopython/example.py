@@ -1,24 +1,34 @@
 # type: ignore
 
-class A:
+class C:
     i: int
+    b: bool
 
-    @staticmethod
-    def static():
-        checkpoint(0)
+c: C
 
-    def method_a():
-        assert_eq(deref(this.i), 1)
-        checkpoint(1)
+c.i = 42
+c.b = True
 
-    def method_b(b: bool):
-        assert_eq(deref(this.i), 1)
-        assert_eq(bool_to_int(b), 1)
-        checkpoint(2)
+pc: ptr[C]
+pc = c
 
-a: A
-a.i = 1
+j: int
+j = pc.i
 
-A.static()
-A.method_a(a)
-a.method_b(True)
+assert_eq(j, 42)
+
+def foo(pj: ptr[int]):
+    j: int
+    j = pj
+    assert_eq(j, 42)
+
+pi: ptr[int]
+pi = pc.i
+
+foo(pi)
+foo(pc.i)
+
+def bar(pb: ptr[bool]):
+    assert_eq(bool_to_int(pb), 1)
+
+bar(pc.b)

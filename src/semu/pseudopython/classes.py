@@ -137,7 +137,7 @@ class InstancePointerType(b.TargetType):
         return self.ref_type == value.ref_type
 
 
-class GlobalMemberPointer(n.KnownName):
+class GlobalPointerMember(n.KnownName):
     variable: ClassVariable
     instance_pointer: 'GlobalInstancePointer'
 
@@ -145,21 +145,25 @@ class GlobalMemberPointer(n.KnownName):
         self, instance_pointer: 'GlobalInstancePointer', variable: ClassVariable
     ):
         assert isinstance(variable.target_type, t.PhysicalType)
-        target_type = t.PointerType(variable.target_type)
-        super().__init__(instance_pointer, variable.name, target_type)
+        super().__init__(instance_pointer, variable.name, variable.target_type)
         self.variable = variable
         self.instance_pointer = instance_pointer
 
     def json(self):
         data = super().json()
-        data.update({'MemberPointerTo': self.variable.name})
+
+        data.update({
+            'Class': 'GlobalPointerMember',
+            'Member': self.variable.name
+        })
+
         return data
 
 
-class GlobalMemberPointerLoad(el.PhysicalExpression):
-    m_pointer: GlobalMemberPointer
+class GlobalPointerMemberLoad(el.PhysicalExpression):
+    m_pointer: GlobalPointerMember
 
-    def __init__(self, m_pointer: GlobalMemberPointer, target: regs.Register):
+    def __init__(self, m_pointer: GlobalPointerMember, target: regs.Register):
         super().__init__(m_pointer.target_type, target)
         self.m_pointer = m_pointer
 
@@ -186,7 +190,7 @@ class GlobalMemberPointerLoad(el.PhysicalExpression):
             f'mmr {temp_address} {temp_address}',  # dereference
             f'ldc {offset} {temp_offset}',
             f'add {temp_address} {temp_offset} {temp_address}',
-            f'mrr {temp_address} {self.target}'
+            f'mmr {temp_address} {self.target}'    # load result
         ]
 
 
@@ -205,8 +209,8 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
         lg.debug(f'Found {len(class_vars)} class variables')
 
         for cv in sorted(class_vars, key=lambda x: x.inx):
-            lg.debug(f'Creating member pointer for {cv.name}')
-            mp = GlobalMemberPointer(self, cv)
+            lg.debug(f'Creating pointer member for {cv.name}')
+            mp = GlobalPointerMember(self, cv)
             self.add_name(mp)
 
     def json(self):

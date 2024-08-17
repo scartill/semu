@@ -361,8 +361,8 @@ class Translator:
             if isinstance(known_name, cls.GlobalInstance):
                 return cls.GlobalInstanceLoad(known_name, target)
 
-            if isinstance(known_name, cls.GlobalMemberPointer):
-                return cls.GlobalMemberPointerLoad(known_name, target)
+            if isinstance(known_name, cls.GlobalPointerMember):
+                return cls.GlobalPointerMemberLoad(known_name, target)
 
             if isinstance(known_name, calls.StackMemberPointer):
                 return calls.StackMemberPointerLoad(known_name, target)
