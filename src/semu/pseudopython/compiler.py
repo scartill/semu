@@ -80,7 +80,7 @@ class Translator:
             return self.tx_builtin_call(callable.inline, ast_call.args, target)
 
         if not isinstance(callable.target_type, t.AbstractCallableType):
-            raise UserWarning(f'Unsupported callable {callable}')
+            raise UserWarning(f'Not callable type {callable}')
 
         args = [
             self.tx_expression(ast_arg)
@@ -88,7 +88,11 @@ class Translator:
         ]
 
         if isinstance(callable, calls.FunctionRef):
-            call = h.make_call(callable, args, target)
+            call = h.make_direct_call(callable, args, target)
+            return h.create_call_frame(call, args)
+
+        elif isinstance(callable, el.GlobalVariableLoad):
+            call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
         elif isinstance(callable, meth.MethodRef):

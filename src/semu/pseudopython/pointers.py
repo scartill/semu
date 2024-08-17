@@ -56,19 +56,25 @@ class FunctionPointerType(t.AbstractCallableType):
     def __str__(self) -> str:
         return f'<{", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>'
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, FunctionPointerType):
+            return False
+
+        return self.arg_types == o.arg_types and self.return_type == o.return_type
+
     def json(self):
         data = super().json()
         data.update({
             'Class': 'FunctionPointerType',
-            'argTypes': [e.json() for e in self.arg_types],
-            'ReturnType': self.return_type.json()
+            'ArgTypes': [str(e) for e in self.arg_types],
+            'ReturnType': str(self.return_type)
         })
         return data
 
 
 class MethodPointerType(t.AbstractCallableType):
     class_type: cls.Class
-    arg_types: Sequence[t.PhysicalType]
+    arg_types: t.PhysicalTypes
     return_type: t.PhysicalType
 
     def __init__(
@@ -79,6 +85,16 @@ class MethodPointerType(t.AbstractCallableType):
         self.class_type = class_type
         self.arg_types = arg_types
         self.return_type = return_type
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, MethodPointerType):
+            return False
+
+        return (
+            self.class_type == o.class_type
+            and self.arg_types == o.arg_types
+            and self.return_type == o.return_type
+        )
 
     def __str__(self) -> str:
         return (

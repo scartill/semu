@@ -384,10 +384,13 @@ class ReturnUnit(el.Element):
 
 
 class FunctionCall(el.PhysicalExpression):
-    func_ref: FunctionRef
+    func_ref: el.PhysicalExpression
 
-    def __init__(self, func_ref: FunctionRef, target: regs.Register):
-        super().__init__(func_ref.func.return_type, target)
+    def __init__(
+        self, func_ref: el.PhysicalExpression, return_type: t.PhysicalType,
+        target: regs.Register
+    ):
+        super().__init__(return_type, target)
         self.func_ref = func_ref
 
     def json(self):
@@ -397,8 +400,14 @@ class FunctionCall(el.PhysicalExpression):
         return data
 
     def emit(self):
+        name = (
+            self.func_ref.func.name
+            if isinstance(self.func_ref, FunctionRef)
+            else '<dynamic>'
+        )
+
         return flatten([
-            f'// Begin function call {self.func_ref.func.name}',
+            f'// Begin function call {name}',
             self.func_ref.emit(),
             '// Calling',
             f'cll {self.func_ref.target}',

@@ -262,33 +262,45 @@ def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.R
     return inline.factory(args, target)
 
 
-def validate_call(func: calls.Function, args: el.Expressions):
-    f_name = func.name
-
-    lg.debug(f'Making call to {f_name}')
-
-    formal_args = func.formals()
-
-    if len(formal_args) != len(args):
+def validate_call(arg_types: t.PhysicalTypes, args: el.Expressions):
+    if len(arg_types) != len(args):
         raise UserWarning(
-            f'Function: {f_name} :: '
-            f'Argument count mismatch: need {len(formal_args)}, got {len(args)}'
+            f'Argument count mismatch: need {len(arg_types)}, got {len(args)}'
         )
 
-    for formal_arg, arg in zip(formal_args, args):
-        if formal_arg.target_type != arg.target_type:
+    for arg_type, arg in zip(arg_types, args):
+        if arg_type != arg.target_type:
             raise UserWarning(
-                f'Argument type mismatch {formal_arg.target_type} != {arg.target_type}'
+                f'Argument type mismatch {arg_type} != {arg.target_type}'
             )
 
 
-def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register):
-    validate_call(func_ref.func, args)
-    return calls.FunctionCall(func_ref, target)
+def make_direct_call(
+    func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register
+):
+    lg.debug(f'Direct call to {func_ref.func.name}')
+    c_type = func_ref.func.callable_type()
+    validate_call(c_type.arg_types, args)
+    return calls.FunctionCall(func_ref, c_type.return_type, target)
 
 
-def make_method_call(m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register):
-    validate_call(m_ref.method, args)
+def make_pointer_call(
+    pointer: el.GlobalVariableLoad, args: el.Expressions, target: regs.Register
+):
+    if not isinstance(pointer.target_type, ptrs.FunctionPointerType):
+        raise UserWarning(f'Unsupported pointer type {pointer.target_type}')
+
+    t_type = pointer.target_type
+    lg.debug(f'Indirect call to function {t_type}')
+    validate_call(t_type.arg_types, args)
+    return calls.FunctionCall(pointer, t_type.return_type, target)
+
+
+def make_method_call(
+    m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register
+):
+    lg.debug(f'Direct method call to {m_ref.method.name}')
+    validate_call(m_ref.method.callable_type().arg_types, args)
     return meth.MethodCall(m_ref, target)
 
 

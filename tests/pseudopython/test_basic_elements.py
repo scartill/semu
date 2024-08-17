@@ -105,3 +105,7 @@ def test_recussivemethods(capsys):
 
 def test_boolassert():
     simple_test('boolassert')
+
+
+def test_funcpointer():
+    simple_test('funcpointer')
