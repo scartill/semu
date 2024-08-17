@@ -14,10 +14,14 @@ class A:
     def method_b():
         checkpoint(0)
         static()
-        this.method_a()
+        # this.method_a()
 
 a: A
 a.i = 1
 
-A.static()
-a.method_b()
+# A.static()
+# a.method_b()
+
+pa: ptr[A]
+pa = a
+pa.method_b()

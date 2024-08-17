@@ -1,7 +1,6 @@
 import logging as lg
 from typing import Callable
 
-from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -135,92 +134,6 @@ class InstancePointerType(b.TargetType):
             return False
 
         return self.ref_type == value.ref_type
-
-
-class GlobalPointerMember(n.KnownName):
-    variable: ClassVariable
-    instance_pointer: 'GlobalInstancePointer'
-
-    def __init__(
-        self, instance_pointer: 'GlobalInstancePointer', variable: ClassVariable
-    ):
-        assert isinstance(variable.target_type, t.PhysicalType)
-        super().__init__(instance_pointer, variable.name, variable.target_type)
-        self.variable = variable
-        self.instance_pointer = instance_pointer
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'GlobalPointerMember',
-            'Member': self.variable.name
-        })
-
-        return data
-
-
-class GlobalPointerMemberLoad(el.PhysicalExpression):
-    member: GlobalPointerMember
-
-    def __init__(self, member: GlobalPointerMember, target: regs.Register):
-        super().__init__(member.target_type, target)
-        self.member = member
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'GlobalMemberPointerLoad',
-            'Instance': self.member.instance_pointer.name,
-            'Member': self.member.name
-        })
-
-        return data
-
-    def emit(self):
-        address = self.member.instance_pointer.address_label()
-        offset = self.member.variable.inx * WORD_SIZE
-        available = regs.get_available([self.target])
-        temp_address = available.pop()
-        temp_offset = available.pop()
-
-        return [
-            f'// Loading member pointer {self.member.name}',
-            f'ldr &{address} {temp_address}',
-            f'mmr {temp_address} {temp_address}',  # dereference
-            f'ldc {offset} {temp_offset}',
-            f'add {temp_address} {temp_offset} {temp_address}',
-            f'mmr {temp_address} {self.target}'    # load result
-        ]
-
-
-class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
-    def __init__(
-        self, parent: ns.Namespace, name: str, target_type: InstancePointerType
-    ):
-        el.GlobalVariable.__init__(self, parent, name, target_type)
-        ns.Namespace.__init__(self, name, parent)
-
-        class_vars = [
-            cv for cv in target_type.ref_type.names.values()
-            if isinstance(cv, ClassVariable)
-        ]
-
-        lg.debug(f'Found {len(class_vars)} class variables')
-
-        for cv in sorted(class_vars, key=lambda x: x.inx):
-            lg.debug(f'Creating pointer member for {cv.name}')
-            mp = GlobalPointerMember(self, cv)
-            self.add_name(mp)
-
-    def json(self):
-        data = {'Class': 'GlobalInstancePointer'}
-        gv_data = el.GlobalVariable.json(self)
-        ns_data = ns.Namespace.json(self)
-        data.update(gv_data)
-        data.update(ns_data)
-        return data
 
 
 class GlobalInstanceLoad(el.PhysicalExpression):

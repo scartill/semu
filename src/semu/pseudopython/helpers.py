@@ -287,7 +287,7 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
     return calls.FunctionCall(func_ref, target)
 
 
-def make_method_call(m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register):
+def make_method_call(m_ref: meth.GlobalMethodRef, args: el.Expressions, target: regs.Register):
     validate_call(m_ref.instance_method.method, args)
     return meth.MethodCall(m_ref, target)
 
@@ -423,7 +423,7 @@ def create_global_variable(
         return instance
 
     if isinstance(target_type, cls.InstancePointerType):
-        return cls.GlobalInstancePointer(parent, name, target_type)
+        return meth.GlobalInstancePointer(parent, name, target_type)
     else:
         if not isinstance(target_type, t.PhysicalType):
             raise UserWarning(f'Type {name} must be representable')
