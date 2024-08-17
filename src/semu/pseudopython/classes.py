@@ -82,6 +82,22 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         ])
 
 
+class InstancePointerType(b.TargetType):
+    ref_type: Class
+
+    def __init__(self, ref_type: Class):
+        self.ref_type = ref_type
+
+    def __str__(self):
+        return f'pointer<{self.ref_type.name}>'
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, InstancePointerType):
+            return False
+
+        return self.ref_type == value.ref_type
+
+
 class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
     def __init__(self, parent: ns.Namespace, name: str, target_type: Class):
         el.Element.__init__(self)
@@ -118,22 +134,6 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
             [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
             f'// Global instance {self.qualname()} end'
         ])
-
-
-class InstancePointerType(b.TargetType):
-    ref_type: Class
-
-    def __init__(self, ref_type: Class):
-        self.ref_type = ref_type
-
-    def __str__(self):
-        return f'pointer<{self.ref_type.name}>'
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, InstancePointerType):
-            return False
-
-        return self.ref_type == value.ref_type
 
 
 class GlobalInstanceLoad(el.PhysicalExpression):

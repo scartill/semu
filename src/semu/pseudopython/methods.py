@@ -13,49 +13,39 @@ import semu.pseudopython.classes as cls
 import semu.pseudopython.calls as calls
 
 
-class GlobalPointerMember(n.KnownName):
-    variable: cls.ClassVariable
-    instance_pointer: 'GlobalInstancePointer'
-
-    def __init__(
-        self, instance_pointer: 'GlobalInstancePointer', variable: cls.ClassVariable
-    ):
-        assert isinstance(variable.target_type, t.PhysicalType)
-        super().__init__(instance_pointer, variable.name, variable.target_type)
-        self.variable = variable
-        self.instance_pointer = instance_pointer
+class Method(calls.Function):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
+        super().__init__(name, parent, return_type)
 
     def json(self):
         data = super().json()
-
-        data.update({
-            'Class': 'GlobalPointerMember',
-            'Member': self.variable.name
-        })
-
+        data['Class'] = 'Method'
         return data
 
 
-class GlobalPointerMethod(n.KnownName):
-    method: 'Method'
-    instance_pointer: 'GlobalInstancePointer'
-
+class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
     def __init__(
-        self, instance_pointer: 'GlobalInstancePointer', method: 'Method'
+        self, namespace: ns.Namespace, name: str, offset: int,
+        instance_type: cls.InstancePointerType
     ):
-        super().__init__(instance_pointer, method.name, t.Callable)
-        self.method = method
-        self.instance_pointer = instance_pointer
+        calls.FormalParameter.__init__(self, namespace, name, offset, instance_type)
+        ns.Namespace.__init__(self, name, namespace)
+
+        for cls_var in instance_type.ref_type.names.values():
+            if isinstance(cls_var, cls.ClassVariable):
+                member_pointer = StackPointerMember(self, cls_var)
+                self.add_name(member_pointer)
+
+        for method in instance_type.ref_type.names.values():
+            if isinstance(method, Method):
+                self.add_name(StackPointerMethod(self, method))
 
     def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'GlobalPointerMethod',
-            'Member': self.method.name
-        })
-
-        return data
+        return {
+            'Class': 'InstanceFormalParameter',
+            'FormalParameter': calls.FormalParameter.json(self),
+            'Namespace': ns.Namespace.json(self)
+        }
 
 
 class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
@@ -90,12 +80,57 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
         return data
 
 
-class StackPointerMember(n.KnownName):
+class GlobalPointerMember(n.KnownName):
     variable: cls.ClassVariable
-    instance_parameter: 'InstanceFormalParameter'
+    instance_pointer: GlobalInstancePointer
 
     def __init__(
-        self, instance_parameter: 'InstanceFormalParameter', variable: cls.ClassVariable
+        self, instance_pointer: GlobalInstancePointer, variable: cls.ClassVariable
+    ):
+        assert isinstance(variable.target_type, t.PhysicalType)
+        super().__init__(instance_pointer, variable.name, variable.target_type)
+        self.variable = variable
+        self.instance_pointer = instance_pointer
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'GlobalPointerMember',
+            'Member': self.variable.name
+        })
+
+        return data
+
+
+class GlobalPointerMethod(n.KnownName):
+    method: Method
+    instance_pointer: GlobalInstancePointer
+
+    def __init__(
+        self, instance_pointer: GlobalInstancePointer, method: Method
+    ):
+        super().__init__(instance_pointer, method.name, t.Callable)
+        self.method = method
+        self.instance_pointer = instance_pointer
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'GlobalPointerMethod',
+            'Member': self.method.name
+        })
+
+        return data
+
+
+class StackPointerMember(n.KnownName):
+    variable: cls.ClassVariable
+    instance_parameter: InstanceFormalParameter
+
+    def __init__(
+        self, instance_parameter: InstanceFormalParameter, variable: cls.ClassVariable
     ):
         assert isinstance(variable.target_type, t.PhysicalType)
         super().__init__(instance_parameter, variable.name, variable.target_type)
@@ -125,7 +160,7 @@ class GlobalInstancePointerLoad(el.PhysicalExpression):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalMemberPointerLoad',
+            'Class': 'GlobalInstancePointerLoad',
             'Instance': self.pointer.name,
         })
 
@@ -154,7 +189,7 @@ class GlobalPointerMemberLoad(el.PhysicalExpression):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalMemberPointerLoad',
+            'Class': 'GlobalPointerMemberLoad',
             'Instance': self.member.instance_pointer.name,
             'Member': self.member.name
         })
@@ -219,31 +254,6 @@ class StackPointerMemberAssignment(el.Element):
             f'pop {self.source.target}',
             f'mrm {self.source.target} {temp_address}'  # store value
         ])
-
-
-class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
-    def __init__(
-        self, namespace: ns.Namespace, name: str, offset: int,
-        instance_type: cls.InstancePointerType
-    ):
-        calls.FormalParameter.__init__(self, namespace, name, offset, instance_type)
-        ns.Namespace.__init__(self, name, namespace)
-
-        for cls_var in instance_type.ref_type.names.values():
-            if isinstance(cls_var, cls.ClassVariable):
-                member_pointer = StackPointerMember(self, cls_var)
-                self.add_name(member_pointer)
-
-        for method in instance_type.ref_type.names.values():
-            if isinstance(method, Method):
-                self.add_name(StackPointerMethod(self, method))
-
-    def json(self):
-        return {
-            'Class': 'InstanceFormalParameter',
-            'FormalParameter': calls.FormalParameter.json(self),
-            'Namespace': ns.Namespace.json(self)
-        }
 
 
 class StackInstancePointerLoad(el.PhysicalExpression):
@@ -315,16 +325,6 @@ class StackPointerMemberLoad(el.PhysicalExpression):
             f'add {temp_address} {temp_m_offset} {temp_address}',
             f'mmr {temp_address} {self.target}'    # load result
         ]
-
-
-class Method(calls.Function):
-    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
-        super().__init__(name, parent, return_type)
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'Method'
-        return data
 
 
 class StackPointerMethod(n.KnownName):
@@ -444,31 +444,3 @@ class MethodCall(el.PhysicalExpression):
             '// Store return value',
             f'mrr {calls.Function.return_target} {self.target}',
         ])
-
-
-# class StackPointerMethodLoad(el.PhysicalExpression):
-#     member: StackPointerMethod
-
-#     def __init__(self, member: StackPointerMethod, target: regs.Register):
-#         super().__init__(member.target_type, target)
-#         self.method = member
-
-#     def json(self):
-#         data = super().json()
-#         data['Class'] = 'StackMemberMethodLoad'
-#         data['MemberPointer'] = self.member.method.name
-#         return data
-
-#     def emit(self):
-#         assert isinstance(self.member.instance_parameter, InstanceFormalParameter)
-#         address = self.member.method.address_label()
-
-#         return [
-#             f'// Loading member method address {self.member.name}',
-#             f'ldc {stack_offset} {temp_s_offset}',
-#             f'lla {temp_s_offset} {temp_address}',
-#             f'mmr {temp_address} {temp_address}',  # dereference
-#             f'ldc {member_offset} {temp_m_offset}',
-#             f'add {temp_address} {temp_m_offset} {temp_address}',
-#             f'mmr {temp_address} {self.target}'    # load result
-#         ]

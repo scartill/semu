@@ -11,6 +11,106 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 
 
+class Function(n.KnownName, ns.Namespace, el.Element):
+    factory: Callable | None = None
+
+    decorators: List[el.DecoratorApplication]
+    body: el.Elements
+    return_type: b.TargetType
+    return_target: regs.Register = regs.DEFAULT_REGISTER
+    returns: bool = False
+    local_num: int = 0
+
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
+        el.Element.__init__(self)
+        n.KnownName.__init__(self, parent, name, return_type)
+        ns.Namespace.__init__(self, name, parent)
+        self.decorators = list()
+        self.return_type = return_type
+        self.body = list()
+
+    def json(self):
+        data: b.JSON = {'Class': 'Function'}
+        data['Element'] = el.Element.json(self)
+        data['Namespace'] = ns.Namespace.json(self)
+        data['Knownname'] = n.KnownName.json(self)
+
+        data.update({
+            'ReturnType': str(self.return_type),
+            'Body': [e.json() for e in self.body],
+            'Returns': self.returns,
+            'ReturnTarget': self.return_target
+        })
+
+        return data
+
+    def add_decorator(self, decorator: el.DecoratorApplication):
+        self.decorators.append(decorator)
+
+    def typelabel(self) -> str:
+        return 'function'
+
+    def return_label(self) -> str:
+        return f'{self.address_label()}_return'
+
+    def formals(self):
+        return list(filter(
+            lambda p: isinstance(p, FormalParameter), self.names.values()
+        ))
+
+    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
+        offset = self.local_num * WORD_SIZE
+        self.local_num += 1
+        local = LocalVariable(self, name, offset, target_type)
+        self.add_name(local)
+        return local
+
+    def load_variable(self, known_name: n.KnownName, target: regs.Register):
+        assert isinstance(known_name, StackVariable)
+        return StackVariableLoad(known_name, target)
+
+    def create_function(
+        self, name: str, args: ns.ArgDefs,
+        decors: el.Expressions, target_type: b.TargetType
+    ) -> ns.Namespace:
+
+        assert Function.factory
+        function = Function.factory(self, name, args, decors, target_type)
+        self.add_name(function)
+        return function
+
+    def emit(self) -> Sequence[str]:
+        name = self.name
+        return_label = self.return_label()
+        entrypoint = self.address_label()
+        body_label = self._make_label(f'{name}_body')
+
+        is_local = lambda e: isinstance(e, LocalVariable)
+        is_nested = lambda e: isinstance(e, Function)
+        is_body = lambda e: not is_local(e) and not is_nested(e)
+        locals = list(filter(is_local, self.body))
+        nested = list(filter(is_nested, self.body))
+        body = filter(is_body, self.body)
+        dump_target = regs.get_temp([self.return_target])
+
+        return flatten([
+            f'// Function {name} declaration',
+            [n.emit() for n in nested],
+            f'// Function {name} entrypoint',
+            f'{entrypoint}:',
+            f'// Function {name} prologue',
+            [d.emit() for d in locals],
+            f'// Function {name} body',
+            f'{body_label}:',
+            [e.emit() for e in body],
+            f'// Function {name} epilogue',
+            f'{return_label}:',
+            [f'pop {dump_target}' for _ in locals],
+            f'// Function {name} return',
+            'ret'
+        ])
+
+
 class StackVariable(n.KnownName):
     offset: int
 
@@ -144,106 +244,6 @@ class LocalVariableAssignment(el.Element):
         ])
 
 
-class Function(n.KnownName, ns.Namespace, el.Element):
-    factory: Callable | None = None
-
-    decorators: List[el.DecoratorApplication]
-    body: el.Elements
-    return_type: b.TargetType
-    return_target: regs.Register = regs.DEFAULT_REGISTER
-    returns: bool = False
-    local_num: int = 0
-
-    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
-        el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, return_type)
-        ns.Namespace.__init__(self, name, parent)
-        self.decorators = list()
-        self.return_type = return_type
-        self.body = list()
-
-    def json(self):
-        data: b.JSON = {'Class': 'Function'}
-        data['Element'] = el.Element.json(self)
-        data['Namespace'] = ns.Namespace.json(self)
-        data['Knownname'] = n.KnownName.json(self)
-
-        data.update({
-            'ReturnType': str(self.return_type),
-            'Body': [e.json() for e in self.body],
-            'Returns': self.returns,
-            'ReturnTarget': self.return_target
-        })
-
-        return data
-
-    def add_decorator(self, decorator: el.DecoratorApplication):
-        self.decorators.append(decorator)
-
-    def typelabel(self) -> str:
-        return 'function'
-
-    def return_label(self) -> str:
-        return f'{self.address_label()}_return'
-
-    def formals(self):
-        return list(filter(
-            lambda p: isinstance(p, FormalParameter), self.names.values()
-        ))
-
-    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        offset = self.local_num * WORD_SIZE
-        self.local_num += 1
-        local = LocalVariable(self, name, offset, target_type)
-        self.add_name(local)
-        return local
-
-    def load_variable(self, known_name: n.KnownName, target: regs.Register):
-        assert isinstance(known_name, StackVariable)
-        return StackVariableLoad(known_name, target)
-
-    def create_function(
-        self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, target_type: b.TargetType
-    ) -> ns.Namespace:
-
-        assert Function.factory
-        function = Function.factory(self, name, args, decors, target_type)
-        self.add_name(function)
-        return function
-
-    def emit(self) -> Sequence[str]:
-        name = self.name
-        return_label = self.return_label()
-        entrypoint = self.address_label()
-        body_label = self._make_label(f'{name}_body')
-
-        is_local = lambda e: isinstance(e, LocalVariable)
-        is_nested = lambda e: isinstance(e, Function)
-        is_body = lambda e: not is_local(e) and not is_nested(e)
-        locals = list(filter(is_local, self.body))
-        nested = list(filter(is_nested, self.body))
-        body = filter(is_body, self.body)
-        dump_target = regs.get_temp([self.return_target])
-
-        return flatten([
-            f'// Function {name} declaration',
-            [n.emit() for n in nested],
-            f'// Function {name} entrypoint',
-            f'{entrypoint}:',
-            f'// Function {name} prologue',
-            [d.emit() for d in locals],
-            f'// Function {name} body',
-            f'{body_label}:',
-            [e.emit() for e in body],
-            f'// Function {name} epilogue',
-            f'{return_label}:',
-            [f'pop {dump_target}' for _ in locals],
-            f'// Function {name} return',
-            'ret'
-        ])
-
-
 class ActualParameter(el.Element):
     inx: int
     expression: el.PhysicalExpression
@@ -270,41 +270,6 @@ class ActualParameter(el.Element):
             self.expression.emit(),
             f'// Actual parameter {self.inx} storing',
             f'push {self.expression.target}'
-        ])
-
-
-@dataclass
-class CallFrame(el.PhysicalExpression):
-    actuals: list[ActualParameter]
-    call: el.PhysicalExpression
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'CallFrame',
-            'Actuals': [a.json() for a in self.actuals],
-            'Call': self.call.json()
-        })
-
-        return data
-
-    def emit(self):
-        dump = regs.get_temp([self.target])
-
-        return flatten([
-            '// Begin call frame',
-            [actual.emit() for actual in self.actuals],
-            self.call.emit(),
-            '// Unwinding',
-            [
-                [
-                    f'// Unwinding actual parameter {actual.inx}',
-                    f'pop {dump}'
-                ]
-                for actual in self.actuals
-            ],
-            '// End call frame'
         ])
 
 
@@ -429,4 +394,39 @@ class FunctionCall(el.PhysicalExpression):
             f'cll {self.func_ref.target}',
             '// Store return value',
             f'mrr {Function.return_target} {self.target}',
+        ])
+
+
+@dataclass
+class CallFrame(el.PhysicalExpression):
+    actuals: list[ActualParameter]
+    call: el.PhysicalExpression
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'CallFrame',
+            'Actuals': [a.json() for a in self.actuals],
+            'Call': self.call.json()
+        })
+
+        return data
+
+    def emit(self):
+        dump = regs.get_temp([self.target])
+
+        return flatten([
+            '// Begin call frame',
+            [actual.emit() for actual in self.actuals],
+            self.call.emit(),
+            '// Unwinding',
+            [
+                [
+                    f'// Unwinding actual parameter {actual.inx}',
+                    f'pop {dump}'
+                ]
+                for actual in self.actuals
+            ],
+            '// End call frame'
         ])
