@@ -340,7 +340,7 @@ class Translator:
                 return bi.BuiltinInlineWrapper(known_name)
 
             if isinstance(known_name, meth.Method):
-                raise UserWarning(f'Unsupported unqualified method {known_name} call')
+                return meth.UnboundMethodRef(known_name, target)
 
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)

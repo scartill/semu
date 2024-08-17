@@ -310,6 +310,30 @@ class GlobalInstanceMethod(n.KnownName):
 type LoadFactory = Callable[[regs.Register], el.PhysicalExpression]
 
 
+class UnboundMethodRef(el.PhysicalExpression):
+    method: Method
+
+    def __init__(self, method: Method, target: regs.Register):
+        super().__init__(method.callable_type(), target)
+        self.method = method
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'UnboundMethodRef',
+            'Method': self.method.name
+        })
+
+        return data
+
+    def emit(self):
+        return [
+            f'// Method reference {self.method.name}',
+            f'ldr &{self.method.address_label()} {self.target}'
+        ]
+
+
 class MethodRef(el.PhysicalExpression):
     instance_load: LoadFactory
     method: Method
