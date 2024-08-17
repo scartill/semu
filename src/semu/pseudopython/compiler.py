@@ -414,6 +414,9 @@ class Translator:
         if isinstance(source, ast.Subscript):
             return self.tx_subscript(source, target)
 
+        if isinstance(source, (ast.Tuple, ast.List)):
+            return el.List(list(self.tx_expression(e) for e in source.elts), target)
+
         raise UserWarning(f'Unsupported expression {source}')
 
     def tx_stmt(self, ast_element: ast.stmt) -> el.Element:

@@ -31,4 +31,15 @@ class PointerOperatorType(el.BuiltinMetaoperator):
         super().__init__('ptr')
 
 
+class FunctionPointerOperatorType(el.BuiltinMetaoperator):
+    def __init__(self):
+        super().__init__('fun')
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'FunctionPointerOperatorType'
+        return data
+
+
 PointerOperator = PointerOperatorType()
+FunctionPointerOperator = FunctionPointerOperatorType()

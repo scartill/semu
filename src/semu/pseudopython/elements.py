@@ -214,3 +214,17 @@ class BuiltinMetaoperator(n.KnownName, Expression):
         data = n.KnownName.json(self)
         data.update({'Class': 'Metaoperator', 'Name': self.name})
         return data
+
+
+class List(Expression):
+    elements: Expressions
+
+    def __init__(self, elements: Expressions, target: regs.Register):
+        super().__init__(t.Unit, target)
+        self.elements = elements
+
+    def json(self):
+        return {
+            'Class': 'List',
+            'Elements': [e.json() for e in self.elements]
+        }
