@@ -263,14 +263,16 @@ def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.R
 
 def validate_call(func: calls.Function, args: el.Expressions):
     f_name = func.name
-    f_type = func.target_type
 
     lg.debug(f'Making call to {f_name}')
 
     formal_args = func.formals()
 
     if len(formal_args) != len(args):
-        raise UserWarning(f'Argument count mismatch {len(formal_args)} != {len(args)}')
+        raise UserWarning(
+            f'Function: {f_name} :: '
+            f'Argument count mismatch {len(formal_args)} != {len(args)}'
+        )
 
     for formal_arg, arg in zip(formal_args, args):
         if formal_arg.target_type != arg.target_type:

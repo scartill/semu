@@ -127,19 +127,6 @@ class Translator:
 
         return expression
 
-    def tx_var_assign(self, target: n.KnownName, source: ast.AST):
-        expression = self.tx_phy_expression(source)
-        t_type = target.target_type
-        e_type = expression.target_type
-
-        if t_type == e_type:
-            if isinstance(target, el.GlobalVariable):
-                return el.GlobalVariableAssignment(target, expression)
-            elif isinstance(target, calls.LocalVariable):
-                return calls.LocalVariableAssignment(target, expression)
-
-        raise UserWarning(f'Unsupported assign target {target} ({e_type} -> {t_type})')
-
     def tx_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
@@ -147,12 +134,22 @@ class Translator:
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
         lookup = self.resolve_object(ast_target)
-        known_name = lookup.known_name
+        target = lookup.known_name
+        expression = self.tx_phy_expression(ast_value)
+        t_type = target.target_type
+        e_type = expression.target_type
 
-        if isinstance(known_name, (el.GlobalVariable, calls.LocalVariable)):
-            return self.tx_var_assign(known_name, ast_value)
-        else:
-            raise UserWarning(f'Unsupported assignment target {known_name}')
+        if t_type == e_type:
+            if isinstance(target, el.GlobalVariable):
+                return el.GlobalVariableAssignment(target, expression)
+
+            if isinstance(target, calls.LocalVariable):
+                return calls.LocalVariableAssignment(target, expression)
+
+            if isinstance(target, calls.StackPointerMember):
+                return calls.StackPointerMemberAssignment(target, expression)
+
+        raise UserWarning(f'Unsupported assign target {target.name} ({e_type} -> {t_type})')
 
     def tx_type(self, ast_type: ast.AST):
         pp_type = self.tx_expression(ast_type).target_type
@@ -364,8 +361,8 @@ class Translator:
             if isinstance(known_name, cls.GlobalPointerMember):
                 return cls.GlobalPointerMemberLoad(known_name, target)
 
-            if isinstance(known_name, calls.StackMemberPointer):
-                return calls.StackMemberPointerLoad(known_name, target)
+            if isinstance(known_name, calls.StackPointerMember):
+                return calls.StackPointerMemberLoad(known_name, target)
 
             if isinstance(known_name, calls.GlobalInstanceMethod):
                 return calls.MethodRef(known_name, target)

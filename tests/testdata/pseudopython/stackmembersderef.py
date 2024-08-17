@@ -14,8 +14,8 @@ pc = c
 
 def read(po: ptr[C]):
     checkpoint(0)
-    assert_eq(deref(po.i), 42)
-    assert_eq(bool_to_int(deref(po.b)), 1)
+    assert_eq(po.i, 42)
+    assert_eq(bool_to_int(po.b), 1)
 
 read(pc)
 read(c)

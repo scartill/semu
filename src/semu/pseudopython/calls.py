@@ -117,9 +117,10 @@ class LocalVariableAssignment(el.Element):
         self.expr = expr
 
     def json(self):
-        data = el.Element.json(self)
+        data = super().json()
 
         data.update({
+            'Class': 'LocalVariableAssignment',
             'Target': str(self.target),
             'Expression': self.expr.json()
         })
@@ -145,7 +146,7 @@ class LocalVariableAssignment(el.Element):
         ])
 
 
-class StackMemberPointer(n.KnownName):
+class StackPointerMember(n.KnownName):
     variable: cls.ClassVariable
     instance_parameter: 'InstanceFormalParameter'
 
@@ -153,17 +154,63 @@ class StackMemberPointer(n.KnownName):
         self, instance_parameter: 'InstanceFormalParameter', variable: cls.ClassVariable
     ):
         assert isinstance(variable.target_type, t.PhysicalType)
-        target_type = t.PointerType(variable.target_type)
-        super().__init__(instance_parameter, variable.name, target_type)
+        super().__init__(instance_parameter, variable.name, variable.target_type)
         self.variable = variable
         self.instance_parameter = instance_parameter
+
+    def __str__(self) -> str:
+        return f'local:{self.instance_parameter.name}@{self.variable.name}'
 
     def json(self):
         data = super().json()
         data.update({
             'Class': 'StackMemberPointer',
-            'MemberPointerTo': self.variable.name
+            'Instance': self.instance_parameter.name,
+            'Member': self.variable.name
         })
+
+
+class StackPointerMemberAssignment(el.Element):
+    target: StackPointerMember
+    source: el.PhysicalExpression
+
+    def __init__(self, target: StackPointerMember, source: el.PhysicalExpression):
+        self.target = target
+        self.source = source
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'StackPointerMemberAssignment',
+            'Target': str(self.target),
+            'Expression': self.source.json()
+        })
+
+        return data
+
+    def emit(self):
+        stack_offset = self.target.instance_parameter.offset
+        member_offset = self.target.variable.inx * WORD_SIZE
+        available = regs.get_available([self.source.target])
+        temp_address = available.pop()
+        temp_s_offset = available.pop()
+        temp_m_offset = available.pop()
+        name = str(self.target)
+
+        return flatten([
+            f'// Calculating value for {name}',
+            self.source.emit(),
+            f'push {self.source.target}',
+            f'// Assigning {name} of instance {stack_offset} and member {member_offset}',
+            f'ldc {stack_offset} {temp_s_offset}',
+            f'lla {temp_s_offset} {temp_address}',
+            f'mmr {temp_address} {temp_address}',       # dereference
+            f'ldc {member_offset} {temp_m_offset}',
+            f'add {temp_address} {temp_m_offset} {temp_address}',
+            f'pop {self.source.target}',
+            f'mrm {self.source.target} {temp_address}'  # store value
+        ])
 
 
 class InstanceFormalParameter(FormalParameter, ns.Namespace):
@@ -176,7 +223,7 @@ class InstanceFormalParameter(FormalParameter, ns.Namespace):
 
         for cls_var in instance_type.ref_type.names.values():
             if isinstance(cls_var, cls.ClassVariable):
-                member_pointer = StackMemberPointer(self, cls_var)
+                member_pointer = StackPointerMember(self, cls_var)
                 self.add_name(member_pointer)
 
     def json(self):
@@ -187,42 +234,42 @@ class InstanceFormalParameter(FormalParameter, ns.Namespace):
         }
 
 
-class StackMemberPointerLoad(el.PhysicalExpression):
-    m_pointer: StackMemberPointer
+class StackPointerMemberLoad(el.PhysicalExpression):
+    member: StackPointerMember
 
-    def __init__(self, m_pointer: StackMemberPointer, target: regs.Register):
-        super().__init__(m_pointer.target_type, target)
-        self.m_pointer = m_pointer
+    def __init__(self, member: StackPointerMember, target: regs.Register):
+        super().__init__(member.target_type, target)
+        self.member = member
 
     def json(self):
         data = super().json()
         data['Class'] = 'StackMemberPointerLoad'
-        data['MemberPointer'] = self.m_pointer.name
+        data['MemberPointer'] = self.member.name
         return data
 
     def emit(self):
-        assert isinstance(self.m_pointer.instance_parameter, InstanceFormalParameter)
-        stack_offset = self.m_pointer.instance_parameter.offset
-        member_offset = self.m_pointer.variable.inx * WORD_SIZE
+        assert isinstance(self.member.instance_parameter, InstanceFormalParameter)
+        stack_offset = self.member.instance_parameter.offset
+        member_offset = self.member.variable.inx * WORD_SIZE
         available = regs.get_available([self.target])
         temp_address = available.pop()
         temp_s_offset = available.pop()
         temp_m_offset = available.pop()
 
         lg.debug(
-            f'Emitting member pointer {self.m_pointer.name}'
+            f'Emitting member pointer {self.member.name}'
             f' from stack offset {stack_offset}'
             f' and member offset {member_offset}'
         )
 
         return [
-            f'// Loading member pointer {self.m_pointer.name}',
+            f'// Loading member pointer {self.member.name}',
             f'ldc {stack_offset} {temp_s_offset}',
             f'lla {temp_s_offset} {temp_address}',
             f'mmr {temp_address} {temp_address}',  # dereference
             f'ldc {member_offset} {temp_m_offset}',
             f'add {temp_address} {temp_m_offset} {temp_address}',
-            f'mrr {temp_address} {self.target}'
+            f'mmr {temp_address} {self.target}'    # load result
         ]
 
 

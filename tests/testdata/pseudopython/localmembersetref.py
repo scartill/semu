@@ -1,5 +1,4 @@
 # type: ignore
-
 class C:
     b: bool
     i: int
@@ -12,17 +11,17 @@ c.i = 42
 pc: ptr[C]
 pc = c
 
-assert_eq(bool_to_int(deref(pc.b)), 1)
-assert_eq(deref(pc.i), 42)
+assert_eq(bool_to_int(pc.b), 1)
+assert_eq(pc.i, 42)
 
 def change(pc: ptr[C], k: int, v: bool):
-    refset(pc.i, k)
-    refset(pc.b, v)
+    pc.i = k
+    pc.b = v
 
 change(pc, 101, False)
-assert_eq(bool_to_int(deref(pc.b)), 0)
-assert_eq(deref(pc.i), 101)
+assert_eq(bool_to_int(pc.b), 0)
+assert_eq(pc.i, 101)
 
 change(c, 404, True)
-assert_eq(bool_to_int(deref(pc.b)), 1)
-assert_eq(deref(pc.i), 404)
+assert_eq(bool_to_int(pc.b), 1)
+assert_eq(pc.i, 404)

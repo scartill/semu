@@ -161,31 +161,32 @@ class GlobalPointerMember(n.KnownName):
 
 
 class GlobalPointerMemberLoad(el.PhysicalExpression):
-    m_pointer: GlobalPointerMember
+    member: GlobalPointerMember
 
-    def __init__(self, m_pointer: GlobalPointerMember, target: regs.Register):
-        super().__init__(m_pointer.target_type, target)
-        self.m_pointer = m_pointer
+    def __init__(self, member: GlobalPointerMember, target: regs.Register):
+        super().__init__(member.target_type, target)
+        self.member = member
 
     def json(self):
         data = super().json()
 
-        data.update({'GlobalMemberPointerLoad': {
-            'InstancePointer': self.m_pointer.instance_pointer.name,
-            'MemberPointer': self.m_pointer.name
-        }})
+        data.update({
+            'Class': 'GlobalMemberPointerLoad',
+            'Instance': self.member.instance_pointer.name,
+            'Member': self.member.name
+        })
 
         return data
 
     def emit(self):
-        address = self.m_pointer.instance_pointer.address_label()
-        offset = self.m_pointer.variable.inx * WORD_SIZE
+        address = self.member.instance_pointer.address_label()
+        offset = self.member.variable.inx * WORD_SIZE
         available = regs.get_available([self.target])
         temp_address = available.pop()
         temp_offset = available.pop()
 
         return [
-            f'// Loading member pointer {self.m_pointer.name}',
+            f'// Loading member pointer {self.member.name}',
             f'ldr &{address} {temp_address}',
             f'mmr {temp_address} {temp_address}',  # dereference
             f'ldc {offset} {temp_offset}',
