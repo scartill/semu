@@ -76,8 +76,8 @@ class Translator:
     def tx_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.tx_expression(ast_call.func)
 
-        if isinstance(callable, bi.BuiltinInline):
-            return self.tx_builtin_call(callable, ast_call.args, target)
+        if isinstance(callable, bi.BuiltinInlineWrapper):
+            return self.tx_builtin_call(callable.inline, ast_call.args, target)
 
         if callable.target_type != t.Callable:
             raise UserWarning(f'Unsupported callable {callable}')
@@ -333,7 +333,7 @@ class Translator:
                 return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, bi.BuiltinInline):
-                return known_name  # as expression
+                return bi.BuiltinInlineWrapper(known_name)
 
             if isinstance(known_name, meth.Method):
                 raise UserWarning(f'Unsupported unqualified method {known_name} call')

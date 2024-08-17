@@ -34,6 +34,16 @@ class CallableType(b.TargetType):
         return data
 
 
+class BuiltinCallableType(b.TargetType):
+    def __init__(self):
+        super().__init__()
+
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'BuiltinCallable'})
+        return data
+
+
 class ClassType(b.TargetType):
     def __init__(self):
         super().__init__()
@@ -176,3 +186,4 @@ Int32 = Int32Type()
 Bool32 = Bool32Type()
 AbstractPointer = AbstractPointerType()
 AbstractPhysical = PhysicalType()
+BuiltinCallable = BuiltinCallableType()

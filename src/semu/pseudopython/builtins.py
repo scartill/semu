@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Sequence, Callable
 import logging as lg
 
@@ -13,37 +12,33 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.pointers as ptrs
 
 
-@dataclass
-class BuiltinInlineImpl(el.PhysicalExpression):
-    def __init__(self, target_type: b.TargetType, target: regs.Register):
-        super().__init__(target_type, target)
-
-    def json(self):
-        data = super().json()
-        data.update({'Type': 'BuiltinInline'})
-        return data
-
-
 Factory = Callable[[el.Expressions, regs.Register], el.Expression]
 
 
-@dataclass
 class BuiltinInline(n.KnownName):
     factory: Factory
     return_type: b.TargetType
 
     def __init__(
-        self, namespace: n.INamespace, name: str, target_type: b.TargetType,
+        self, namespace: n.INamespace, name: str,
+        return_type: b.TargetType,
         factory: Factory
     ):
-        n.KnownName.__init__(self, namespace, name, target_type)
+        n.KnownName.__init__(self, namespace, name, b.Builtin)
         # Builtin functions have no address
         self.factory = factory
-        self.return_type = target_type
+        self.return_type = return_type
 
 
-@dataclass
-class Checkpoint(BuiltinInlineImpl):
+class BuiltinInlineWrapper(el.Expression):
+    inline: BuiltinInline
+
+    def __init__(self, inline: BuiltinInline):
+        super().__init__(t.BuiltinCallable)
+        self.inline = inline
+
+
+class Checkpoint(el.PhysicalExpression):
     arg: int
 
     def __init__(self, arg: int):
@@ -62,8 +57,7 @@ class Checkpoint(BuiltinInlineImpl):
         return data
 
 
-@dataclass
-class Assertion(BuiltinInlineImpl):
+class Assertion(el.PhysicalExpression):
     source: el.PhysicalExpression
     value: int
 
@@ -90,8 +84,7 @@ class Assertion(BuiltinInlineImpl):
         ])
 
 
-@dataclass
-class BoolToInt(BuiltinInlineImpl):
+class BoolToInt(el.PhysicalExpression):
     source: el.PhysicalExpression
 
     def __init__(self, source: el.PhysicalExpression, target: regs.Register):
@@ -103,7 +96,7 @@ class BoolToInt(BuiltinInlineImpl):
         return self.source.emit()
 
 
-class Ref(BuiltinInlineImpl):
+class Ref(el.PhysicalExpression):
     address: el.PhysicalExpression
 
     def __init__(
@@ -127,7 +120,7 @@ class Ref(BuiltinInlineImpl):
         ])
 
 
-class Deref(BuiltinInlineImpl):
+class Deref(el.PhysicalExpression):
     source: el.PhysicalExpression
 
     def __init__(self, source: el.PhysicalExpression, target: regs.Register):
@@ -151,7 +144,7 @@ class Deref(BuiltinInlineImpl):
         ])
 
 
-class GlobalRefSet(BuiltinInlineImpl):
+class GlobalRefSet(el.PhysicalExpression):
     variable: el.GlobalVariable
     source: el.PhysicalExpression
 
@@ -189,7 +182,7 @@ class GlobalRefSet(BuiltinInlineImpl):
         ])
 
 
-class LocalRefSet(BuiltinInlineImpl):
+class LocalRefSet(el.PhysicalExpression):
     variable: calls.StackVariable
     source: el.PhysicalExpression
 
