@@ -101,3 +101,7 @@ def test_simplethis(capsys):
 
 def test_recussivemethods(capsys):
     simple_with_capture('recussivemethods', capsys)
+
+
+def test_boolassert():
+    simple_test('boolassert')

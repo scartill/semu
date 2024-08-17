@@ -73,13 +73,6 @@ class Assertion(BuiltinInlineImpl):
         self.source = source
         self.value = value
 
-    def emit(self) -> Sequence[str]:
-        return flatten([
-            self.source.emit(),
-            '// Assertion',
-            f'%assert {self.source.target} {self.value}',
-        ])
-
     def json(self):
         data = super().json()
 
@@ -89,6 +82,13 @@ class Assertion(BuiltinInlineImpl):
         })
 
         return data
+
+    def emit(self) -> Sequence[str]:
+        return flatten([
+            self.source.emit(),
+            '// Assertion',
+            f'%assert {self.source.target} {self.value}',
+        ])
 
 
 @dataclass
@@ -260,18 +260,28 @@ def create_assert(args: el.Expressions, target: regs.Register):
     if not isinstance(value_expr, el.ConstantExpression):
         raise UserWarning(f"'assert_eq' expects a constant value, got {value_expr}")
 
-    if source.target_type != t.Int32:
+    if source.target_type not in [t.Int32, t.Bool32]:
         raise UserWarning(
-            f"'assertion' expects a int32 source, got {source.target_type}"
+            f"'assertion' expects a int/bool source, got {source.target_type}"
         )
 
-    if value_expr.target_type != t.Int32:
+    if value_expr.target_type not in [t.Int32, t.Bool32]:
         raise UserWarning(
-            f"'assertion' expects a int32 value, got {value_expr.target_type}"
+            f"'assertion' expects a int/bool value, got {value_expr.target_type}"
+        )
+
+    if source.target_type != value_expr.target_type:
+        raise UserWarning(
+            f"'assertion' expects source and value of the same type, "
+            f"got {source.target_type} and {value_expr.target_type}"
         )
 
     # Inlining the value
-    value = value_expr.value
+    if value_expr.target_type == t.Int32:
+        value = value_expr.value
+    else:
+        value = 1 if value_expr.value else 0
+
     return Assertion(source, value)
 
 
