@@ -222,73 +222,34 @@ class StackPointerMemberAssignment(el.Element):
 
 
 class StackInstancePointerLoad(el.PhysicalExpression):
-    formal: InstanceFormalParameter
+    instance_pointer: calls.StackVariable
 
-    def __init__(self, formal: InstanceFormalParameter, target: regs.Register):
-        assert isinstance(formal.target_type, cls.InstancePointerType)
-        super().__init__(formal.target_type, target)
-        self.formal = formal
+    def __init__(self, instance_pointer: calls.StackVariable, target: regs.Register):
+        assert isinstance(instance_pointer.target_type, cls.InstancePointerType)
+        super().__init__(instance_pointer.target_type, target)
+        self.instance_pointer = instance_pointer
 
     def json(self):
         data = super().json()
 
         data.update({
             'Class': 'StackInstancePointerLoad',
-            'Instance': self.formal.name
+            'Instance': self.instance_pointer.name
         })
 
         return data
 
     def emit(self):
-        stack_offset = self.formal.offset
+        stack_offset = self.instance_pointer.offset
         available = regs.get_available([self.target])
         temp_address = available.pop()
         temp_offset = available.pop()
 
         return [
-            f'// Loading member pointer {self.formal.name}',
+            f'// Loading member pointer {self.instance_pointer.name}',
             f'ldc {stack_offset} {temp_offset}',
             f'lla {temp_offset} {temp_address}',
             f'mmr {temp_address} {self.target}',  # dereference
-        ]
-
-
-class StackPointerMemberLoad(el.PhysicalExpression):
-    member: StackPointerMember
-
-    def __init__(self, member: StackPointerMember, target: regs.Register):
-        super().__init__(member.target_type, target)
-        self.member = member
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'StackMemberPointerLoad'
-        data['MemberPointer'] = self.member.name
-        return data
-
-    def emit(self):
-        assert isinstance(self.member.instance_parameter, InstanceFormalParameter)
-        stack_offset = self.member.instance_parameter.offset
-        member_offset = self.member.variable.inx * WORD_SIZE
-        available = regs.get_available([self.target])
-        temp_address = available.pop()
-        temp_s_offset = available.pop()
-        temp_m_offset = available.pop()
-
-        lg.debug(
-            f'Emitting member pointer {self.member.name}'
-            f' from stack offset {stack_offset}'
-            f' and member offset {member_offset}'
-        )
-
-        return [
-            f'// Loading member pointer {self.member.name}',
-            f'ldc {stack_offset} {temp_s_offset}',
-            f'lla {temp_s_offset} {temp_address}',
-            f'mmr {temp_address} {temp_address}',  # dereference
-            f'ldc {member_offset} {temp_m_offset}',
-            f'add {temp_address} {temp_m_offset} {temp_address}',
-            f'mmr {temp_address} {self.target}'    # load result
         ]
 
 

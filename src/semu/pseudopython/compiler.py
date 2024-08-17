@@ -367,7 +367,9 @@ class Translator:
                 return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.StackPointerMember):
-                return meth.StackPointerMemberLoad(known_name, target)
+                address = regs.get_temp([target])
+                load = meth.StackInstancePointerLoad(known_name.instance_parameter, address)
+                return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
                 return meth.MethodRef.from_GIM(known_name, target)
