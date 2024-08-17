@@ -89,6 +89,7 @@ class Translator:
         if isinstance(callable, calls.FunctionRef):
             call = h.make_call(callable, args, target)
             return h.create_call_frame(call, args)
+
         elif isinstance(callable, calls.MethodRef):
             # 'this' pointer is the first argument
             this_pointer = cls.GlobalInstanceLoad(
@@ -98,6 +99,7 @@ class Translator:
             full_args = [this_pointer] + args
             call = h.make_method_call(callable, full_args, target)
             return h.create_call_frame(call, full_args)
+
         else:
             raise UserWarning(f'Unsupported callable {callable}')
 
@@ -338,6 +340,9 @@ class Translator:
 
             if isinstance(known_name, bi.BuiltinInline):
                 return known_name  # as expression
+
+            if isinstance(known_name, calls.Method):
+                raise UserWarning(f'Unsupported unqualified method {known_name} call')
 
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)

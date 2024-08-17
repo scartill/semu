@@ -271,7 +271,7 @@ def validate_call(func: calls.Function, args: el.Expressions):
     if len(formal_args) != len(args):
         raise UserWarning(
             f'Function: {f_name} :: '
-            f'Argument count mismatch {len(formal_args)} != {len(args)}'
+            f'Argument count mismatch: need {len(formal_args)}, got {len(args)}'
         )
 
     for formal_arg, arg in zip(formal_args, args):
