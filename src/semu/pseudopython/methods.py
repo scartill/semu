@@ -1,4 +1,5 @@
 import logging as lg
+from typing import Callable
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -113,6 +114,35 @@ class StackPointerMember(n.KnownName):
         })
 
 
+class GlobalInstancePointerLoad(el.PhysicalExpression):
+    pointer: GlobalInstancePointer
+
+    def __init__(self, pointer: GlobalInstancePointer, target: regs.Register):
+        super().__init__(pointer.target_type, target)
+        self.pointer = pointer
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'GlobalMemberPointerLoad',
+            'Instance': self.pointer.name,
+        })
+
+        return data
+
+    def emit(self):
+        address = self.pointer.address_label()
+        available = regs.get_available([self.target])
+        temp_address = available.pop()
+
+        return [
+            f'// Loading member pointer {self.pointer.name}',
+            f'ldr &{address} {temp_address}',
+            f'mmr {temp_address} {self.target}',  # dereference
+        ]
+
+
 class GlobalPointerMemberLoad(el.PhysicalExpression):
     member: GlobalPointerMember
 
@@ -204,9 +234,9 @@ class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
                 member_pointer = StackPointerMember(self, cls_var)
                 self.add_name(member_pointer)
 
-        # for method in instance_type.ref_type.names.values():
-        #     if isinstance(method, Method):
-        #         self.add_name(StackPointerMethod(self, method))
+        for method in instance_type.ref_type.names.values():
+            if isinstance(method, Method):
+                self.add_name(StackPointerMethod(self, method))
 
     def json(self):
         return {
@@ -214,6 +244,38 @@ class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
             'FormalParameter': calls.FormalParameter.json(self),
             'Namespace': ns.Namespace.json(self)
         }
+
+
+class StackInstancePointerLoad(el.PhysicalExpression):
+    formal: InstanceFormalParameter
+
+    def __init__(self, formal: InstanceFormalParameter, target: regs.Register):
+        assert isinstance(formal.target_type, cls.InstancePointerType)
+        super().__init__(formal.target_type, target)
+        self.formal = formal
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'StackInstancePointerLoad',
+            'Instance': self.formal.name
+        })
+
+        return data
+
+    def emit(self):
+        stack_offset = self.formal.offset
+        available = regs.get_available([self.target])
+        temp_address = available.pop()
+        temp_offset = available.pop()
+
+        return [
+            f'// Loading member pointer {self.formal.name}',
+            f'ldc {stack_offset} {temp_offset}',
+            f'lla {temp_offset} {temp_address}',
+            f'mmr {temp_address} {self.target}',  # dereference
+        ]
 
 
 class StackPointerMemberLoad(el.PhysicalExpression):
@@ -265,27 +327,27 @@ class Method(calls.Function):
         return data
 
 
-# class StackPointerMethod(n.KnownName):
-#     method: Method
-#     instance_parameter: InstanceFormalParameter
+class StackPointerMethod(n.KnownName):
+    method: Method
+    instance_parameter: InstanceFormalParameter
 
-#     def __init__(self, instance_parameter: InstanceFormalParameter, method: Method):
-#         super().__init__(instance_parameter, method.name, t.Callable)
-#         self.method = method
-#         self.instance_parameter = instance_parameter
+    def __init__(self, instance_parameter: InstanceFormalParameter, method: Method):
+        super().__init__(instance_parameter, method.name, t.Callable)
+        self.method = method
+        self.instance_parameter = instance_parameter
 
-#     def __str__(self) -> str:
-#         return f'local:{self.instance_parameter.name}@{self.method.name}'
+    def __str__(self) -> str:
+        return f'local:{self.instance_parameter.name}@{self.method.name}'
 
-#     def json(self):
-#         data = super().json()
-#         data.update({
-#             'Class': 'StackMemberMethod',
-#             'Instance': self.instance_parameter.name,
-#             'Method': self.method.name
-#         })
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'StackMemberMethod',
+            'Instance': self.instance_parameter.name,
+            'Method': self.method.name
+        })
 
-#         return data
+        return data
 
 
 class GlobalInstanceMethod(n.KnownName):
@@ -311,38 +373,58 @@ class GlobalInstanceMethod(n.KnownName):
         return data
 
 
-class GlobalMethodRef(el.Expression):
-    instance_method: GlobalInstanceMethod
+type LoadFactory = Callable[[regs.Register], el.PhysicalExpression]
 
-    def __init__(self, instance_method: GlobalInstanceMethod, target: regs.Register):
+
+class MethodRef(el.Expression):
+    instance_load: LoadFactory
+    method: Method
+
+    @staticmethod
+    def from_GIM(instance_method: GlobalInstanceMethod, target: regs.Register):
+        load = lambda t: cls.GlobalInstanceLoad(instance_method.instance, t)
+        return MethodRef(instance_method.method, load, target)
+
+    @staticmethod
+    def from_GPM(global_method: GlobalPointerMethod, target: regs.Register):
+        load = lambda t: GlobalInstancePointerLoad(global_method.instance_pointer, t)
+        return MethodRef(global_method.method, load, target)
+
+    @staticmethod
+    def from_SPM(stack_method: StackPointerMethod, target: regs.Register):
+        load = lambda t: StackInstancePointerLoad(stack_method.instance_parameter, t)
+        return MethodRef(stack_method.method, load, target)
+
+    def __init__(self, method: Method, instance_load: LoadFactory, target: regs.Register):
         super().__init__(t.Callable, target)
-        self.instance_method = instance_method
+        self.instance_load = instance_load
+        self.method = method
 
     def json(self):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalMethodRef',
-            'Method': f'{self.instance_method.name}@{self.instance_method.instance.name}'
+            'Class': 'MethodRef',
+            'Method': f'method:{self.method.name}'
         })
 
         return data
 
     def __str__(self):
-        return f'{self.instance_method.name}@{self.instance_method.instance.name}'
+        return f'ref:{self.method.name}'
 
     def emit(self):
         return [
-            f'// Method reference {self.instance_method.name}',
-            f'ldr &{self.instance_method.method.address_label()} {self.target}'
+            f'// Method reference {self.method.name}',
+            f'ldr &{self.method.address_label()} {self.target}'
         ]
 
 
 class MethodCall(el.PhysicalExpression):
-    method_ref: GlobalMethodRef
+    method_ref: MethodRef
 
-    def __init__(self, method_ref: GlobalMethodRef, target: regs.Register):
-        super().__init__(method_ref.instance_method.method.return_type, target)
+    def __init__(self, method_ref: MethodRef, target: regs.Register):
+        super().__init__(method_ref.method.return_type, target)
         self.method_ref = method_ref
 
     def json(self):
@@ -352,7 +434,7 @@ class MethodCall(el.PhysicalExpression):
         return data
 
     def emit(self):
-        name = str(self.method_ref.instance_method)
+        name = str(self.method_ref.method.name)
 
         return flatten([
             f'// Begin method call {name}',

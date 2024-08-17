@@ -97,3 +97,7 @@ def test_localmembersetref():
 
 def test_simplethis(capsys):
     simple_with_capture('simplethis', capsys)
+
+
+def test_recussivemethods(capsys):
+    simple_with_capture('recussivemethods', capsys)

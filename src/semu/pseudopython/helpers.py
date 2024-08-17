@@ -287,8 +287,8 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
     return calls.FunctionCall(func_ref, target)
 
 
-def make_method_call(m_ref: meth.GlobalMethodRef, args: el.Expressions, target: regs.Register):
-    validate_call(m_ref.instance_method.method, args)
+def make_method_call(m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register):
+    validate_call(m_ref.method, args)
     return meth.MethodCall(m_ref, target)
 
 
