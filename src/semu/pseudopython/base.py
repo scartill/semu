@@ -10,7 +10,7 @@ class TargetType:
         return {'Class': 'TargetType'}
 
     def __str__(self) -> str:
-        return 'TargetType'
+        return 'target-type'
 
 
 class BuiltinType(TargetType):

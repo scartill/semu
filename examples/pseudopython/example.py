@@ -2,8 +2,10 @@
 
 pf: fun[[int, int], bool]
 
-# def is_greater_than(a: int, b: int) -> bool:
-#     return a > b
+def is_greater_than(a: int, b: int) -> bool:
+    return a > b
+
+pf = is_greater_than
 
 # b: bool
 # b = is_greater_than(1, 2)

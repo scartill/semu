@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import semu.pseudopython.base as b
 import semu.pseudopython.names as n
 
@@ -77,9 +79,12 @@ class DecoratorType(NamedType):
         return data
 
 
-class PhysicalType(NamedType):
-    def __init__(self, name: str):
-        super().__init__(name)
+class PhysicalType(b.TargetType):
+    def __init__(self):
+        b.TargetType.__init__(self)
+
+    def __str__(self) -> str:
+        return 'physical-type'
 
     def json(self):
         data = super().json()
@@ -87,7 +92,22 @@ class PhysicalType(NamedType):
         return data
 
 
-class Int32Type(PhysicalType):
+class NamedPhysicalType(PhysicalType, n.KnownName):
+    def __init__(self, name: str):
+        PhysicalType.__init__(self)
+        n.KnownName.__init__(self, None, name, b.Builtin)
+
+    def json(self):
+        data: b.JSON = {'Class': 'NamedPhysicalType'}
+        data['KnownName'] = n.KnownName.json(self)
+        data['PhysicalType'] = PhysicalType.json(self)
+        return data
+
+
+NamedPhysicalTypes = Sequence[NamedPhysicalType]
+
+
+class Int32Type(NamedPhysicalType):
     def __init__(self):
         super().__init__('int')
 
@@ -100,7 +120,7 @@ class Int32Type(PhysicalType):
         return data
 
 
-class Bool32Type(PhysicalType):
+class Bool32Type(NamedPhysicalType):
     def __init__(self):
         super().__init__('bool')
 
@@ -127,7 +147,7 @@ class PointerType(PhysicalType):
     ref_type: PhysicalType
 
     def __init__(self, ref_type: PhysicalType):
-        super().__init__('pointer')
+        super().__init__()
         self.ref_type = ref_type
 
     def __eq__(self, value: object) -> bool:
@@ -136,8 +156,8 @@ class PointerType(PhysicalType):
 
         return self.ref_type == value.ref_type
 
-    def name(self):
-        return f'pointer<{self.target_type}>'
+    def __str__(self):
+        return f'pointer<{self.ref_type}>'
 
     def json(self):
         data = super().json()
@@ -155,4 +175,4 @@ Unit = UnitType()
 Int32 = Int32Type()
 Bool32 = Bool32Type()
 AbstractPointer = AbstractPointerType()
-AbstractPhysical = PhysicalType('physical')
+AbstractPhysical = PhysicalType()

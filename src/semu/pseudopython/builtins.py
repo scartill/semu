@@ -24,11 +24,11 @@ class BuiltinInlineImpl(el.PhysicalExpression):
         return data
 
 
-Factory = Callable[[el.Expressions, regs.Register], BuiltinInlineImpl]
+Factory = Callable[[el.Expressions, regs.Register], el.Expression]
 
 
 @dataclass
-class BuiltinInline(n.KnownName, el.Expression):
+class BuiltinInline(n.KnownName):
     factory: Factory
     return_type: b.TargetType
 
@@ -38,7 +38,6 @@ class BuiltinInline(n.KnownName, el.Expression):
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
         # Builtin functions have no address
-        el.Expression.__init__(self, t.Callable)
         self.factory = factory
         self.return_type = target_type
 
@@ -117,7 +116,7 @@ class Ref(BuiltinInlineImpl):
     def json(self):
         data = el.Expression.json(self)
         assert isinstance(self.target_type, t.PointerType)
-        data.update({'RefOf': self.target_type.name})
+        data.update({'RefOf': str(self.target_type)})
         return data
 
     def emit(self) -> el.Sequence[str]:
@@ -145,7 +144,7 @@ class Deref(BuiltinInlineImpl):
         assert isinstance(self.target_type, t.PhysicalType)
 
         return flatten([
-            f'// Pointer type: {self.target_type.name}',
+            f'// Pointer type: {self.target_type}',
             self.source.emit(),
             '// Dereference',
             f'mmr {self.source.target} {self.target}'

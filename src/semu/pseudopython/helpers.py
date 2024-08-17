@@ -459,12 +459,22 @@ def create_funptr_type(slice: el.Expression):
     if not isinstance(return_type, el.TypeWrapper):
         raise UserWarning('Unsupported function pointer type (return type is not a type)')
 
+    if not isinstance(return_type.target_type, t.NamedPhysicalType):
+        raise UserWarning(
+            'Unsupported function pointer type (return type is not a named type)'
+        )
+
     for param_type in param_types.elements:
         if not isinstance(param_type, el.TypeWrapper):
             raise UserWarning('Unsupported function pointer type (param type is not a type)')
 
-    element_types = [cast(t.PhysicalType, e.target_type) for e in param_types.elements]
-    return_type = cast(t.PhysicalType, return_type.target_type)
+        if not isinstance(param_type.target_type, t.NamedPhysicalType):
+            raise UserWarning(
+                'Unsupported function pointer type (param type is not a named type)'
+            )
+
+    element_types = [cast(t.NamedPhysicalType, e.target_type) for e in param_types.elements]
+    return_type = cast(t.NamedPhysicalType, return_type.target_type)
     return el.TypeWrapper(ptrs.FunctionPointerType(element_types, return_type))
 
 

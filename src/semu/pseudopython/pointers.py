@@ -44,19 +44,16 @@ class FunctionPointerOperatorType(el.BuiltinMetaoperator):
 
 
 class FunctionPointerType(t.PhysicalType):
-    element_types: Sequence[t.PhysicalType]
-    return_type: t.PhysicalType
+    element_types: Sequence[t.NamedPhysicalType]
+    return_type: t.NamedPhysicalType
 
-    def __init__(self, element_types: Sequence[t.PhysicalType], return_type: t.PhysicalType):
-        name = (
-            'fun'
-            f"({', '.join(e.name for e in element_types)})"
-            f'-> {return_type.name}'
-        )
-
-        super().__init__(name)
+    def __init__(self, element_types: t.NamedPhysicalTypes, return_type: t.NamedPhysicalType):
+        super().__init__()
         self.element_types = element_types
         self.return_type = return_type
+
+    def __str__(self) -> str:
+        return f'<{", ".join(str(e) for e in self.element_types)} -> {self.return_type}>'
 
     def json(self):
         data = super().json()
