@@ -81,6 +81,11 @@ class PhysicalType(NamedType):
     def __init__(self, name: str):
         super().__init__(name)
 
+    def json(self):
+        data = super().json()
+        data.update({'Class': 'PhysicalType'})
+        return data
+
 
 class Int32Type(PhysicalType):
     def __init__(self):

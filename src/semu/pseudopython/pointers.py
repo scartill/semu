@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
@@ -38,6 +40,31 @@ class FunctionPointerOperatorType(el.BuiltinMetaoperator):
     def json(self):
         data = super().json()
         data['Class'] = 'FunctionPointerOperatorType'
+        return data
+
+
+class FunctionPointerType(t.PhysicalType):
+    element_types: Sequence[t.PhysicalType]
+    return_type: t.PhysicalType
+
+    def __init__(self, element_types: Sequence[t.PhysicalType], return_type: t.PhysicalType):
+        name = (
+            'fun'
+            f"({', '.join(e.name for e in element_types)})"
+            f'-> {return_type.name}'
+        )
+
+        super().__init__(name)
+        self.element_types = element_types
+        self.return_type = return_type
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'FunctionPointerType',
+            'ElementTypes': [e.json() for e in self.element_types],
+            'ReturnType': self.return_type.json()
+        })
         return data
 
 

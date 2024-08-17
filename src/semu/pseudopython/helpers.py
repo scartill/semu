@@ -433,14 +433,46 @@ def create_global_variable(
         return create
 
 
-def create_subscript(value: el.Expression, slice: el.Expression, target):
-    if value != ptrs.PointerOperator:
-        raise UserWarning(f'Unsupported subscript value type {value}')
-
+def create_ptr_type(slice: el.Expression):
     if isinstance(slice.target_type, cls.Class):
         return el.TypeWrapper(cls.InstancePointerType(slice.target_type))
 
     if isinstance(slice.target_type, t.PhysicalType):
         return el.TypeWrapper(t.PointerType(slice.target_type))
+
+    raise UserWarning(f'Unsupported pointer type {slice.target_type}')
+
+
+def create_funptr_type(slice: el.Expression):
+    if not isinstance(slice, el.List):
+        raise UserWarning('Unsupported function pointer type')
+
+    if len(slice.elements) != 2:
+        raise UserWarning('Unsupported function pointer type (length is not 2)')
+
+    param_types = slice.elements[0]
+    return_type = slice.elements[1]
+
+    if not isinstance(param_types, el.List):
+        raise UserWarning('Unsupported function pointer type (params are not a list)')
+
+    if not isinstance(return_type, el.TypeWrapper):
+        raise UserWarning('Unsupported function pointer type (return type is not a type)')
+
+    for param_type in param_types.elements:
+        if not isinstance(param_type, el.TypeWrapper):
+            raise UserWarning('Unsupported function pointer type (param type is not a type)')
+
+    element_types = [cast(t.PhysicalType, e.target_type) for e in param_types.elements]
+    return_type = cast(t.PhysicalType, return_type.target_type)
+    return el.TypeWrapper(ptrs.FunctionPointerType(element_types, return_type))
+
+
+def create_subscript(value: el.Expression, slice: el.Expression, target):
+    if value == ptrs.PointerOperator:
+        return create_ptr_type(slice)
+
+    if value == ptrs.FunctionPointerOperator:
+        return create_funptr_type(slice)
 
     raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')
