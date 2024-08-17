@@ -374,6 +374,7 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         t.Bool32,
         ptrs.PointerOperator,
         ptrs.FunctionPointerOperator,
+        ptrs.MethodPointerOperator,
         t.DecoratorType('staticmethod', namespace),
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),

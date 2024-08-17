@@ -455,6 +455,32 @@ def create_ptr_type(slice: el.Expression):
     raise UserWarning(f'Unsupported pointer type {slice.target_type}')
 
 
+def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expression):
+    if not isinstance(param_type_expr, el.List):
+        raise UserWarning('Unsupported function pointer type (params are not a list)')
+
+    if not isinstance(return_type_expr, el.TypeWrapper):
+        raise UserWarning('Unsupported function pointer type (return type is not a type)')
+
+    if not isinstance(return_type_expr.target_type, t.NamedPhysicalType):
+        raise UserWarning(
+            'Unsupported function pointer type (return type is not a named type)'
+        )
+
+    for param_type in param_type_expr.elements:
+        if not isinstance(param_type, el.TypeWrapper):
+            raise UserWarning('Unsupported function pointer type (param type is not a type)')
+
+        if not isinstance(param_type.target_type, t.NamedPhysicalType):
+            raise UserWarning(
+                'Unsupported function pointer type (param type is not a named type)'
+            )
+
+    arg_types = [cast(t.NamedPhysicalType, e.target_type) for e in param_type_expr.elements]
+    return_type = return_type_expr.target_type
+    return (arg_types, return_type)
+
+
 def create_funptr_type(slice: el.Expression):
     if not isinstance(slice, el.List):
         raise UserWarning('Unsupported function pointer type')
@@ -464,30 +490,30 @@ def create_funptr_type(slice: el.Expression):
 
     param_types = slice.elements[0]
     return_type = slice.elements[1]
+    (arg_types, return_type) = _funptr_validate(param_types, return_type)
+    return el.TypeWrapper(ptrs.FunctionPointerType(arg_types, return_type))
 
-    if not isinstance(param_types, el.List):
-        raise UserWarning('Unsupported function pointer type (params are not a list)')
 
-    if not isinstance(return_type, el.TypeWrapper):
-        raise UserWarning('Unsupported function pointer type (return type is not a type)')
+def create_methptr_type(slice: el.Expression):
+    if not isinstance(slice, el.List):
+        raise UserWarning('Unsupported method pointer type')
 
-    if not isinstance(return_type.target_type, t.NamedPhysicalType):
-        raise UserWarning(
-            'Unsupported function pointer type (return type is not a named type)'
-        )
+    if len(slice.elements) != 3:
+        raise UserWarning('Unsupported method pointer type (length is not 3)')
 
-    for param_type in param_types.elements:
-        if not isinstance(param_type, el.TypeWrapper):
-            raise UserWarning('Unsupported function pointer type (param type is not a type)')
+    class_type_expr = slice.elements[0]
+    param_type_expr = slice.elements[1]
+    return_type_expr = slice.elements[2]
 
-        if not isinstance(param_type.target_type, t.NamedPhysicalType):
-            raise UserWarning(
-                'Unsupported function pointer type (param type is not a named type)'
-            )
+    if not isinstance(class_type_expr, el.TypeWrapper):
+        raise UserWarning('Unsupported method pointer type (class type is not a type)')
 
-    element_types = [cast(t.NamedPhysicalType, e.target_type) for e in param_types.elements]
-    return_type = cast(t.NamedPhysicalType, return_type.target_type)
-    return el.TypeWrapper(ptrs.FunctionPointerType(element_types, return_type))
+    if not isinstance(class_type_expr.target_type, cls.Class):
+        raise UserWarning('Unsupported method pointer type (class type is not a class)')
+
+    class_type = class_type_expr.target_type
+    (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
+    return el.TypeWrapper(ptrs.MethodPointerType(class_type, arg_types, return_type))
 
 
 def create_subscript(value: el.Expression, slice: el.Expression, target):
@@ -496,5 +522,8 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
 
     if value == ptrs.FunctionPointerOperator:
         return create_funptr_type(slice)
+
+    if value == ptrs.MethodPointerOperator:
+        return create_methptr_type(slice)
 
     raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')

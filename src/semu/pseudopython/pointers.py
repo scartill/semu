@@ -44,6 +44,16 @@ class FunctionPointerOperatorType(el.BuiltinMetaoperator):
         return data
 
 
+class MethodPointerOperatorType(el.BuiltinMetaoperator):
+    def __init__(self):
+        super().__init__('method')
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'MethodPointerOperatorType'
+        return data
+
+
 class FunctionPointerType(t.AbstractCallableType):
     arg_types: Sequence[t.PhysicalType]
     return_type: t.PhysicalType
@@ -114,3 +124,4 @@ class MethodPointerType(t.AbstractCallableType):
 
 PointerOperator = PointerOperatorType()
 FunctionPointerOperator = FunctionPointerOperatorType()
+MethodPointerOperator = MethodPointerOperatorType()

@@ -24,7 +24,7 @@ class KnownName:
         self.target_type = target_type
 
     def json(self) -> b.JSON:
-        return {'Name': self.name, 'Type': self.target_type.json()}
+        return {'Name': self.name, 'Type': str(self.target_type)}
 
     def qualname(self) -> str:
         return f'{self.parent.parent_prefix()}{self.name}'
