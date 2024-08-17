@@ -20,6 +20,7 @@ import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 import semu.pseudopython.pointers as ptrs
+import semu.pseudopython.methods as meth
 
 
 @dataclass
@@ -198,7 +199,7 @@ def create_compare(
     return cmpops.Compare(target, left, Op(), right)
 
 
-TFunction = TypeVar('TFunction', calls.Function, calls.Method)
+TFunction = TypeVar('TFunction', calls.Function, meth.Method)
 
 
 def create_callable(
@@ -227,7 +228,7 @@ def create_callable(
             formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
         elif isinstance(arg_type, cls.InstancePointerType):
             lg.debug(f'Adding instance formal {arg_name} at {offset} of type {arg_type}')
-            formal = calls.InstanceFormalParameter(function, arg_name, offset, arg_type)
+            formal = meth.InstanceFormalParameter(function, arg_name, offset, arg_type)
         else:
             raise UserWarning(f'Unsupported formal type {arg_type}')
 
@@ -247,9 +248,9 @@ def create_function(
 def create_method(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
     decors: el.Expressions, target_type: b.TargetType
-) -> calls.Method:
+) -> meth.Method:
 
-    return create_callable(calls.Method, context, name, args, decors, target_type)
+    return create_callable(meth.Method, context, name, args, decors, target_type)
 
 
 def validate_function(func: calls.Function):
@@ -286,9 +287,9 @@ def make_call(func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Re
     return calls.FunctionCall(func_ref, target)
 
 
-def make_method_call(m_ref: calls.MethodRef, args: el.Expressions, target: regs.Register):
+def make_method_call(m_ref: meth.MethodRef, args: el.Expressions, target: regs.Register):
     validate_call(m_ref.instance_method.method, args)
-    return calls.MethodCall(m_ref, target)
+    return meth.MethodCall(m_ref, target)
 
 
 def create_call_frame(call: el.Expression, args: el.Expressions):
@@ -408,13 +409,13 @@ def create_global_variable(
                 create_global_variable(instance, classvar.name, classvar.target_type)
             )
 
-        is_method = lambda x: isinstance(x, calls.Method)
+        is_method = lambda x: isinstance(x, meth.Method)
 
         for method in filter(is_method, target_type.names.values()):
 
-            method = calls.GlobalInstanceMethod(
+            method = meth.GlobalInstanceMethod(
                 instance,
-                cast(calls.Method, method)
+                cast(meth.Method, method)
             )
 
             instance.add_name(method)

@@ -18,6 +18,7 @@ import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
+import semu.pseudopython.methods as meth
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 
@@ -90,7 +91,7 @@ class Translator:
             call = h.make_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        elif isinstance(callable, calls.MethodRef):
+        elif isinstance(callable, meth.MethodRef):
             # 'this' pointer is the first argument
             this_pointer = cls.GlobalInstanceLoad(
                 callable.instance_method.instance, regs.DEFAULT_REGISTER
@@ -148,8 +149,8 @@ class Translator:
             if isinstance(target, calls.LocalVariable):
                 return calls.LocalVariableAssignment(target, expression)
 
-            if isinstance(target, calls.StackPointerMember):
-                return calls.StackPointerMemberAssignment(target, expression)
+            if isinstance(target, meth.StackPointerMember):
+                return meth.StackPointerMemberAssignment(target, expression)
 
         raise UserWarning(f'Unsupported assign target {target.name} ({e_type} -> {t_type})')
 
@@ -341,7 +342,7 @@ class Translator:
             if isinstance(known_name, bi.BuiltinInline):
                 return known_name  # as expression
 
-            if isinstance(known_name, calls.Method):
+            if isinstance(known_name, meth.Method):
                 raise UserWarning(f'Unsupported unqualified method {known_name} call')
 
             if isinstance(known_name, calls.Function):
@@ -366,11 +367,11 @@ class Translator:
             if isinstance(known_name, cls.GlobalPointerMember):
                 return cls.GlobalPointerMemberLoad(known_name, target)
 
-            if isinstance(known_name, calls.StackPointerMember):
-                return calls.StackPointerMemberLoad(known_name, target)
+            if isinstance(known_name, meth.StackPointerMember):
+                return meth.StackPointerMemberLoad(known_name, target)
 
-            if isinstance(known_name, calls.GlobalInstanceMethod):
-                return calls.MethodRef(known_name, target)
+            if isinstance(known_name, meth.GlobalInstanceMethod):
+                return meth.MethodRef(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 
