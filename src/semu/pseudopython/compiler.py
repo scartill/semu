@@ -319,11 +319,7 @@ class Translator:
         if isinstance(source, ast.Constant):
             target_type = h.get_constant_type(source)
             value = h.get_constant_value(target_type, source)
-
-            return el.ConstantExpression(
-                target_type=target_type, value=value,
-                target=target
-            )
+            return el.ConstantExpression(target_type, value, target)
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
             lookup = self.resolve_object(source)
@@ -350,7 +346,7 @@ class Translator:
                 return namespace.load_variable(known_name, target)
 
             if isinstance(known_name, t.DecoratorType):
-                return el.DecoratorApplication(known_name, target)
+                return el.DecoratorApplication(known_name)
 
             if isinstance(known_name, b.TargetType):
                 return el.TypeWrapper(known_name)
@@ -415,7 +411,7 @@ class Translator:
             return self.tx_subscript(source, target)
 
         if isinstance(source, (ast.Tuple, ast.List)):
-            return el.List(list(self.tx_expression(e) for e in source.elts), target)
+            return el.List(list(self.tx_expression(e) for e in source.elts))
 
         raise UserWarning(f'Unsupported expression {source}')
 

@@ -3,22 +3,34 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import PhysicalExpression
+import semu.pseudopython.base as b
 import semu.pseudopython.registers as regs
 
 
 @dataclass
 class Unary(PhysicalExpression):
-    right: PhysicalExpression
+    operand: PhysicalExpression
+
+    def __init__(
+        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.operand = operand
 
     def json(self):
         data = super().json()
         data['Class'] = 'Unary'
-        data['Right'] = self.right.json()
+        data['Right'] = self.operand.json()
         return data
 
 
 @dataclass
 class Not(Unary):
+    def __init__(
+        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+    ):
+        super().__init__(target_type, operand, target)
+
     def json(self):
         data = super().json()
         data['Class'] = 'Not'
@@ -27,7 +39,7 @@ class Not(Unary):
     def emit(self) -> Sequence[str]:
         available = regs.get_available([
             self.target,
-            self.right.target
+            self.operand.target
         ])
 
         left_temp = available.pop()
@@ -35,8 +47,8 @@ class Not(Unary):
 
         return flatten([
             '// Boolean Not',
-            self.right.emit(),
-            f'mrr {self.right.target} {right_temp}',
+            self.operand.emit(),
+            f'mrr {self.operand.target} {right_temp}',
             f'ldc 1 {left_temp}',
             f'xor {left_temp} {right_temp} {self.target}',
         ])
@@ -45,6 +57,13 @@ class Not(Unary):
 @dataclass
 class BoolOp(PhysicalExpression):
     values: Sequence[PhysicalExpression]
+
+    def __init__(
+        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.values = values
 
     def _initial(self) -> int:
         raise NotImplementedError()
@@ -88,6 +107,12 @@ class BoolOp(PhysicalExpression):
 
 @dataclass
 class And(BoolOp):
+    def __init__(
+        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        target: regs.Register
+    ):
+        super().__init__(target_type, values, target)
+
     def _initial(self) -> int:
         return 1
 
@@ -97,6 +122,12 @@ class And(BoolOp):
 
 @dataclass
 class Or(BoolOp):
+    def __init__(
+        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        target: regs.Register
+    ):
+        super().__init__(target_type, values, target)
+
     def _initial(self) -> int:
         return 0
 

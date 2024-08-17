@@ -38,7 +38,7 @@ class BuiltinInline(n.KnownName, el.Expression):
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
         # Builtin functions have no address
-        el.Expression.__init__(self, t.Callable, regs.VOID_REGISTER)
+        el.Expression.__init__(self, t.Callable)
         self.factory = factory
         self.return_type = target_type
 

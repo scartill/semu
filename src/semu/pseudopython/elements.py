@@ -50,21 +50,33 @@ class VoidElement(Element):
 @dataclass
 class Expression:
     target_type: b.TargetType
-    target: regs.Register
 
-    def __init__(self, target_type: b.TargetType, target: regs.Register):
+    def __init__(self, target_type: b.TargetType):
         super().__init__()
         self.target_type = target_type
-        self.target = target
 
     def json(self):
-        data = ({'Type': self.target_type.json(), 'Target': self.target})
-        return data
+        return {
+            'Class': 'Expression',
+            'Type': self.target_type.json()
+        }
 
 
 class PhysicalExpression(Expression, Element):
+    target: regs.Register
+
     def __init__(self, target_type: b.TargetType, target: regs.Register):
-        super().__init__(target_type, target)
+        Expression.__init__(self, target_type)
+        Element.__init__(self)
+        self.target = target
+
+    def json(self):
+        return {
+            'Class': 'PhysicalExpression',
+            'Target': self.target,
+            'Expression': Expression.json(self),
+            'Element': Element.json(self)
+        }
 
 
 Expressions = Sequence[Expression]
@@ -73,6 +85,13 @@ Expressions = Sequence[Expression]
 @dataclass
 class ConstantExpression(PhysicalExpression):
     value: int | bool
+
+    def __init__(
+        self, target_type: b.TargetType, value: int | bool,
+        target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.value = value
 
     def _convert_value(self) -> int:
         if self.target_type == t.Int32:
@@ -183,8 +202,8 @@ class DecoratorApplication(Expression):
     def json(self):
         return {'ApplyDecorator': self.decorator.name}
 
-    def __init__(self, decorator: t.DecoratorType, target: regs.Register):
-        super().__init__(t.Unit, target)
+    def __init__(self, decorator: t.DecoratorType):
+        super().__init__(t.Unit)
         self.decorator = decorator
 
     def name(self) -> str:
@@ -196,7 +215,7 @@ type DecoratorApplications = Sequence[DecoratorApplication]
 
 class TypeWrapper(Expression):
     def __init__(self, target_type: b.TargetType):
-        super().__init__(target_type, regs.VOID_REGISTER)
+        super().__init__(target_type)
 
     def json(self):
         tt = self.target_type
@@ -208,7 +227,7 @@ class TypeWrapper(Expression):
 class BuiltinMetaoperator(n.KnownName, Expression):
     def __init__(self, name: str):
         n.KnownName.__init__(self, None, name, b.Builtin)
-        Expression.__init__(self, b.Builtin, regs.VOID_REGISTER)
+        Expression.__init__(self, b.Builtin)
 
     def json(self):
         data = n.KnownName.json(self)
@@ -219,8 +238,8 @@ class BuiltinMetaoperator(n.KnownName, Expression):
 class List(Expression):
     elements: Expressions
 
-    def __init__(self, elements: Expressions, target: regs.Register):
-        super().__init__(t.Unit, target)
+    def __init__(self, elements: Expressions):
+        super().__init__(t.Unit)
         self.elements = elements
 
     def json(self):

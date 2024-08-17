@@ -3,11 +3,18 @@ from dataclasses import dataclass
 from semu.pseudopython.flatten import flatten
 from semu.pseudopython.elements import PhysicalExpression
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 
 
 @dataclass
 class UOp(PhysicalExpression):
     operand: PhysicalExpression
+
+    def __init__(
+        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.operand = operand
 
     def json(self):
         data = super().json()
@@ -21,6 +28,12 @@ class UOp(PhysicalExpression):
 
 @dataclass
 class Neg(UOp):
+    def __init__(
+        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+    ):
+        super().__init__(target_type, operand, target)
+        self.operand = operand
+
     def emit(self):
         temp = regs.get_temp([
             self.target,
@@ -36,10 +49,17 @@ class Neg(UOp):
         ])
 
 
-@dataclass
 class BinOp(PhysicalExpression):
     left: PhysicalExpression
     right: PhysicalExpression
+
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.left = left
+        self.right = right
 
     def json(self):
         data = super().json()
@@ -59,6 +79,12 @@ class BinOp(PhysicalExpression):
 
 @dataclass
 class IntBinOp(BinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def json(self):
         data = super().json()
 
@@ -85,31 +111,56 @@ class IntBinOp(BinOp):
         ])
 
 
-@dataclass
 class Add(IntBinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def op(self):
         return 'add'
 
 
-@dataclass
 class Sub(IntBinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def op(self):
         return 'sub'
 
 
-@dataclass
 class Mul(IntBinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def op(self):
         return 'mul'
 
 
-@dataclass
 class Div(IntBinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def op(self):
         return 'div'
 
 
-@dataclass
 class Mod(IntBinOp):
+    def __init__(
+        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, left, right, target)
+
     def op(self):
         return 'mod'

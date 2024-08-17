@@ -273,7 +273,7 @@ class ActualParameter(el.Element):
         ])
 
 
-class FunctionRef(el.Expression):
+class FunctionRef(el.PhysicalExpression):
     func: Function
 
     def __init__(self, func: Function, target: regs.Register):
@@ -397,10 +397,18 @@ class FunctionCall(el.PhysicalExpression):
         ])
 
 
-@dataclass
 class CallFrame(el.PhysicalExpression):
     actuals: list[ActualParameter]
     call: el.PhysicalExpression
+
+    def __init__(
+        self, target_type: b.TargetType,
+        actuals: list[ActualParameter], call: el.PhysicalExpression,
+        target: regs.Register
+    ):
+        super().__init__(target_type, target)
+        self.actuals = actuals
+        self.call = call
 
     def json(self):
         data = super().json()

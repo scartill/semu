@@ -302,7 +302,7 @@ class GlobalInstanceMethod(n.KnownName):
 type LoadFactory = Callable[[regs.Register], el.PhysicalExpression]
 
 
-class MethodRef(el.Expression):
+class MethodRef(el.PhysicalExpression):
     instance_load: LoadFactory
     method: Method
 

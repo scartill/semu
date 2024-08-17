@@ -74,8 +74,7 @@ class Namespace(n.INamespace):
             raise UserWarning(f'Unsupported const reference {known_name.name}')
 
         return el.ConstantExpression(
-            target_type=known_name.target_type, value=known_name.value,
-            target=target
+            known_name.target_type, known_name.value, target
         )
 
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
