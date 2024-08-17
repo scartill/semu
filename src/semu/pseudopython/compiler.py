@@ -79,7 +79,7 @@ class Translator:
         if isinstance(callable, bi.BuiltinInlineWrapper):
             return self.tx_builtin_call(callable.inline, ast_call.args, target)
 
-        if callable.target_type != t.Callable:
+        if not isinstance(callable.target_type, t.AbstractCallableType):
             raise UserWarning(f'Unsupported callable {callable}')
 
         args = [

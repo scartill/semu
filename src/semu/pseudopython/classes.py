@@ -83,7 +83,7 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         ])
 
 
-class InstancePointerType(b.TargetType):
+class InstancePointerType(t.PhysicalType):
     ref_type: Class
 
     def __init__(self, ref_type: Class):

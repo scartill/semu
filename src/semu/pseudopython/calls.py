@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Sequence, List, Callable
+from typing import Sequence, List, Callable, cast
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -9,6 +9,7 @@ import semu.pseudopython.names as n
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.pointers as ptrs
 
 
 class Function(n.KnownName, ns.Namespace, el.Element):
@@ -28,6 +29,12 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         self.decorators = list()
         self.return_type = return_type
         self.body = list()
+
+    def callable_type(self):
+        return ptrs.FunctionPointerType(
+            [cast(t.PhysicalType, p.target_type) for p in self.formals()],
+            cast(t.PhysicalType, self.return_type)
+        )
 
     def json(self):
         data: b.JSON = {'Class': 'Function'}
@@ -59,6 +66,9 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ))
 
     def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
+        if not isinstance(target_type, t.PhysicalType):
+            raise ValueError(f'Invalid target type {target_type}')
+
         offset = self.local_num * WORD_SIZE
         self.local_num += 1
         local = LocalVariable(self, name, offset, target_type)
@@ -116,7 +126,7 @@ class StackVariable(n.KnownName):
 
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int,
-        target_type: b.TargetType
+        target_type: t.PhysicalType
     ):
         n.KnownName.__init__(self, namespace, name, target_type)
         self.offset = offset
@@ -130,7 +140,7 @@ class StackVariable(n.KnownName):
 
 class FormalParameter(StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
+        self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
     ):
         super().__init__(namespace, name, offset, target_type)
 
@@ -155,7 +165,7 @@ class SimpleFormalParameter(FormalParameter):
 
 class LocalVariable(StackVariable, el.Element):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, target_type: b.TargetType
+        self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
     ):
         el.Element.__init__(self)
         StackVariable.__init__(self, namespace, name, offset, target_type)
@@ -277,7 +287,7 @@ class FunctionRef(el.PhysicalExpression):
     func: Function
 
     def __init__(self, func: Function, target: regs.Register):
-        super().__init__(t.Callable, target)
+        super().__init__(func.callable_type(), target)
         self.func = func
 
     def json(self):

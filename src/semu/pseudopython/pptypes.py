@@ -24,26 +24,6 @@ class PackageType(b.TargetType):
         return data
 
 
-class CallableType(b.TargetType):
-    def __init__(self):
-        super().__init__()
-
-    def json(self):
-        data = super().json()
-        data.update({'Builtin': 'Callable'})  # TODO: Add more information
-        return data
-
-
-class BuiltinCallableType(b.TargetType):
-    def __init__(self):
-        super().__init__()
-
-    def json(self):
-        data = super().json()
-        data.update({'Builtin': 'BuiltinCallable'})
-        return data
-
-
 class ClassType(b.TargetType):
     def __init__(self):
         super().__init__()
@@ -102,6 +82,9 @@ class PhysicalType(b.TargetType):
         return data
 
 
+type PhysicalTypes = Sequence[PhysicalType]
+
+
 class NamedPhysicalType(PhysicalType, n.KnownName):
     def __init__(self, name: str):
         PhysicalType.__init__(self)
@@ -153,6 +136,26 @@ class AbstractPointerType(NamedType):
         return data
 
 
+class AbstractCallableType(PhysicalType):
+    def __init__(self):
+        super().__init__()
+
+    def json(self):
+        data = super().json()
+        data.update({'Class': 'AbstractCallableType'})
+        return data
+
+
+class BuiltinCallableType(AbstractCallableType):
+    def __init__(self):
+        super().__init__()
+
+    def json(self):
+        data = super().json()
+        data.update({'Builtin': 'BuiltinCallable'})
+        return data
+
+
 class PointerType(PhysicalType):
     ref_type: PhysicalType
 
@@ -179,7 +182,6 @@ class PointerType(PhysicalType):
 Module = ModuleType()
 Package = PackageType()
 Class = ClassType()
-Callable = CallableType()
 
 Unit = UnitType()
 Int32 = Int32Type()

@@ -4,6 +4,7 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
+import semu.pseudopython.classes as cls
 
 
 class PointerToGlobal(el.PhysicalExpression):
@@ -43,23 +44,53 @@ class FunctionPointerOperatorType(el.BuiltinMetaoperator):
         return data
 
 
-class FunctionPointerType(t.PhysicalType):
-    element_types: Sequence[t.NamedPhysicalType]
-    return_type: t.NamedPhysicalType
+class FunctionPointerType(t.AbstractCallableType):
+    arg_types: Sequence[t.PhysicalType]
+    return_type: t.PhysicalType
 
-    def __init__(self, element_types: t.NamedPhysicalTypes, return_type: t.NamedPhysicalType):
+    def __init__(self, arg_types: t.PhysicalTypes, return_type: t.PhysicalType):
         super().__init__()
-        self.element_types = element_types
+        self.arg_types = arg_types
         self.return_type = return_type
 
     def __str__(self) -> str:
-        return f'<{", ".join(str(e) for e in self.element_types)} -> {self.return_type}>'
+        return f'<{", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>'
 
     def json(self):
         data = super().json()
         data.update({
             'Class': 'FunctionPointerType',
-            'ElementTypes': [e.json() for e in self.element_types],
+            'argTypes': [e.json() for e in self.arg_types],
+            'ReturnType': self.return_type.json()
+        })
+        return data
+
+
+class MethodPointerType(t.AbstractCallableType):
+    class_type: cls.Class
+    arg_types: Sequence[t.PhysicalType]
+    return_type: t.PhysicalType
+
+    def __init__(
+        self, class_type: cls.Class,
+        arg_types: t.PhysicalTypes, return_type: t.PhysicalType
+    ):
+        super().__init__()
+        self.class_type = class_type
+        self.arg_types = arg_types
+        self.return_type = return_type
+
+    def __str__(self) -> str:
+        return (
+            f'<{self.class_type.name}::'
+            f'{", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>'
+        )
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'MethodPointerType',
+            'argTypes': [e.json() for e in self.arg_types],
             'ReturnType': self.return_type.json()
         })
         return data

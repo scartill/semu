@@ -223,12 +223,12 @@ def create_callable(
         offset = -(total - inx + 2) * WORD_SIZE
         lg.debug(f'Adding formal {arg_name} at {offset} of type {arg_type}')
 
-        if isinstance(arg_type, t.PhysicalType):
-            lg.debug(f'Adding physical formal {arg_name} at {offset} of type {arg_type}')
-            formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
-        elif isinstance(arg_type, cls.InstancePointerType):
+        if isinstance(arg_type, cls.InstancePointerType):
             lg.debug(f'Adding instance formal {arg_name} at {offset} of type {arg_type}')
             formal = meth.InstanceFormalParameter(function, arg_name, offset, arg_type)
+        elif isinstance(arg_type, t.PhysicalType):
+            lg.debug(f'Adding physical formal {arg_name} at {offset} of type {arg_type}')
+            formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
         else:
             raise UserWarning(f'Unsupported formal type {arg_type}')
 

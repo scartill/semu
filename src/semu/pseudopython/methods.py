@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Callable
+from typing import Callable, cast
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -11,11 +11,19 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
 import semu.pseudopython.calls as calls
+import semu.pseudopython.pointers as ptrs
 
 
 class Method(calls.Function):
     def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
         super().__init__(name, parent, return_type)
+
+    def callable_type(self):
+        return ptrs.MethodPointerType(
+            cast(cls.Class, self.parent),
+            [cast(t.PhysicalType, p.target_type) for p in self.formals()],
+            cast(t.PhysicalType, self.return_type)
+        )
 
     def json(self):
         data = super().json()
@@ -110,7 +118,7 @@ class GlobalPointerMethod(n.KnownName):
     def __init__(
         self, instance_pointer: GlobalInstancePointer, method: Method
     ):
-        super().__init__(instance_pointer, method.name, t.Callable)
+        super().__init__(instance_pointer, method.name, method.callable_type())
         self.method = method
         self.instance_pointer = instance_pointer
 
@@ -258,7 +266,7 @@ class StackPointerMethod(n.KnownName):
     instance_parameter: InstanceFormalParameter
 
     def __init__(self, instance_parameter: InstanceFormalParameter, method: Method):
-        super().__init__(instance_parameter, method.name, t.Callable)
+        super().__init__(instance_parameter, method.name, method.callable_type())
         self.method = method
         self.instance_parameter = instance_parameter
 
@@ -281,7 +289,7 @@ class GlobalInstanceMethod(n.KnownName):
     method: Method
 
     def __init__(self, instance: cls.GlobalInstance, method: Method):
-        super().__init__(method, method.name, t.Callable)
+        super().__init__(method, method.name, method.callable_type())
         self.instance = instance
         self.method = method
 
@@ -322,7 +330,7 @@ class MethodRef(el.PhysicalExpression):
         return MethodRef(stack_method.method, load, target)
 
     def __init__(self, method: Method, instance_load: LoadFactory, target: regs.Register):
-        super().__init__(t.Callable, target)
+        super().__init__(method.callable_type(), target)
         self.instance_load = instance_load
         self.method = method
 
