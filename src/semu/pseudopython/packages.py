@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging as lg
 from pathlib import Path
 
@@ -13,7 +12,6 @@ import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 
 
-@dataclass
 class Package(ns.Namespace, n.KnownName, el.Element):
     path: Path
 
@@ -45,7 +43,6 @@ class Package(ns.Namespace, n.KnownName, el.Element):
         ])
 
 
-@dataclass
 class TopLevel(ns.Namespace, el.Element):
     main: mods.Module | None = None
 
@@ -54,11 +51,9 @@ class TopLevel(ns.Namespace, el.Element):
         self.names.update({b.name: b for b in bi.get(self)})
 
     def json(self):
-        data_el = el.Element.json(self)
-        data_ns = ns.Namespace.json(self)
-        data: b.JSON = {'Class': 'Package'}
-        data.update(data_el)
-        data.update(data_ns)
+        data: b.JSON = {'Class': 'TopLevel'}
+        data['Element'] = el.Element.json(self)
+        data['Namespace'] = ns.Namespace.json(self)
         return data
 
     def namespace(self) -> str:

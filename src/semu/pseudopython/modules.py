@@ -1,6 +1,5 @@
 
 from typing import Sequence, cast
-from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 
@@ -15,7 +14,6 @@ import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 
 
-@dataclass
 class Module(n.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
@@ -26,13 +24,10 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self.body = list()
 
     def json(self):
-        data_el = el.Element.json(self)
-        data_ns = ns.Namespace.json(self)
-        data_n = n.KnownName.json(self)
         data: b.JSON = {'Class': 'Module'}
-        data.update(data_el)
-        data.update(data_ns)
-        data.update(data_n)
+        data['Element'] = el.Element.json(self)
+        data['Namespace'] = ns.Namespace.json(self)
+        data['KnownName'] = n.KnownName.json(self)
 
         data.update({
             'Body': [e.json() for e in self.body if not isinstance(e, n.KnownName)]

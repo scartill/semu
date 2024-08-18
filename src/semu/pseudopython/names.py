@@ -24,7 +24,11 @@ class KnownName:
         self.target_type = target_type
 
     def json(self) -> b.JSON:
-        return {'Name': self.name, 'Type': str(self.target_type)}
+        return {
+            'Class': 'KnownName',
+            'Name': self.name,
+            'Type': str(self.target_type)
+        }
 
     def qualname(self) -> str:
         return f'{self.parent.parent_prefix()}{self.name}'
@@ -48,5 +52,6 @@ class Constant(KnownName):
 
     def json(self):
         data = super().json()
-        data.update({'Value': self.value})
+        data['Class'] = 'Constant'
+        data['Value'] = self.value
         return data

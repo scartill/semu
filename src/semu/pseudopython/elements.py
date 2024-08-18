@@ -28,7 +28,7 @@ class Element:
         raise NotImplementedError()
 
     def json(self) -> b.JSON:
-        return {}
+        return {'Class': 'Element'}
 
 
 Elements = Sequence[Element]
@@ -43,7 +43,8 @@ class VoidElement(Element):
 
     def json(self):
         data = Element.json(self)
-        data.update({'void': self.comment})
+        data['Class'] = 'VoidElement'
+        data['Void'] = self.comment
         return data
 
 
@@ -104,7 +105,8 @@ class ConstantExpression(PhysicalExpression):
 
     def json(self):
         data = super().json()
-        data.update({'Constant': self.value})
+        data['Class'] = 'ConstantExpression'
+        data['Constant'] = self.value
         return data
 
     def emit(self):
@@ -124,12 +126,10 @@ class GlobalVariable(Element, n.KnownName):
         return 'global'
 
     def json(self):
-        data = {'Create': 'global'}
-        data_kn = n.KnownName.json(self)
-        data_el = Element.json(self)
-        data.update(data_kn)
-        data.update(data_el)
-        return data_kn
+        data: b.JSON = {'Class': 'GlobalVariable'}
+        data['KnownName'] = n.KnownName.json(self)
+        data['Element'] = Element.json(self)
+        return data
 
     def emit(self):
         label = self.address_label()
@@ -153,7 +153,8 @@ class GlobalVariableAssignment(Element):
         data = Element.json(self)
 
         data.update({
-            'GlobalAssign': self.target.json(),
+            'Class': 'GlobalVariableAssignment',
+            'Target': str(self.target),
             'Expression': self.expr.json()
         })
 
@@ -181,7 +182,8 @@ class GlobalVariableLoad(PhysicalExpression):
 
     def json(self):
         data = super().json()
-        data.update({'GlobalLoad': self.variable.name})
+        data['Class'] = 'GlobalVariableLoad'
+        data['Variable'] = self.variable.name
         return data
 
     def emit(self):
@@ -218,9 +220,9 @@ class TypeWrapper(Expression):
         super().__init__(target_type)
 
     def json(self):
-        tt = self.target_type
-        descr = tt.name if isinstance(tt, t.NamedType) else tt.json()
-        return {'TypeWrapper': descr}
+        data = super().json()
+        data['Class'] = 'TypeWrapper'
+        return data
 
 
 # Built-in operator with no physical representation (e.g. type declaration)
@@ -244,6 +246,6 @@ class MetaList(Expression):
 
     def json(self):
         return {
-            'Class': 'List',
+            'Class': 'MetaList',
             'Elements': [e.json() for e in self.elements]
         }

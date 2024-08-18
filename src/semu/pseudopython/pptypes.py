@@ -8,9 +8,12 @@ class ModuleType(b.TargetType):
     def __init__(self):
         super().__init__()
 
+    def __str__(self):
+        return 'module'
+
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Module'})
+        data.update({'Class': 'ModuleType'})
         return data
 
 
@@ -18,9 +21,12 @@ class PackageType(b.TargetType):
     def __init__(self):
         super().__init__()
 
+    def __str__(self):
+        return 'package'
+
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Package'})
+        data.update({'Class': 'PackageType'})
         return data
 
 
@@ -28,9 +34,12 @@ class ClassType(b.TargetType):
     def __init__(self):
         super().__init__()
 
+    def __str__(self):
+        return 'class'
+
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'Class'})
+        data.update({'Class': 'ClassType'})
         return data
 
 
