@@ -21,6 +21,7 @@ import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.methods as meth
+import semu.pseudopython.arrays as arr
 
 
 @dataclass
@@ -520,17 +521,51 @@ def create_methptr_type(slice: el.Expression):
     return el.TypeWrapper(ptrs.MethodPointerType(class_type, full_arg_types, return_type))
 
 
+def create_array_type(slice: el.Expression):
+    if not isinstance(slice, el.MetaList):
+        raise UserWarning('Malformed array type definition')
+
+    if len(slice.elements) != 2:
+        raise UserWarning('Unsupported array type definition')
+
+    item_type_expr = slice.elements[0]
+    len_expr = slice.elements[1]
+
+    if not isinstance(item_type_expr, el.TypeWrapper):
+        raise UserWarning('Unsupported item type (item type is not a type)')
+
+    item_type = item_type_expr.target_type
+
+    if not isinstance(item_type, t.PhysicalType):
+        raise UserWarning(f'Item type must be representable {item_type}')
+
+    if not isinstance(len_expr, el.ConstantExpression):
+        raise UserWarning('Array length must be a constant')
+
+    value = len_expr.value
+
+    if not isinstance(value, int):
+        raise UserWarning('Array length must be an integer constant')
+
+    if value <= 0:
+        raise UserWarning('Array length must be integer')
+
+    array_type = arr.ArrayType(item_type, value)
+    return el.TypeWrapper(array_type)
+
+
 def create_subscript(value: el.Expression, slice: el.Expression, target):
-    if value == ptrs.PointerOperator:
-        return create_ptr_type(slice)
-
-    if value == ptrs.FunctionPointerOperator:
-        return create_funptr_type(slice)
-
-    if value == ptrs.MethodPointerOperator:
-        return create_methptr_type(slice)
-
-    raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')
+    match value:
+        case ptrs.PointerOperator:
+            return create_ptr_type(slice)
+        case ptrs.FunctionPointerOperator:
+            return create_funptr_type(slice)
+        case ptrs.MethodPointerOperator:
+            return create_methptr_type(slice)
+        case arr.ArrayOperator:
+            return create_array_type(slice)
+        case _:
+            raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')
 
 
 def make_bound_method_call(

@@ -10,7 +10,7 @@ import semu.pseudopython.names as n
 import semu.pseudopython.calls as calls
 import semu.pseudopython.elements as el
 import semu.pseudopython.pointers as ptrs
-import semu.pseudopython.arrays as ar
+import semu.pseudopython.arrays as arr
 
 
 Factory = Callable[[el.Expressions, regs.Register], el.Expression]
@@ -376,7 +376,7 @@ def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
         ptrs.PointerOperator,
         ptrs.FunctionPointerOperator,
         ptrs.MethodPointerOperator,
-        ar.ArrayOperator,
+        arr.ArrayOperator,
         t.DecoratorType('staticmethod', namespace),
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),

@@ -1,3 +1,3 @@
 # type: ignore
 
-ai: int[3]
+ai: array[int, 3]
