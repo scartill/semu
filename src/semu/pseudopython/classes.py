@@ -25,13 +25,13 @@ class ClassVariable(n.KnownName):
         return data
 
 
-class Class(t.NamedType, ns.Namespace, el.Element):
+class Class(t.NamedPhysicalType, ns.Namespace, el.Element):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.NamedType.__init__(self, name)
+        t.NamedPhysicalType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):

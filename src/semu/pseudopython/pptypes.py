@@ -90,6 +90,9 @@ class NamedPhysicalType(PhysicalType, n.KnownName):
         PhysicalType.__init__(self)
         n.KnownName.__init__(self, None, name, b.Builtin)
 
+    def __str__(self):
+        return f'physical<{self.name}>'
+
     def json(self):
         data: b.JSON = {'Class': 'NamedPhysicalType'}
         data['KnownName'] = n.KnownName.json(self)
