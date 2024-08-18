@@ -57,7 +57,7 @@ class TopLevel(ns.Namespace, el.Element):
         return data
 
     def namespace(self) -> str:
-        return ''
+        return '<top>'
 
     def parent_prefix(self) -> str:
         return ''

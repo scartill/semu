@@ -409,7 +409,7 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
 
 def create_global_variable(
     parent: ns.Namespace, name: str, target_type: b.TargetType
-) -> el.GlobalVariable | cls.GlobalInstance:
+) -> arr.Globals:
 
     if isinstance(target_type, cls.Class):
         lg.debug(f'Creating a global instance {name} of {target_type.name}')
@@ -437,13 +437,23 @@ def create_global_variable(
 
     if isinstance(target_type, cls.InstancePointerType):
         return meth.GlobalInstancePointer(parent, name, target_type)
-    else:
-        if not isinstance(target_type, t.PhysicalType):
-            raise UserWarning(f'Type {name} must be representable')
 
-        lg.debug(f'Creating a global variable {name}')
-        create = el.GlobalVariable(parent, name, target_type)
-        return create
+    if isinstance(target_type, arr.ArrayType):
+        lg.debug(f'Creating a global array {name}')
+
+        items = [
+            create_global_variable(parent, f'{name}_{inx}', target_type.item_type)
+            for inx in range(target_type.length)
+        ]
+
+        return arr.GlobalArray(parent, name, target_type, items)
+
+    if not isinstance(target_type, t.PhysicalType):
+        raise UserWarning(f'Type {name} must be representable')
+
+    lg.debug(f'Creating a global variable {name}')
+    create = el.GlobalVariable(parent, name, target_type)
+    return create
 
 
 def create_ptr_type(slice: el.Expression):

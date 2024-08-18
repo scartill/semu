@@ -133,11 +133,9 @@ class GlobalVariable(Element, n.KnownName):
 
     def emit(self):
         label = self.address_label()
-        tt = self.target_type
-        type_name = tt.name if isinstance(tt, t.NamedType) else '<dynamic>'
 
         return [
-            f'// Begin variable {self.name} of type {type_name}',
+            f'// Begin variable {self.name} of type {self.target_type}',
             f'{label}:',        # label
             'nop',              # placeholder
             '// End variable'
