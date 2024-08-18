@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import ast
 import logging as lg
 from typing import List, cast, Type, TypeVar
@@ -24,7 +23,6 @@ import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
 
 
-@dataclass
 class CompileSettings:
     verbose: bool
     pp_path: str
