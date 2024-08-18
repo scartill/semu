@@ -458,7 +458,7 @@ def create_ptr_type(slice: el.Expression):
 
 
 def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expression):
-    if not isinstance(param_type_expr, el.List):
+    if not isinstance(param_type_expr, el.MetaList):
         raise UserWarning('Unsupported function pointer type (params are not a list)')
 
     if not isinstance(return_type_expr, el.TypeWrapper):
@@ -484,7 +484,7 @@ def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expres
 
 
 def create_funptr_type(slice: el.Expression):
-    if not isinstance(slice, el.List):
+    if not isinstance(slice, el.MetaList):
         raise UserWarning('Unsupported function pointer type')
 
     if len(slice.elements) != 2:
@@ -497,7 +497,7 @@ def create_funptr_type(slice: el.Expression):
 
 
 def create_methptr_type(slice: el.Expression):
-    if not isinstance(slice, el.List):
+    if not isinstance(slice, el.MetaList):
         raise UserWarning('Unsupported method pointer type')
 
     if len(slice.elements) != 3:

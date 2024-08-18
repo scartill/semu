@@ -418,7 +418,7 @@ class Translator:
             return self.tx_subscript(source, target)
 
         if isinstance(source, (ast.Tuple, ast.List)):
-            return el.List(list(self.tx_expression(e) for e in source.elts))
+            return el.MetaList(list(self.tx_expression(e) for e in source.elts))
 
         raise UserWarning(f'Unsupported expression {source}')
 

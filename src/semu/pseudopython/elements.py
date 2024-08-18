@@ -235,7 +235,7 @@ class BuiltinMetaoperator(n.KnownName, Expression):
         return data
 
 
-class List(Expression):
+class MetaList(Expression):
     elements: Expressions
 
     def __init__(self, elements: Expressions):
