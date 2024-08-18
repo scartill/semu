@@ -159,8 +159,12 @@ class Translator:
         raise UserWarning(f'Unsupported assign target {target.name} ({e_type} -> {t_type})')
 
     def tx_type(self, ast_type: ast.AST):
-        pp_type = self.tx_expression(ast_type).target_type
-        return pp_type
+        pp_expr = self.tx_expression(ast_type)
+
+        if not isinstance(pp_expr, el.TypeWrapper):
+            raise UserWarning(f'Unsupported type expression {pp_expr}')
+
+        return pp_expr.target_type
 
     def tx_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
