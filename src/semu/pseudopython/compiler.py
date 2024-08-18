@@ -245,7 +245,7 @@ class Translator:
         self.context = classdef
 
         for ast_statement in ast_class.body:
-            if not isinstance(ast_statement, (ast.FunctionDef, ast.AnnAssign)):
+            if not isinstance(ast_statement, (ast.FunctionDef, ast.AnnAssign, ast.Pass)):
                 raise UserWarning(f'Unsupported class statement {ast_statement}')
 
             self.tx_stmt(ast_statement)
