@@ -56,9 +56,6 @@ class Translator:
 
             lookup = lookup.known_name.get_own_name(next_name)
 
-            if lookup is None:
-                raise UserWarning(f'Unknown nested reference {next_name}')
-
         return lookup
 
     def tx_builtin_call(
