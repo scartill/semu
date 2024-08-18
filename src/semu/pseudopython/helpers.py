@@ -531,3 +531,18 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
         return create_methptr_type(slice)
 
     raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')
+
+
+def make_bound_method_call(
+    ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
+):
+    for arg in args:
+        if not isinstance(arg, el.PhysicalExpression):
+            raise UserWarning(f'Unsupported bound method call arg {arg}')
+
+    # 'this' pointer is the first argument
+    this_pointer = ref.instance_load(regs.DEFAULT_REGISTER)
+    full_args = [this_pointer]
+    full_args.extend(cast(el.PhysicalExpressions, args))
+    call = make_method_call(ref, full_args, target)
+    return create_call_frame(call, full_args)

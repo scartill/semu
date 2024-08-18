@@ -112,7 +112,7 @@ class ConstantExpression(PhysicalExpression):
         return f'ldc {value} {self.target}'
 
 
-PhysicalExpressions = Sequence[PhysicalExpression]
+type PhysicalExpressions = Sequence[PhysicalExpression]
 
 
 class GlobalVariable(Element, n.KnownName):

@@ -113,3 +113,7 @@ def test_funcpointer():
 
 def test_boundmethodcall():
     simple_test('boundmethodcall')
+
+
+def test_unboundmethodcall():
+    simple_test('unboundmethodcall')

@@ -96,11 +96,14 @@ class Translator:
             return h.create_call_frame(call, args)
 
         elif isinstance(callable, meth.BoundMethodRef):
-            # 'this' pointer is the first argument
-            this_pointer = callable.instance_load(regs.DEFAULT_REGISTER)
-            full_args = [this_pointer] + args
-            call = h.make_method_call(callable, full_args, target)
-            return h.create_call_frame(call, full_args)
+            return h.make_bound_method_call(callable, args, target)
+
+        elif isinstance(callable, meth.UnboundMethodRef):
+            this_lookup = self.context.get_own_name('this')
+            formal = this_lookup.known_name
+            assert isinstance(formal, meth.InstanceFormalParameter)
+            bound = callable.bind(lambda reg: calls.StackVariableLoad(formal, reg))
+            return h.make_bound_method_call(bound, args, target)
 
         else:
             raise UserWarning(f'Unsupported callable {callable}')
