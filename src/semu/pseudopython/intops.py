@@ -1,17 +1,17 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import PhysicalExpression
+from semu.pseudopython.elements import PhyExpression
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 
 
 @dataclass
-class UOp(PhysicalExpression):
-    operand: PhysicalExpression
+class UOp(PhyExpression):
+    operand: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
     ):
         super().__init__(target_type, target)
         self.operand = operand
@@ -29,7 +29,7 @@ class UOp(PhysicalExpression):
 @dataclass
 class Neg(UOp):
     def __init__(
-        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
     ):
         super().__init__(target_type, operand, target)
         self.operand = operand
@@ -49,12 +49,12 @@ class Neg(UOp):
         ])
 
 
-class BinOp(PhysicalExpression):
-    left: PhysicalExpression
-    right: PhysicalExpression
+class BinOp(PhyExpression):
+    left: PhyExpression
+    right: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, target)
@@ -80,7 +80,7 @@ class BinOp(PhysicalExpression):
 @dataclass
 class IntBinOp(BinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)
@@ -113,7 +113,7 @@ class IntBinOp(BinOp):
 
 class Add(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)
@@ -124,7 +124,7 @@ class Add(IntBinOp):
 
 class Sub(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)
@@ -135,7 +135,7 @@ class Sub(IntBinOp):
 
 class Mul(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)
@@ -146,7 +146,7 @@ class Mul(IntBinOp):
 
 class Div(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)
@@ -157,7 +157,7 @@ class Div(IntBinOp):
 
 class Mod(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhysicalExpression, right: PhysicalExpression,
+        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, left, right, target)

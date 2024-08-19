@@ -2,17 +2,17 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import PhysicalExpression
+from semu.pseudopython.elements import PhyExpression
 import semu.pseudopython.base as b
 import semu.pseudopython.registers as regs
 
 
 @dataclass
-class Unary(PhysicalExpression):
-    operand: PhysicalExpression
+class Unary(PhyExpression):
+    operand: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
     ):
         super().__init__(target_type, target)
         self.operand = operand
@@ -27,7 +27,7 @@ class Unary(PhysicalExpression):
 @dataclass
 class Not(Unary):
     def __init__(
-        self, target_type: b.TargetType, operand: PhysicalExpression, target: regs.Register
+        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
     ):
         super().__init__(target_type, operand, target)
 
@@ -55,11 +55,11 @@ class Not(Unary):
 
 
 @dataclass
-class BoolOp(PhysicalExpression):
-    values: Sequence[PhysicalExpression]
+class BoolOp(PhyExpression):
+    values: Sequence[PhyExpression]
 
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        self, target_type: b.TargetType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
         super().__init__(target_type, target)
@@ -108,7 +108,7 @@ class BoolOp(PhysicalExpression):
 @dataclass
 class And(BoolOp):
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        self, target_type: b.TargetType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
         super().__init__(target_type, values, target)
@@ -123,7 +123,7 @@ class And(BoolOp):
 @dataclass
 class Or(BoolOp):
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhysicalExpression],
+        self, target_type: b.TargetType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
         super().__init__(target_type, values, target)

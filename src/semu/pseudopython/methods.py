@@ -157,7 +157,7 @@ class StackPointerMember(n.KnownName):
         })
 
 
-class GlobalInstancePointerLoad(el.PhysicalExpression):
+class GlobalInstancePointerLoad(el.PhyExpression):
     pointer: GlobalInstancePointer
 
     def __init__(self, pointer: GlobalInstancePointer, target: regs.Register):
@@ -187,7 +187,7 @@ class GlobalInstancePointerLoad(el.PhysicalExpression):
 
 
 class StackPointerMemberAssignment(el.Assignor):
-    def __init__(self, target: StackPointerMember, source: el.PhysicalExpression):
+    def __init__(self, target: StackPointerMember, source: el.PhyExpression):
         super().__init__(target, source)
 
     def json(self):
@@ -221,7 +221,7 @@ class StackPointerMemberAssignment(el.Assignor):
         ])
 
 
-class StackInstancePointerLoad(el.PhysicalExpression):
+class StackInstancePointerLoad(el.PhyExpression):
     instance_pointer: calls.StackVariable
 
     def __init__(self, instance_pointer: calls.StackVariable, target: regs.Register):
@@ -299,10 +299,10 @@ class GlobalInstanceMethod(n.KnownName):
         return data
 
 
-type LoadFactory = Callable[[regs.Register], el.PhysicalExpression]
+type LoadFactory = Callable[[regs.Register], el.PhyExpression]
 
 
-class UnboundMethodRef(el.PhysicalExpression):
+class UnboundMethodRef(el.PhyExpression):
     method: Method
 
     def __init__(self, method: Method, target: regs.Register):
@@ -329,7 +329,7 @@ class UnboundMethodRef(el.PhysicalExpression):
         return BoundMethodRef(self.method, instance_load, self.target)
 
 
-class BoundMethodRef(el.PhysicalExpression):
+class BoundMethodRef(el.PhyExpression):
     instance_load: LoadFactory
     method: Method
 
@@ -373,7 +373,7 @@ class BoundMethodRef(el.PhysicalExpression):
         ]
 
 
-class MethodCall(el.PhysicalExpression):
+class MethodCall(el.PhyExpression):
     method_ref: BoundMethodRef
 
     def __init__(self, method_ref: BoundMethodRef, target: regs.Register):

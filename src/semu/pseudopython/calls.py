@@ -188,7 +188,7 @@ class LocalVariable(StackVariable, el.Element):
         ]
 
 
-class StackVariableLoad(el.PhysicalExpression):
+class StackVariableLoad(el.PhyExpression):
     variable: StackVariable
 
     def __init__(self, variable: StackVariable, target: regs.Register):
@@ -217,7 +217,7 @@ class StackVariableLoad(el.PhysicalExpression):
 
 
 class LocalVariableAssignment(el.Assignor):
-    def __init__(self, target: LocalVariable, expr: el.PhysicalExpression):
+    def __init__(self, target: LocalVariable, expr: el.PhyExpression):
         super().__init__(target, expr)
 
     def json(self):
@@ -247,9 +247,9 @@ class LocalVariableAssignment(el.Assignor):
 
 class ActualParameter(el.Element):
     inx: int
-    expression: el.PhysicalExpression
+    expression: el.PhyExpression
 
-    def __init__(self, inx: int, expression: el.PhysicalExpression):
+    def __init__(self, inx: int, expression: el.PhyExpression):
         super().__init__()
         self.inx = inx
         self.expression = expression
@@ -274,7 +274,7 @@ class ActualParameter(el.Element):
         ])
 
 
-class FunctionRef(el.PhysicalExpression):
+class FunctionRef(el.PhyExpression):
     func: Function
 
     def __init__(self, func: Function, target: regs.Register):
@@ -313,7 +313,7 @@ class Return(el.Element):
 @dataclass
 class ReturnValue(Return):
     func: Function
-    expression: el.PhysicalExpression
+    expression: el.PhyExpression
 
     def return_type(self):
         return self.expression.target_type
@@ -374,11 +374,11 @@ class ReturnUnit(el.Element):
         ])
 
 
-class FunctionCall(el.PhysicalExpression):
-    func_ref: el.PhysicalExpression
+class FunctionCall(el.PhyExpression):
+    func_ref: el.PhyExpression
 
     def __init__(
-        self, func_ref: el.PhysicalExpression, return_type: t.PhysicalType,
+        self, func_ref: el.PhyExpression, return_type: t.PhysicalType,
         target: regs.Register
     ):
         super().__init__(return_type, target)
@@ -407,13 +407,13 @@ class FunctionCall(el.PhysicalExpression):
         ])
 
 
-class CallFrame(el.PhysicalExpression):
+class CallFrame(el.PhyExpression):
     actuals: list[ActualParameter]
-    call: el.PhysicalExpression
+    call: el.PhyExpression
 
     def __init__(
         self, target_type: b.TargetType,
-        actuals: list[ActualParameter], call: el.PhysicalExpression,
+        actuals: list[ActualParameter], call: el.PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, target)

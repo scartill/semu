@@ -137,7 +137,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         ])
 
 
-class GlobalInstanceLoad(el.PhysicalExpression):
+class GlobalInstanceLoad(el.PhyExpression):
     instance: GlobalInstance
 
     def __init__(self, instance: GlobalInstance, target: regs.Register):
@@ -158,12 +158,12 @@ class GlobalInstanceLoad(el.PhysicalExpression):
         ]
 
 
-class ClassMemberLoad(el.PhysicalExpression):
-    instance_load: el.PhysicalExpression
+class ClassMemberLoad(el.PhyExpression):
+    instance_load: el.PhyExpression
     member: ClassVariable
 
     def __init__(
-        self, instance_load: el.PhysicalExpression, member: ClassVariable,
+        self, instance_load: el.PhyExpression, member: ClassVariable,
         target: regs.Register
     ):
         super().__init__(member.target_type, target)

@@ -80,7 +80,7 @@ class GlobalArray(el.Element, n.KnownName):
 type Globals = el.GlobalVariable | cls.GlobalInstance | GlobalArray
 
 
-class GlobalArrayLoad(el.PhysicalExpression):
+class GlobalArrayLoad(el.PhyExpression):
     array: GlobalArray
 
     def __init__(self, array: GlobalArray, target: regs.Register):

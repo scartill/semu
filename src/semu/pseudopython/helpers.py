@@ -85,10 +85,10 @@ def create_binop(
     left: el.Expression, right: el.Expression, op: ast.AST,
     target: regs.Register
 ):
-    if not isinstance(left, el.PhysicalExpression):
+    if not isinstance(left, el.PhyExpression):
         raise UserWarning(f'Unsupported binop left {left}')
 
-    if not isinstance(right, el.PhysicalExpression):
+    if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported binop right {right}')
 
     required_type: b.TargetType | None = None
@@ -121,7 +121,7 @@ def create_binop(
 
 
 def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
-    if not isinstance(right, el.PhysicalExpression):
+    if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported unary right {right}')
 
     required_type: b.TargetType | None = None
@@ -150,7 +150,7 @@ def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
     target_type: b.TargetType = t.Bool32
 
     for arg in args:
-        if not isinstance(arg, el.PhysicalExpression):
+        if not isinstance(arg, el.PhyExpression):
             raise UserWarning(f'Unsupported boolop arg {arg}')
 
         if arg.target_type != t.Bool32:
@@ -179,10 +179,10 @@ def create_compare(
     left: el.Expression, ast_op: ast.AST, right: el.Expression,
     target: regs.Register
 ):
-    if not isinstance(left, el.PhysicalExpression):
+    if not isinstance(left, el.PhyExpression):
         raise UserWarning(f'Unsupported compare left {left}')
 
-    if not isinstance(right, el.PhysicalExpression):
+    if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported compare right {right}')
 
     operand_type = left.target_type
@@ -306,15 +306,15 @@ def make_method_call(
 
 
 def create_call_frame(call: el.Expression, args: el.Expressions):
-    if not isinstance(call, el.PhysicalExpression):
+    if not isinstance(call, el.PhyExpression):
         raise UserWarning(f'Unsupported call target {call}')
 
     for arg in args:
-        if not isinstance(arg, el.PhysicalExpression):
+        if not isinstance(arg, el.PhyExpression):
             raise UserWarning(f'Unsupported call arg {arg}')
 
     actuals = [
-        calls.ActualParameter(inx, cast(el.PhysicalExpression, arg))
+        calls.ActualParameter(inx, cast(el.PhyExpression, arg))
         for inx, arg in enumerate(args)
     ]
 
@@ -580,7 +580,7 @@ def make_bound_method_call(
     ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
 ):
     for arg in args:
-        if not isinstance(arg, el.PhysicalExpression):
+        if not isinstance(arg, el.PhyExpression):
             raise UserWarning(f'Unsupported bound method call arg {arg}')
 
     # 'this' pointer is the first argument

@@ -39,7 +39,7 @@ class BuiltinInlineWrapper(el.Expression):
         self.inline = inline
 
 
-class Checkpoint(el.PhysicalExpression):
+class Checkpoint(el.PhyExpression):
     arg: int
 
     def __init__(self, arg: int):
@@ -58,11 +58,11 @@ class Checkpoint(el.PhysicalExpression):
         return data
 
 
-class Assertion(el.PhysicalExpression):
-    source: el.PhysicalExpression
+class Assertion(el.PhyExpression):
+    source: el.PhyExpression
     value: int
 
-    def __init__(self, source: el.PhysicalExpression, value: int):
+    def __init__(self, source: el.PhyExpression, value: int):
         super().__init__(t.Unit, regs.VOID_REGISTER)
         self.source = source
         self.value = value
@@ -85,10 +85,10 @@ class Assertion(el.PhysicalExpression):
         ])
 
 
-class BoolToInt(el.PhysicalExpression):
-    source: el.PhysicalExpression
+class BoolToInt(el.PhyExpression):
+    source: el.PhyExpression
 
-    def __init__(self, source: el.PhysicalExpression, target: regs.Register):
+    def __init__(self, source: el.PhyExpression, target: regs.Register):
         super().__init__(t.Int32, target)
         self.source = source
 
@@ -97,11 +97,11 @@ class BoolToInt(el.PhysicalExpression):
         return self.source.emit()
 
 
-class Ref(el.PhysicalExpression):
-    address: el.PhysicalExpression
+class Ref(el.PhyExpression):
+    address: el.PhyExpression
 
     def __init__(
-        self, target_type: t.PointerType, address: el.PhysicalExpression,
+        self, target_type: t.PointerType, address: el.PhyExpression,
         target: regs.Register
     ):
         super().__init__(target_type, target)
@@ -121,10 +121,10 @@ class Ref(el.PhysicalExpression):
         ])
 
 
-class Deref(el.PhysicalExpression):
-    source: el.PhysicalExpression
+class Deref(el.PhyExpression):
+    source: el.PhyExpression
 
-    def __init__(self, source: el.PhysicalExpression, target: regs.Register):
+    def __init__(self, source: el.PhyExpression, target: regs.Register):
         assert isinstance(source.target_type, t.PointerType)
         super().__init__(source.target_type.ref_type, target)
         self.source = source
@@ -145,11 +145,11 @@ class Deref(el.PhysicalExpression):
         ])
 
 
-class GlobalRefSet(el.PhysicalExpression):
+class GlobalRefSet(el.PhyExpression):
     variable: el.GlobalVariable
-    source: el.PhysicalExpression
+    source: el.PhyExpression
 
-    def __init__(self, variable: el.GlobalVariable, source: el.PhysicalExpression):
+    def __init__(self, variable: el.GlobalVariable, source: el.PhyExpression):
         super().__init__(t.Unit, regs.VOID_REGISTER)
         self.variable = variable
         self.source = source
@@ -183,11 +183,11 @@ class GlobalRefSet(el.PhysicalExpression):
         ])
 
 
-class LocalRefSet(el.PhysicalExpression):
+class LocalRefSet(el.PhyExpression):
     variable: calls.StackVariable
-    source: el.PhysicalExpression
+    source: el.PhyExpression
 
-    def __init__(self, variable: calls.StackVariable, source: el.PhysicalExpression):
+    def __init__(self, variable: calls.StackVariable, source: el.PhyExpression):
         super().__init__(t.Unit, regs.VOID_REGISTER)
         self.variable = variable
         self.source = source
@@ -245,7 +245,7 @@ def create_assert(args: el.Expressions, target: regs.Register):
 
     source = args[0]
 
-    if not isinstance(source, el.PhysicalExpression):
+    if not isinstance(source, el.PhyExpression):
         raise UserWarning(f"'assertion' expects a physical source, got {source}")
 
     value_expr = args[1]
@@ -286,7 +286,7 @@ def create_bool2int(args: el.Expressions, target: regs.Register):
 
     source = args[0]
 
-    if not isinstance(source, el.PhysicalExpression):
+    if not isinstance(source, el.PhyExpression):
         raise UserWarning(f"'bool_to_int' expects a physical source, got {source}")
 
     if source.target_type != t.Bool32:
@@ -303,7 +303,7 @@ def create_deref(args: el.Expressions, target: regs.Register):
 
     source = args[0]
 
-    if not isinstance(source, el.PhysicalExpression):
+    if not isinstance(source, el.PhyExpression):
         raise UserWarning(f"'deref' expects a physical source, got {source}")
 
     if not isinstance(source.target_type, t.PointerType):
@@ -318,7 +318,7 @@ def create_refset(args: el.Expressions, target: regs.Register):
     ref_target = args[0]
     ref_source = args[1]
 
-    if not isinstance(ref_source, el.PhysicalExpression):
+    if not isinstance(ref_source, el.PhyExpression):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
 
     if not isinstance(ref_source.target_type, t.PhysicalType):

@@ -8,7 +8,7 @@ import semu.pseudopython.registers as regs
 
 @dataclass
 class If(el.Element):
-    test: el.PhysicalExpression
+    test: el.PhyExpression
     true_body: el.Elements
     false_body: el.Elements
 
@@ -24,7 +24,7 @@ class If(el.Element):
         return data
 
     def __init__(
-        self, test: el.PhysicalExpression,
+        self, test: el.PhyExpression,
         true_body: el.Elements, false_body: el.Elements
     ):
         super().__init__()
@@ -58,10 +58,10 @@ class If(el.Element):
 
 @dataclass
 class While(el.Element):
-    test: el.PhysicalExpression
+    test: el.PhyExpression
     body: el.Elements
 
-    def __init__(self, test: el.PhysicalExpression, body: el.Elements):
+    def __init__(self, test: el.PhyExpression, body: el.Elements):
         super().__init__()
         self.test = test
         self.body = body

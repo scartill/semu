@@ -7,7 +7,7 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.classes as cls
 
 
-class PointerToGlobal(el.PhysicalExpression):
+class PointerToGlobal(el.PhyExpression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register):

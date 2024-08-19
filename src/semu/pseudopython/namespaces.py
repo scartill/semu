@@ -82,7 +82,7 @@ class Namespace(n.INamespace):
 
     def load_variable(
         self, known_name: n.KnownName, target: regs.Register
-    ) -> el.PhysicalExpression:
+    ) -> el.PhyExpression:
 
         raise NotImplementedError()
 

@@ -63,7 +63,7 @@ class Expression:
         }
 
 
-class PhysicalExpression(Expression, Element):
+class PhyExpression(Expression, Element):
     target: regs.Register
 
     def __init__(self, target_type: b.TargetType, target: regs.Register):
@@ -73,7 +73,7 @@ class PhysicalExpression(Expression, Element):
 
     def json(self):
         return {
-            'Class': 'PhysicalExpression',
+            'Class': 'PhyExpression',
             'Target': self.target,
             'Expression': Expression.json(self),
             'Element': Element.json(self)
@@ -84,7 +84,7 @@ Expressions = Sequence[Expression]
 
 
 @dataclass
-class ConstantExpression(PhysicalExpression):
+class ConstantExpression(PhyExpression):
     value: int | bool
 
     def __init__(
@@ -114,7 +114,7 @@ class ConstantExpression(PhysicalExpression):
         return f'ldc {value} {self.target}'
 
 
-type PhysicalExpressions = Sequence[PhysicalExpression]
+type PhysicalExpressions = Sequence[PhyExpression]
 
 
 class GlobalVariable(Element, n.KnownName):
@@ -145,7 +145,7 @@ class GlobalVariable(Element, n.KnownName):
 @dataclass
 class Assignor(Element):
     target: n.KnownName
-    source: PhysicalExpression
+    source: PhyExpression
 
     def json(self):
         data = super().json()
@@ -183,7 +183,7 @@ class GlobalVariableAssignment(Assignor):
         ])
 
 
-class GlobalVariableLoad(PhysicalExpression):
+class GlobalVariableLoad(PhyExpression):
     variable: GlobalVariable
 
     def __init__(self, variable: GlobalVariable, target: regs.Register):

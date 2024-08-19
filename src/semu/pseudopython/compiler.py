@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, List, cast, Type, Tuple
+from typing import Sequence, Dict, Any, List, cast
 import ast
 import json
 
@@ -123,17 +123,17 @@ class Translator:
 
     def tx_phy_expression(
         self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
-    ) -> el.PhysicalExpression:
+    ) -> el.PhyExpression:
 
         expression = self.tx_expression(source, target)
 
-        if not isinstance(expression, el.PhysicalExpression):
+        if not isinstance(expression, el.PhyExpression):
             raise UserWarning(f'Physical value required {expression}')
 
         return expression
 
     def tx_assign_target(
-        self, ast_target: ast.AST, source: el.PhysicalExpression
+        self, ast_target: ast.AST, source: el.PhyExpression
     ) -> el.Assignor:
 
         lookup = self.resolve_object(ast_target)
@@ -202,7 +202,7 @@ class Translator:
         test = self.tx_expression(ast_while.test)
         body = self.tx_body(ast_while.body)
 
-        if not isinstance(test, el.PhysicalExpression):
+        if not isinstance(test, el.PhyExpression):
             raise UserWarning(f'While test must be a physical expression, got {test}')
 
         if test.target_type != t.Bool32:
@@ -279,7 +279,7 @@ class Translator:
             if f_type != e_type:
                 raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
 
-            if not isinstance(value, el.PhysicalExpression):
+            if not isinstance(value, el.PhyExpression):
                 raise UserWarning(f'Unsupported return value {value}')
 
             func.returns = True
