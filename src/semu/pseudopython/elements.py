@@ -143,31 +143,43 @@ class GlobalVariable(Element, n.KnownName):
 
 
 @dataclass
-class GlobalVariableAssignment(Element):
+class Assignor(Element):
     target: n.KnownName
-    expr: PhysicalExpression
+    source: PhysicalExpression
 
     def json(self):
-        data = Element.json(self)
+        data = super().json()
+
+        data.update({
+            'Class': 'Assignor',
+            'Target': self.target.name,
+            'Expression': self.source.json()
+        })
+
+        return data
+
+
+@dataclass
+class GlobalVariableAssignment(Assignor):
+    def json(self):
+        data = super().json()
 
         data.update({
             'Class': 'GlobalVariableAssignment',
-            'Target': str(self.target),
-            'Expression': self.expr.json()
         })
 
         return data
 
     def emit(self):
-        temp = regs.get_temp([self.expr.target])
+        temp = regs.get_temp([self.source.target])
         label = self.target.address_label()
 
         return flatten([
-            f"// Calculating var:{self.target.name} into reg:{self.expr.target}",
-            self.expr.emit(),
+            f"// Calculating var:{self.target.name} into reg:{self.source.target}",
+            self.source.emit(),
             f'// Storing var:{self.target.name}',
             f'ldr &{label} {temp}',
-            f'mrm {self.expr.target} {temp}',
+            f'mrm {self.source.target} {temp}',
         ])
 
 

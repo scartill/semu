@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import logging as lg
-from typing import Sequence, Dict, Any, List, cast
+from typing import Sequence, Dict, Any, List, cast, Type, Tuple
 import ast
 import json
 
@@ -21,6 +21,7 @@ import semu.pseudopython.classes as cls
 import semu.pseudopython.methods as meth
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
+import semu.pseudopython.arrays as arr
 
 
 # Late binding
@@ -131,29 +132,36 @@ class Translator:
 
         return expression
 
+    def tx_assign_target(self, ast_target: ast.AST) -> Tuple[n.KnownName, Type[el.Assignor]]:
+        lookup = self.resolve_object(ast_target)
+        target = lookup.known_name
+
+        if isinstance(target, el.GlobalVariable):
+            return target, el.GlobalVariableAssignment
+
+        if isinstance(target, calls.LocalVariable):
+            return target, calls.LocalVariableAssignment
+
+        if isinstance(target, meth.StackPointerMember):
+            return target, meth.StackPointerMemberAssignment
+
+        raise UserWarning(f'Unsupported assign target {target}')
+
     def tx_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
         ast_target = ast_assign.targets[0]
+        target, assignor = self.tx_assign_target(ast_target)
         ast_value = ast_assign.value
-        lookup = self.resolve_object(ast_target)
-        target = lookup.known_name
         expression = self.tx_phy_expression(ast_value)
-        t_type = target.target_type
         e_type = expression.target_type
+        t_type = target.target_type
 
-        if t_type == e_type:
-            if isinstance(target, el.GlobalVariable):
-                return el.GlobalVariableAssignment(target, expression)
-
-            if isinstance(target, calls.LocalVariable):
-                return calls.LocalVariableAssignment(target, expression)
-
-            if isinstance(target, meth.StackPointerMember):
-                return meth.StackPointerMemberAssignment(target, expression)
-
-        raise UserWarning(f'Unsupported assign target {target.name} ({e_type} -> {t_type})')
+        if t_type != e_type:
+            raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+        
+        return assignor(target, expression)
 
     def tx_type(self, ast_type: ast.AST):
         pp_expr = self.tx_expression(ast_type)
@@ -383,6 +391,9 @@ class Translator:
 
             if isinstance(known_name, meth.StackPointerMethod):
                 return meth.BoundMethodRef.from_SPM(known_name, target)
+
+            if isinstance(known_name, arr.GlobalArray):
+                return arr.GlobalArrayLoad(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 

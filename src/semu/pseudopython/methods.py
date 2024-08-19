@@ -186,26 +186,18 @@ class GlobalInstancePointerLoad(el.PhysicalExpression):
         ]
 
 
-class StackPointerMemberAssignment(el.Element):
-    target: StackPointerMember
-    source: el.PhysicalExpression
-
+class StackPointerMemberAssignment(el.Assignor):
     def __init__(self, target: StackPointerMember, source: el.PhysicalExpression):
-        self.target = target
-        self.source = source
+        super().__init__(target, source)
 
     def json(self):
         data = super().json()
-
-        data.update({
-            'Class': 'StackPointerMemberAssignment',
-            'Target': str(self.target),
-            'Expression': self.source.json()
-        })
+        data.update({'Class': 'StackPointerMemberAssignment'})
 
         return data
 
     def emit(self):
+        assert isinstance(self.target, StackPointerMember)
         stack_offset = self.target.instance_parameter.offset
         member_offset = self.target.variable.inx * WORD_SIZE
         available = regs.get_available([self.source.target])
@@ -215,7 +207,7 @@ class StackPointerMemberAssignment(el.Element):
         name = str(self.target)
 
         return flatten([
-            f'// Calculating value for {name}',
+            f'// Calculating value for var:{name}',
             self.source.emit(),
             f'push {self.source.target}',
             f'// Assigning {name} of instance {stack_offset} and member {member_offset}',

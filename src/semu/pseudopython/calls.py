@@ -216,27 +216,18 @@ class StackVariableLoad(el.PhysicalExpression):
         ]
 
 
-class LocalVariableAssignment(el.Element):
-    target: LocalVariable
-    expr: el.PhysicalExpression
-
+class LocalVariableAssignment(el.Assignor):
     def __init__(self, target: LocalVariable, expr: el.PhysicalExpression):
-        self.target = target
-        self.expr = expr
+        super().__init__(target, expr)
 
     def json(self):
         data = super().json()
-
-        data.update({
-            'Class': 'LocalVariableAssignment',
-            'Target': str(self.target),
-            'Expression': self.expr.json()
-        })
-
+        data.update({'Class': 'LocalVariableAssignment'})
         return data
 
     def emit(self):
-        target = self.expr.target
+        assert isinstance(self.target, LocalVariable)
+        target = self.source.target
         offset = self.target.offset
         name = self.target.name
         available = regs.get_available([target])
@@ -245,7 +236,7 @@ class LocalVariableAssignment(el.Element):
 
         return flatten([
             f'// Calculating {name} to reg:{target}',
-            self.expr.emit(),
+            self.source.emit(),
             f'// Assigning reg:{target} to local variable {name} at {offset}',
             f'ldc {offset} {temp_offset}',
             f'lla {temp_offset} {temp}',

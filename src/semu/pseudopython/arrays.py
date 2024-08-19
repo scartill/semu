@@ -1,6 +1,7 @@
-from typing import Sequence
+from typing import List
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
@@ -17,7 +18,7 @@ class ArrayOperatorType(el.BuiltinMetaoperator):
 ArrayOperator = ArrayOperatorType()
 
 
-class ArrayType(b.TargetType):
+class ArrayType(t.PhysicalType):
     item_type: t.PhysicalType
     length: int
 
@@ -25,6 +26,13 @@ class ArrayType(b.TargetType):
         super().__init__()
         self.item_type = item_type
         self.length = length
+
+    def __eq__(self, value: object) -> bool:
+        return (
+            isinstance(value, ArrayType)
+            and value.item_type == self.item_type
+            and value.length == self.length
+        )
 
     def __str__(self):
         return f'array<{self.item_type}, {self.length}>'
@@ -36,16 +44,15 @@ class ArrayType(b.TargetType):
         data['Length'] = self.length
 
 
-class GlobalArray(el.Element, n.KnownName, ns.Namespace):
-    items: Sequence['Globals']
+class GlobalArray(el.Element, n.KnownName):
+    items: List['Globals']
 
     def __init__(
         self, namespace: ns.Namespace, name: str, target_type: ArrayType,
-        items: Sequence['Globals']
+        items: List['Globals']
     ):
         el.Element.__init__(self)
         n.KnownName.__init__(self, namespace, name, target_type)
-        ns.Namespace.__init__(self, name, namespace)
         self.items = items
 
     def typelabel(self) -> str:
@@ -55,7 +62,6 @@ class GlobalArray(el.Element, n.KnownName, ns.Namespace):
         data: b.JSON = {'Class': 'GlobalArray'}
         data['KnownName'] = n.KnownName.json(self)
         data['Element'] = el.Element.json(self)
-        data['Namespace'] = ns.Namespace.json(self)
         return data
 
     def emit(self):
@@ -72,3 +78,24 @@ class GlobalArray(el.Element, n.KnownName, ns.Namespace):
 
 
 type Globals = el.GlobalVariable | cls.GlobalInstance | GlobalArray
+
+
+class GlobalArrayLoad(el.PhysicalExpression):
+    array: GlobalArray
+
+    def __init__(self, array: GlobalArray, target: regs.Register):
+        assert isinstance(array.target_type, ArrayType)
+        pointer_type = t.PointerType(array.target_type)
+        super().__init__(pointer_type, target)
+        self.array = array
+
+    def json(self):
+        data = super().json()
+        data.update({'GlobalArrayLoad': self.array.name})
+        return data
+
+    def emit(self):
+        return [
+            f'// Creating pointer to global array {self.array.qualname()}',
+            f'ldr &{self.array.address_label()} {self.target}',
+        ]
