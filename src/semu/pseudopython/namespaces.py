@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Type
 from dataclasses import dataclass
 
 import semu.pseudopython.base as b
@@ -84,6 +84,9 @@ class Namespace(n.INamespace):
         self, known_name: n.KnownName, target: regs.Register
     ) -> el.PhysicalExpression:
 
+        raise NotImplementedError()
+
+    def assign_variable(self, known_name: n.KnownName) -> Type[el.Assignor]:
         raise NotImplementedError()
 
     def create_function(

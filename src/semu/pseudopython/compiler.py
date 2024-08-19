@@ -132,18 +132,27 @@ class Translator:
 
         return expression
 
-    def tx_assign_target(self, ast_target: ast.AST) -> Tuple[n.KnownName, Type[el.Assignor]]:
+    def tx_assign_target(
+        self, ast_target: ast.AST, source: el.PhysicalExpression
+    ) -> el.Assignor:
+
         lookup = self.resolve_object(ast_target)
         target = lookup.known_name
 
+        e_type = source.target_type
+        t_type = target.target_type
+
+        if t_type != e_type:
+            raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+
         if isinstance(target, el.GlobalVariable):
-            return target, el.GlobalVariableAssignment
+            return el.GlobalVariableAssignment(target, source)
 
         if isinstance(target, calls.LocalVariable):
-            return target, calls.LocalVariableAssignment
+            return calls.LocalVariableAssignment(target, source)
 
         if isinstance(target, meth.StackPointerMember):
-            return target, meth.StackPointerMemberAssignment
+            return meth.StackPointerMemberAssignment(target, source)
 
         raise UserWarning(f'Unsupported assign target {target}')
 
@@ -152,16 +161,10 @@ class Translator:
             raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
 
         ast_target = ast_assign.targets[0]
-        target, assignor = self.tx_assign_target(ast_target)
         ast_value = ast_assign.value
-        expression = self.tx_phy_expression(ast_value)
-        e_type = expression.target_type
-        t_type = target.target_type
-
-        if t_type != e_type:
-            raise UserWarning(f'Type mismatch {t_type} != {e_type}')
-        
-        return assignor(target, expression)
+        source = self.tx_phy_expression(ast_value)
+        assignor = self.tx_assign_target(ast_target, source)
+        return assignor
 
     def tx_type(self, ast_type: ast.AST):
         pp_expr = self.tx_expression(ast_type)
@@ -329,7 +332,9 @@ class Translator:
         return h.create_subscript(value, slice, target)
 
     def tx_expression(
-        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+        self, source: ast.AST,
+        target: regs.Register = regs.DEFAULT_REGISTER,
+        mode: str = 'load'
     ) -> el.Expression:
 
         if isinstance(source, ast.Constant):
@@ -346,7 +351,11 @@ class Translator:
                 return namespace.load_const(known_name, target)
 
             if isinstance(known_name, el.GlobalVariable):
-                return namespace.load_variable(known_name, target)
+                match mode:
+                    case 'load':
+                        return namespace.load_variable(known_name, target)
+                    case 'assign':
+                        raise UserWarning('Assigning to global variables is not supported')
 
             if isinstance(known_name, bi.BuiltinInline):
                 return bi.BuiltinInlineWrapper(known_name)

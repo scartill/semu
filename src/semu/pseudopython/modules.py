@@ -1,5 +1,5 @@
 
-from typing import Sequence, cast
+from typing import Sequence, cast, Type
 
 from semu.pseudopython.flatten import flatten
 
@@ -49,6 +49,10 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
         assert isinstance(known_name, el.GlobalVariable)
         return el.GlobalVariableLoad(known_name, target=target)
+
+    def assign_variable(self, known_name: n.KnownName) -> Type[el.Assignor]:
+        assert isinstance(known_name, el.GlobalVariable)
+        return el.GlobalVariableAssignment
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
