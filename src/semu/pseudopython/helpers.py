@@ -9,6 +9,7 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
+import semu.pseudopython.names as n
 import semu.pseudopython.intops as intops
 import semu.pseudopython.calls as calls
 import semu.pseudopython.boolops as boolops
@@ -589,3 +590,41 @@ def make_bound_method_call(
     full_args.extend(cast(el.PhysicalExpressions, args))
     call = make_method_call(ref, full_args, target)
     return create_call_frame(call, full_args)
+
+
+def simple_assign(target: n.KnownName, source: el.PhyExpression):
+    t_type = target.target_type
+    e_type = source.target_type
+
+    if t_type != e_type:
+        raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+
+    if isinstance(target, el.GlobalVariable):
+        return el.GlobalVariableAssignment(target, source)
+
+    if isinstance(target, calls.LocalVariable):
+        return calls.LocalVariableAssignment(target, source)
+
+    if isinstance(target, meth.StackPointerMember):
+        return meth.StackPointerMemberAssignment(target, source)
+
+    raise UserWarning(f'Unsupported assign target {target}')
+
+
+def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpression):
+    e_type = source.target_type
+
+    if not isinstance(array, arr.GlobalArray):
+        raise UserWarning(f'Unsupported array assign target {array}')
+
+    t_type = array.item_type()
+
+    if t_type != e_type:
+        raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+
+    if index.target_type != t.Int32:
+        raise UserWarning(f'Unsupported index value {index}')
+
+    load = arr.GlobalArrayLoad(array, regs.DEFAULT_REGISTER)
+    assign = arr.ArrayItemAssignor(array, load, index, source)
+    return assign

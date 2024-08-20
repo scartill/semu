@@ -15,9 +15,9 @@ import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
-import semu.pseudopython.methods as meth
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
+import semu.pseudopython.arrays as arr
 import semu.pseudopython.extranslator as et
 
 
@@ -51,25 +51,19 @@ class Translator(et.ExpressionTranslator):
         self, ast_target: ast.AST, source: el.PhyExpression
     ) -> el.Assignor:
 
-        lookup = self.resolve_object(ast_target)
-        target = lookup.known_name
-
         e_type = source.target_type
-        t_type = target.target_type
 
-        if t_type != e_type:
-            raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+        if isinstance(ast_target, ast.Subscript):
+            array = self.resolve_object(ast_target.value).known_name
+            index = self.tx_phy_expression(ast_target.slice)
 
-        if isinstance(target, el.GlobalVariable):
-            return el.GlobalVariableAssignment(target, source)
+            if isinstance(array, arr.GlobalArray):
+                return h.array_assign(array, index, source)
 
-        if isinstance(target, calls.LocalVariable):
-            return calls.LocalVariableAssignment(target, source)
-
-        if isinstance(target, meth.StackPointerMember):
-            return meth.StackPointerMemberAssignment(target, source)
-
-        raise UserWarning(f'Unsupported assign target {target}')
+            raise UserWarning('Subscript not supported')
+        else:
+            target = self.resolve_object(ast_target).known_name
+            return h.simple_assign(target, source)
 
     def tx_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:

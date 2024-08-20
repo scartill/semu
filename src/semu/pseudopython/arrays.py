@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, cast
 
+from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -55,6 +56,9 @@ class GlobalArray(el.Element, n.KnownName):
         n.KnownName.__init__(self, namespace, name, target_type)
         self.items = items
 
+    def item_type(self) -> t.PhysicalType:
+        return cast(ArrayType, self.target_type).item_type
+
     def typelabel(self) -> str:
         return 'global_array'
 
@@ -99,3 +103,61 @@ class GlobalArrayLoad(el.PhyExpression):
             f'// Creating pointer to global array {self.array.qualname()}',
             f'ldr &{self.array.address_label()} {self.target}',
         ]
+
+
+class ArrayItemAssignor(el.Assignor):
+    instance_load: el.PhyExpression
+    index: el.PhyExpression
+
+    def __init__(
+        self,
+        target: n.KnownName,
+        instance_load: el.PhyExpression, index: el.PhyExpression, source: el.PhyExpression
+    ):
+        super().__init__(target, source)
+        self.instance_load = instance_load
+        self.index = index
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'ArrayItemAssignor',
+            'InstanceLoad': self.instance_load.json(),
+            'Index': self.index.json()
+        })
+
+        return data
+
+    def emit(self) -> b.Sequence[str]:
+        available = regs.get_available([
+            self.source.target,
+            self.index.target,
+            self.source.target
+        ])
+
+        address = available.pop()
+        index = available.pop()
+        value = available.pop()
+        offset = available.pop()
+        name = self.target.name
+
+        return flatten([
+            f'// Global array item assign for {name}',
+            f'// Calculating index for {name}',
+            self.index.emit(),
+            f'push {self.index.target}',
+            f'// Calculating address for {name}',
+            self.instance_load.emit(),
+            f'push {self.instance_load.target}',
+            f'// Calculating value for {name}',
+            self.source.emit(),
+            f'mrr {self.source.target} {value}',
+            f'pop {address}',
+            f'pop {index}',
+            f'ldc {WORD_SIZE} {offset}',
+            f'mul {index} {offset} {offset}',
+            f'add {address} {offset} {address}',
+            f'mrm {value} {address}',
+            f'// End array item assign for {name}'
+        ])
