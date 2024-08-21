@@ -180,9 +180,9 @@ class Assignor(Element):
             self.target_load.emit(),
             f'mrr {self.target_load.target} {address}',
             f'pop {value}',
-            '// Assign'
-            f'mrm {value} {address}'
-            f'// End assignment'
+            '// Assign',
+            f'mrm {value} {address}',
+            '// End assignment'
         ])
 
 
@@ -218,7 +218,7 @@ class ValueLoader(PhyExpression):
             '// Calculating address',
             self.source.emit(),
             f'mrr {self.source.target} {address}',
-            '// Load value'
+            '// Load value',
             f'mmr {address} {self.target}',
             '// End value load'
         ])
