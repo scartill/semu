@@ -81,7 +81,7 @@ class ExpressionTranslator:
             this_lookup = self.context.get_own_name('this')
             formal = this_lookup.known_name
             assert isinstance(formal, meth.InstanceFormalParameter)
-            bound = callable.bind(lambda reg: calls.StackVariableLoad(formal, reg))
+            bound = callable.bind(lambda reg: ptrs.PointerToLocal(formal, reg))
             return h.make_bound_method_call(bound, args, target)
 
         else:
@@ -143,9 +143,10 @@ class ExpressionTranslator:
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
 
-            if isinstance(known_name, calls.StackVariable):
+            if isinstance(known_name, el.StackVariable):
                 assert isinstance(namespace, calls.Function)
-                return namespace.load_variable(known_name, target)
+                load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
+                return el.ValueLoader(load, target)
 
             if isinstance(known_name, t.DecoratorType):
                 return el.DecoratorApplication(known_name)

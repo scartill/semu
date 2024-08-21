@@ -183,46 +183,6 @@ class GlobalRefSet(el.PhyExpression):
         ])
 
 
-class LocalRefSet(el.PhyExpression):
-    variable: calls.StackVariable
-    source: el.PhyExpression
-
-    def __init__(self, variable: calls.StackVariable, source: el.PhyExpression):
-        super().__init__(t.Unit, regs.VOID_REGISTER)
-        self.variable = variable
-        self.source = source
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'LocalRefSet',
-            'RefSet': self.variable.name,
-            'Source': self.source.json()
-        })
-
-        return data
-
-    def emit(self):
-        assert isinstance(self.variable.target_type, t.PointerType)
-        offset = self.variable.offset
-        available = regs.get_available([self.source.target])
-        address = available.pop()
-        offset_temp = available.pop()
-
-        return flatten([
-            '// RefSet local target address load',
-            f'ldc {offset} {offset_temp}',
-            f'lla {offset_temp} {address}',
-            f'push {address}',
-            '// RefSet source calculation',
-            self.source.emit(),
-            f'pop {address}',
-            f'mmr {address} {address}',   # dereference
-            f'mrm {self.source.target} {address}'
-        ])
-
-
 def create_checkpoint(args: el.Expressions, target: regs.Register):
     lg.debug('Checkpoint')
 
@@ -353,9 +313,7 @@ def create_ref(args: el.Expressions, target: regs.Register):
     if not isinstance(s_type, t.PhysicalType):
         raise ValueError('Pointers can only point to PhysicalType')
 
-    if isinstance(source, el.GlobalVariableLoad):
-        to_known_name = source.variable
-    else:
+    if not isinstance(source, ptrs.PointerToGlobal):
         raise UserWarning(f'Unsupported pointer assignment {source}')
 
     temp = regs.get_temp([source.target, target])

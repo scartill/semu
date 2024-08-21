@@ -142,6 +142,23 @@ class GlobalVariable(Element, n.KnownName):
         ]
 
 
+class StackVariable(n.KnownName):
+    offset: int
+
+    def __init__(
+        self, namespace: n.INamespace, name: str, offset: int,
+        target_type: t.PhysicalType
+    ):
+        n.KnownName.__init__(self, namespace, name, target_type)
+        self.offset = offset
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'StackVariable'
+        data['Offset'] = self.offset
+        return data
+
+
 class Assignor(Element):
     target_load: PhyExpression
     source: PhyExpression

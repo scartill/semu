@@ -76,8 +76,8 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         return local
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register):
-        assert isinstance(known_name, StackVariable)
-        return StackVariableLoad(known_name, target)
+        assert isinstance(known_name, el.StackVariable)
+        return ptrs.PointerToLocal(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
@@ -121,24 +121,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
 
-class StackVariable(n.KnownName):
-    offset: int
-
-    def __init__(
-        self, namespace: n.INamespace, name: str, offset: int,
-        target_type: t.PhysicalType
-    ):
-        n.KnownName.__init__(self, namespace, name, target_type)
-        self.offset = offset
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'StackVariable'
-        data['Offset'] = self.offset
-        return data
-
-
-class FormalParameter(StackVariable):
+class FormalParameter(el.StackVariable):
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
     ):
@@ -163,12 +146,12 @@ class SimpleFormalParameter(FormalParameter):
         return data
 
 
-class LocalVariable(StackVariable, el.Element):
+class LocalVariable(el.StackVariable, el.Element):
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
     ):
         el.Element.__init__(self)
-        StackVariable.__init__(self, namespace, name, offset, target_type)
+        el.StackVariable.__init__(self, namespace, name, offset, target_type)
 
     def json(self):
         data = super().json()
@@ -186,63 +169,6 @@ class LocalVariable(StackVariable, el.Element):
             f'push {temp}',
             f'// End variable {self.name}'
         ]
-
-
-class StackVariableLoad(el.PhyExpression):
-    variable: StackVariable
-
-    def __init__(self, variable: StackVariable, target: regs.Register):
-        super().__init__(variable.target_type, target)
-        self.variable = variable
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'StackVariableLoad'
-        data['Variable'] = self.variable.name
-        return data
-
-    def emit(self):
-        available = regs.get_available([self.target])
-        temp_offset = available.pop()
-        temp = available.pop()
-        offset = self.variable.offset
-
-        return [
-            f'// Loading actual parameter at offset:{offset}',
-            f'ldc {offset} {temp_offset}',
-            f'lla {temp_offset} {temp}',
-            f'// Loading from address {temp} to {self.target}',
-            f'mmr {temp} {self.target}'
-        ]
-
-
-class LocalVariableAssignment(el.Assignor):
-    def __init__(self, target: LocalVariable, expr: el.PhyExpression):
-        super().__init__(target, expr)
-
-    def json(self):
-        data = super().json()
-        data.update({'Class': 'LocalVariableAssignment'})
-        return data
-
-    def emit(self):
-        assert isinstance(self.target, LocalVariable)
-        target = self.source.target
-        offset = self.target.offset
-        name = self.target.name
-        available = regs.get_available([target])
-        temp_offset = available.pop()
-        temp = available.pop()
-
-        return flatten([
-            f'// Calculating {name} to reg:{target}',
-            self.source.emit(),
-            f'// Assigning reg:{target} to local variable {name} at {offset}',
-            f'ldc {offset} {temp_offset}',
-            f'lla {temp_offset} {temp}',
-            f'// Saving addr:{temp} to reg:{target}',
-            f'mrm {target} {temp}'
-        ])
 
 
 class ActualParameter(el.Element):

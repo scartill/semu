@@ -1,9 +1,5 @@
 # type: ignore
 
-k: int
-k = 1
-assert_eq(k, 1)
-
 # ia: array[int, 3]
 # ia[0] = 11
 # ia[1] = 22

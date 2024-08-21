@@ -29,6 +29,32 @@ class PointerToGlobal(el.PhyExpression):
         ]
 
 
+class PointerToLocal(el.PhyExpression):
+    variable: el.StackVariable
+
+    def __init__(self, variable: el.StackVariable, target: regs.Register):
+        super().__init__(variable.target_type, target)
+        self.variable = variable
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'StackVariableLoad'
+        data['Variable'] = self.variable.name
+        return data
+
+    def emit(self):
+        available = regs.get_available([self.target])
+        temp_offset = available.pop()
+        temp = available.pop()
+        offset = self.variable.offset
+
+        return [
+            f'// Loading stack variable at offset:{offset}',
+            f'ldc {offset} {temp_offset}',
+            f'lla {temp_offset} {self.target}'
+        ]
+
+
 class PointerOperatorType(el.BuiltinMetaoperator):
     def __init__(self):
         super().__init__('ptr')
