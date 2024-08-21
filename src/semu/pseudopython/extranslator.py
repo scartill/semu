@@ -66,23 +66,27 @@ class ExpressionTranslator:
             for ast_arg in ast_call.args
         ]
 
+        if isinstance(callable, meth.BoundMethodRef):
+            return h.make_bound_method_call(callable, args, target)
+
+        if not isinstance(callable, el.PhyExpression):
+            raise UserWarning(f'Unsupported callable {callable}')
+
         if isinstance(callable, calls.FunctionRef):
             call = h.make_direct_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        elif isinstance(callable.target_type, t.PointerType):
-            call = h.make_pointer_call(callable, args, target)
-            return h.create_call_frame(call, args)
-
-        elif isinstance(callable, meth.BoundMethodRef):
-            return h.make_bound_method_call(callable, args, target)
-
-        elif isinstance(callable, meth.UnboundMethodRef):
+        elif isinstance(callable.target_type, meth.MethodPointerType):
             this_lookup = self.context.get_own_name('this')
             formal = this_lookup.known_name
             assert isinstance(formal, meth.InstanceFormalParameter)
-            bound = callable.bind(lambda reg: ptrs.PointerToLocal(formal, reg))
-            return h.make_bound_method_call(bound, args, target)
+            this = ptrs.PointerToLocal(formal)
+            bound_ref = meth.BoundMethodRef(callable, this)
+            return h.make_bound_method_call(bound_ref, args, target)
+
+        elif isinstance(callable.target_type, t.PointerType):
+            call = h.make_pointer_call(callable, args, target)
+            return h.create_call_frame(call, args)
 
         else:
             raise UserWarning(f'Unsupported callable {callable}')
@@ -138,7 +142,7 @@ class ExpressionTranslator:
                 return bi.BuiltinInlineWrapper(known_name)
 
             if isinstance(known_name, meth.Method):
-                return meth.UnboundMethodRef(known_name, target)
+                return ptrs.PointerToGlobal(known_name, target)
 
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)
@@ -162,22 +166,22 @@ class ExpressionTranslator:
 
             if isinstance(known_name, meth.GlobalPointerMember):
                 address = regs.get_temp([target])
-                load = meth.GlobalInstancePointerLoad(known_name.instance_pointer, address)
+                load = ptrs.PointerToGlobal(known_name.instance_pointer, address)
                 return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.StackPointerMember):
                 address = regs.get_temp([target])
-                load = meth.StackInstancePointerLoad(known_name.instance_parameter, address)
+                load = ptrs.PointerToLocal(known_name.instance_parameter, address)
                 return cls.ClassMemberLoad(load, known_name.variable, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
-                return meth.BoundMethodRef.from_GIM(known_name, target)
+                return meth.BoundMethodRef.from_GIM(known_name)
 
             if isinstance(known_name, meth.GlobalPointerMethod):
-                return meth.BoundMethodRef.from_GPM(known_name, target)
+                return meth.BoundMethodRef.from_GPM(known_name)
 
             if isinstance(known_name, meth.StackPointerMethod):
-                return meth.BoundMethodRef.from_SPM(known_name, target)
+                return meth.BoundMethodRef.from_SPM(known_name)
 
             if isinstance(known_name, arr.GlobalArray):
                 return ptrs.PointerToGlobal(known_name, target)

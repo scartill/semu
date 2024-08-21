@@ -287,7 +287,7 @@ def make_direct_call(
 def make_pointer_call(
     pointer: el.Expression, args: el.Expressions, target: regs.Register
 ):
-    callable_pointers = (ptrs.FunctionPointerType, ptrs.MethodPointerType)
+    callable_pointers = (ptrs.FunctionPointerType, meth.MethodPointerType)
 
     if not isinstance(pointer.target_type, callable_pointers):
         raise UserWarning(f'Unsupported pointer type {pointer.target_type}')
@@ -302,10 +302,11 @@ def make_pointer_call(
 
 
 def make_method_call(
-    m_ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
+    m_ref: el.PhyExpression, args: el.Expressions, target: regs.Register
 ):
-    lg.debug(f'Direct method call to {m_ref.method.name}')
-    validate_call(m_ref.method.callable_type().arg_types, args)
+    assert isinstance(m_ref.target_type, meth.MethodPointerType)
+    lg.debug(f'Direct method call to {m_ref.target_type}')
+    validate_call(m_ref.target_type.arg_types, args)
     return meth.MethodCall(m_ref, target)
 
 
@@ -530,7 +531,7 @@ def create_methptr_type(slice: el.Expression):
     (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types
-    return el.TypeWrapper(ptrs.MethodPointerType(class_type, full_arg_types, return_type))
+    return el.TypeWrapper(meth.MethodPointerType(class_type, full_arg_types, return_type))
 
 
 def create_array_type(slice: el.Expression):
@@ -581,38 +582,43 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
 
 
 def make_bound_method_call(
-    ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
+    bound_ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
 ):
+    this = bound_ref.instance_load
+    ref = bound_ref.method_load
+
     for arg in args:
         if not isinstance(arg, el.PhyExpression):
             raise UserWarning(f'Unsupported bound method call arg {arg}')
 
     # 'this' pointer is the first argument
-    this_pointer = ref.instance_load(regs.DEFAULT_REGISTER)
-    full_args = [this_pointer]
+    full_args = [this]
     full_args.extend(cast(el.PhyExpressions, args))
     call = make_method_call(ref, full_args, target)
     return create_call_frame(call, full_args)
 
 
-def simple_assign(target: n.KnownName, source: el.PhyExpression):
-    t_type = target.target_type
+def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
+    t_type = target_name.target_type
     e_type = source.target_type
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
-    if isinstance(target, el.GlobalVariable):
-        load = ptrs.PointerToGlobal(target)
+    if isinstance(target_name, el.GlobalVariable):
+        load = ptrs.PointerToGlobal(target_name)
         return el.Assignor(load, source)
 
-    if isinstance(target, calls.LocalVariable):
-        return calls.LocalVariableAssignment(target, source)
+    if isinstance(target_name, calls.LocalVariable):
+        load = ptrs.PointerToLocal(target_name)
+        return el.Assignor(load, source)
 
-    if isinstance(target, meth.StackPointerMember):
-        return meth.StackPointerMemberAssignment(target, source)
+    if isinstance(target_name, meth.StackPointerMember):
+        load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
+        member_load = cls.ClassMemberLoad(load_instance, target_name.variable)
+        return el.Assignor(member_load, source)
 
-    raise UserWarning(f'Unsupported assign target {target}')
+    raise UserWarning(f'Unsupported assign target {target_name.name}')
 
 
 def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpression):

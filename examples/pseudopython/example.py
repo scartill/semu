@@ -1,16 +1,16 @@
 # type: ignore
 
-# ia: array[int, 3]
-# ia[0] = 11
-# ia[1] = 22
-# ia[2] = 33
+a: int
+pa: ptr[int]
 
-# inx: int
-# inx = 1
-# ia[inx + 1] = 44
+a = 1
+assert_eq(a, 1)
 
-# # j: int
-# # j = ia[1]
+pa = ref(a)
 
-# # pja: ptr[array[int, 3]]
-# # pja = ia
+b: int
+b = deref(pa)
+assert_eq(b, 1)
+
+refset(pa, 2 + 3)
+assert_eq(deref(pa), 5)

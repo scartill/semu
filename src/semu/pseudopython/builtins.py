@@ -7,7 +7,6 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
 import semu.pseudopython.names as n
-import semu.pseudopython.calls as calls
 import semu.pseudopython.elements as el
 import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.arrays as arr
@@ -97,92 +96,6 @@ class BoolToInt(el.PhyExpression):
         return self.source.emit()
 
 
-class Ref(el.PhyExpression):
-    address: el.PhyExpression
-
-    def __init__(
-        self, target_type: t.PointerType, address: el.PhyExpression,
-        target: regs.Register
-    ):
-        super().__init__(target_type, target)
-        self.address = address
-
-    def json(self):
-        data = el.Expression.json(self)
-        assert isinstance(self.target_type, t.PointerType)
-        data.update({'RefOf': str(self.target_type)})
-        return data
-
-    def emit(self) -> el.Sequence[str]:
-        return flatten([
-            '// Ref target address fetch',
-            self.address.emit(),
-            f'mrr {self.address.target} {self.target}'
-        ])
-
-
-class Deref(el.PhyExpression):
-    source: el.PhyExpression
-
-    def __init__(self, source: el.PhyExpression, target: regs.Register):
-        assert isinstance(source.target_type, t.PointerType)
-        super().__init__(source.target_type.ref_type, target)
-        self.source = source
-
-    def json(self):
-        data = el.Expression.json(self)
-        data.update({'DerefOf': self.target_type.json()})
-        return data
-
-    def emit(self) -> el.Sequence[str]:
-        assert isinstance(self.target_type, t.PhysicalType)
-
-        return flatten([
-            f'// Pointer type: {self.target_type}',
-            self.source.emit(),
-            '// Dereference',
-            f'mmr {self.source.target} {self.target}'
-        ])
-
-
-class GlobalRefSet(el.PhyExpression):
-    variable: el.GlobalVariable
-    source: el.PhyExpression
-
-    def __init__(self, variable: el.GlobalVariable, source: el.PhyExpression):
-        super().__init__(t.Unit, regs.VOID_REGISTER)
-        self.variable = variable
-        self.source = source
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Mode': 'global',
-            'RefSet': self.variable.name,
-            'Source': self.source.json()
-        })
-
-        return data
-
-    def emit(self) -> el.Sequence[str]:
-        assert isinstance(self.variable.target_type, t.PointerType)
-
-        address_label = self.variable.address_label()
-        address = regs.get_temp([self.source.target])
-
-        return flatten([
-            '// RefSet global target address load',
-            f'ldr &{address_label} {address}',
-            f'push {address}',
-            '// RefSet source calculation',
-            self.source.emit(),
-            f'pop {address}',
-            f'mmr {address} {address}',   # dereference
-            f'mrm {self.source.target} {address}'
-        ])
-
-
 def create_checkpoint(args: el.Expressions, target: regs.Register):
     lg.debug('Checkpoint')
 
@@ -269,36 +182,43 @@ def create_deref(args: el.Expressions, target: regs.Register):
     if not isinstance(source.target_type, t.PointerType):
         raise UserWarning(f"'deref' expects a pointer source, got {source.target_type}")
 
-    return Deref(source, target)
+    return ptrs.Deref(source, target)
 
 
 def create_refset(args: el.Expressions, target: regs.Register):
-    lg.debug('RefSet')
+    if len(args) != 2:
+        raise UserWarning(f"'refset' expects 2 arguments, got {len(args)}")
 
-    ref_target = args[0]
+    loader = args[0]
+
+    if not isinstance(loader, el.ValueLoader):
+        raise UserWarning(f"'refset' expects a physical target, got {loader}")
+
+    ref_target = loader.source
     ref_source = args[1]
+
+    if not isinstance(ref_target, el.PhyExpression):
+        raise UserWarning(f"'refset' expects a physical target, got {ref_target}")
 
     if not isinstance(ref_source, el.PhyExpression):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
 
-    if not isinstance(ref_source.target_type, t.PhysicalType):
-        raise UserWarning(f"'refset' expects a physical source, got {ref_source.target_type}")
+    assert isinstance(ref_target.target_type, t.PointerType)
+    ref_type = ref_target.target_type.ref_type
 
-    if not isinstance(ref_target.target_type, t.PointerType):
+    if not isinstance(ref_type, t.PointerType):
         raise UserWarning(f"'refset' expects a pointer target, got {ref_target.target_type}")
 
-    if ref_source.target_type != ref_target.target_type.ref_type:
+    if ref_source.target_type != ref_type.ref_type:
         raise UserWarning(
             f"'refset' expects a source of type {ref_target.target_type.ref_type}, "
-            "got {source.target_type}"
+            f"got {ref_source.target_type}"
         )
 
-    if isinstance(ref_target, el.GlobalVariableLoad):
-        return GlobalRefSet(ref_target.variable, ref_source)
-    elif isinstance(ref_target, calls.StackVariableLoad):
-        return LocalRefSet(ref_target.variable, ref_source)
-    else:
-        raise UserWarning(f"Unsupported refset target: {ref_target}")
+    available = regs.get_available([ref_target.target, ref_source.target, target])
+    deref_target = available.pop()
+    assignor_target = available.pop()
+    return el.Assignor(ptrs.Deref(ref_target, deref_target), ref_source, assignor_target)
 
 
 def create_ref(args: el.Expressions, target: regs.Register):
@@ -307,18 +227,13 @@ def create_ref(args: el.Expressions, target: regs.Register):
     if len(args) != 1:
         raise UserWarning(f"'ref' expects 1 argument, got {len(args)}")
 
-    source = args[0]
-    s_type = source.target_type
+    loader = args[0]
 
-    if not isinstance(s_type, t.PhysicalType):
-        raise ValueError('Pointers can only point to PhysicalType')
+    if not isinstance(loader, el.ValueLoader):
+        raise UserWarning(f"'ref' expects a physical source, got {loader}")
 
-    if not isinstance(source, ptrs.PointerToGlobal):
-        raise UserWarning(f'Unsupported pointer assignment {source}')
-
-    temp = regs.get_temp([source.target, target])
-    load_pointer = ptrs.PointerToGlobal(to_known_name, temp)
-    return Ref(t.PointerType(s_type), load_pointer, target)
+    source = loader.source
+    return el.Retarget(source, target)
 
 
 def get(namespace: n.INamespace) -> Sequence[n.KnownName]:

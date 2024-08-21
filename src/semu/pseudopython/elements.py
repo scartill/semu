@@ -159,12 +159,17 @@ class StackVariable(n.KnownName):
         return data
 
 
-class Assignor(Element):
+class Assignor(PhyExpression):
     target_load: PhyExpression
     source: PhyExpression
 
-    def __init__(self, target_load: PhyExpression, source: PhyExpression):
-        super().__init__()
+    def __init__(
+        self, target_load: PhyExpression, source: PhyExpression,
+        target: regs.Register = regs.DEFAULT_REGISTER
+    ):
+        assert isinstance(target_load.target_type, t.PointerType)
+        target_type = target_load.target_type.ref_type
+        super().__init__(target_type, target)
         self.target_load = target_load
         self.source = source
 
@@ -239,6 +244,31 @@ class ValueLoader(PhyExpression):
             f'mmr {address} {self.target}',
             '// End value load'
         ])
+
+
+class Retarget(PhyExpression):
+    source: PhyExpression
+
+    def __init__(self, source: PhyExpression, target: regs.Register):
+        super().__init__(source.target_type, target)
+        self.source = source
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'Retarget',
+            'Expression': self.source.json()
+        })
+
+        return data
+
+    def emit(self):
+        return [
+            f'// Retargeting from reg:{self.source.target} to reg:{self.target}',
+            self.source.emit(),
+            f'mrr {self.source.target} {self.target}'
+        ]
 
 
 class DecoratorApplication(Expression):

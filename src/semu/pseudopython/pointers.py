@@ -1,10 +1,10 @@
 from typing import Sequence
 
+from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
-import semu.pseudopython.classes as cls
 
 
 class PointerToGlobal(el.PhyExpression):
@@ -32,8 +32,13 @@ class PointerToGlobal(el.PhyExpression):
 class PointerToLocal(el.PhyExpression):
     variable: el.StackVariable
 
-    def __init__(self, variable: el.StackVariable, target: regs.Register):
-        super().__init__(variable.target_type, target)
+    def __init__(
+        self, variable: el.StackVariable,
+        target: regs.Register = regs.DEFAULT_REGISTER
+    ):
+        assert isinstance(variable.target_type, t.PhysicalType)
+        target_type = t.PointerType(variable.target_type)
+        super().__init__(target_type, target)
         self.variable = variable
 
     def json(self):
@@ -108,44 +113,30 @@ class FunctionPointerType(t.AbstractCallableType):
         return data
 
 
-class MethodPointerType(t.AbstractCallableType):
-    class_type: cls.Class
-    arg_types: t.PhysicalTypes
-    return_type: t.PhysicalType
+class Deref(el.PhyExpression):
+    source: el.PhyExpression
 
     def __init__(
-        self, class_type: cls.Class,
-        arg_types: t.PhysicalTypes, return_type: t.PhysicalType
+        self, source: el.PhyExpression, target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        super().__init__()
-        self.class_type = class_type
-        self.arg_types = arg_types
-        self.return_type = return_type
-
-    def __eq__(self, o: object) -> bool:
-        if not isinstance(o, MethodPointerType):
-            return False
-
-        return (
-            self.class_type == o.class_type
-            and self.arg_types == o.arg_types
-            and self.return_type == o.return_type
-        )
-
-    def __str__(self) -> str:
-        return (
-            f'<{self.class_type.name}::'
-            f'({", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>)'
-        )
+        assert isinstance(source.target_type, t.PointerType)
+        super().__init__(source.target_type.ref_type, target)
+        self.source = source
 
     def json(self):
-        data = super().json()
-        data.update({
-            'Class': 'MethodPointerType',
-            'argTypes': [e.json() for e in self.arg_types],
-            'ReturnType': self.return_type.json()
-        })
+        data = el.Expression.json(self)
+        data.update({'DerefOf': self.target_type.json()})
         return data
+
+    def emit(self) -> el.Sequence[str]:
+        assert isinstance(self.target_type, t.PhysicalType)
+
+        return flatten([
+            f'// Pointer type: {self.target_type}',
+            self.source.emit(),
+            '// Dereference',
+            f'mmr {self.source.target} {self.target}'
+        ])
 
 
 PointerOperator = PointerOperatorType()

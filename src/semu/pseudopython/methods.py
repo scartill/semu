@@ -1,7 +1,6 @@
 import logging as lg
-from typing import Callable, cast
+from typing import cast
 
-from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -19,7 +18,7 @@ class Method(calls.Function):
         super().__init__(name, parent, return_type)
 
     def callable_type(self):
-        return ptrs.MethodPointerType(
+        return MethodPointerType(
             cast(cls.Class, self.parent),
             [cast(t.PhysicalType, p.target_type) for p in self.formals()],
             cast(t.PhysicalType, self.return_type)
@@ -54,6 +53,66 @@ class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
             'FormalParameter': calls.FormalParameter.json(self),
             'Namespace': ns.Namespace.json(self)
         }
+
+
+class MethodPointerType(t.AbstractCallableType):
+    class_type: cls.Class
+    arg_types: t.PhysicalTypes
+    return_type: t.PhysicalType
+
+    def __init__(
+        self, class_type: cls.Class,
+        arg_types: t.PhysicalTypes, return_type: t.PhysicalType
+    ):
+        super().__init__()
+        self.class_type = class_type
+        self.arg_types = arg_types
+        self.return_type = return_type
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, MethodPointerType):
+            return False
+
+        return (
+            self.class_type == o.class_type
+            and self.arg_types == o.arg_types
+            and self.return_type == o.return_type
+        )
+
+    def __str__(self) -> str:
+        return (
+            f'<{self.class_type.name}::'
+            f'({", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>)'
+        )
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'MethodPointerType',
+            'argTypes': [e.json() for e in self.arg_types],
+            'ReturnType': self.return_type.json()
+        })
+        return data
+
+
+class BoundMethodPointerType(b.TargetType):
+    unbound_type: MethodPointerType
+
+    def __init__(self, unbound_type: MethodPointerType):
+        self.unbound_type = unbound_type
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'BoundMethodPointerType',
+            'UnboundType': str(self.unbound_type)
+        })
+
+        return data
+
+    def __str__(self) -> str:
+        return f'bound<{self.unbound_type}>'
 
 
 class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
@@ -157,102 +216,6 @@ class StackPointerMember(n.KnownName):
         })
 
 
-class GlobalInstancePointerLoad(el.PhyExpression):
-    pointer: GlobalInstancePointer
-
-    def __init__(self, pointer: GlobalInstancePointer, target: regs.Register):
-        super().__init__(pointer.target_type, target)
-        self.pointer = pointer
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'GlobalInstancePointerLoad',
-            'Instance': self.pointer.name,
-        })
-
-        return data
-
-    def emit(self):
-        address = self.pointer.address_label()
-        available = regs.get_available([self.target])
-        temp_address = available.pop()
-
-        return [
-            f'// Loading member pointer {self.pointer.name}',
-            f'ldr &{address} {temp_address}',
-            f'mmr {temp_address} {self.target}',  # dereference
-        ]
-
-
-class StackPointerMemberAssignment(el.Assignor):
-    def __init__(self, target: StackPointerMember, source: el.PhyExpression):
-        super().__init__(target, source)
-
-    def json(self):
-        data = super().json()
-        data.update({'Class': 'StackPointerMemberAssignment'})
-
-        return data
-
-    def emit(self):
-        assert isinstance(self.target, StackPointerMember)
-        stack_offset = self.target.instance_parameter.offset
-        member_offset = self.target.variable.inx * WORD_SIZE
-        available = regs.get_available([self.source.target])
-        temp_address = available.pop()
-        temp_s_offset = available.pop()
-        temp_m_offset = available.pop()
-        name = str(self.target)
-
-        return flatten([
-            f'// Calculating value for var:{name}',
-            self.source.emit(),
-            f'push {self.source.target}',
-            f'// Assigning {name} of instance {stack_offset} and member {member_offset}',
-            f'ldc {stack_offset} {temp_s_offset}',
-            f'lla {temp_s_offset} {temp_address}',
-            f'mmr {temp_address} {temp_address}',       # dereference
-            f'ldc {member_offset} {temp_m_offset}',
-            f'add {temp_address} {temp_m_offset} {temp_address}',
-            f'pop {self.source.target}',
-            f'mrm {self.source.target} {temp_address}'  # store value
-        ])
-
-
-class StackInstancePointerLoad(el.PhyExpression):
-    instance_pointer: calls.StackVariable
-
-    def __init__(self, instance_pointer: calls.StackVariable, target: regs.Register):
-        assert isinstance(instance_pointer.target_type, cls.InstancePointerType)
-        super().__init__(instance_pointer.target_type, target)
-        self.instance_pointer = instance_pointer
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'StackInstancePointerLoad',
-            'Instance': self.instance_pointer.name
-        })
-
-        return data
-
-    def emit(self):
-        stack_offset = self.instance_pointer.offset
-        available = regs.get_available([self.target])
-        temp_address = available.pop()
-        temp_offset = available.pop()
-
-        return [
-            f'// Loading member pointer {self.instance_pointer.name}',
-            f'ldc {stack_offset} {temp_offset}',
-            f'lla {temp_offset} {temp_address}',
-            f'mmr {temp_address} {self.target}',  # dereference
-        ]
-
-
 class StackPointerMethod(n.KnownName):
     method: Method
     instance_parameter: InstanceFormalParameter
@@ -299,98 +262,67 @@ class GlobalInstanceMethod(n.KnownName):
         return data
 
 
-type LoadFactory = Callable[[regs.Register], el.PhyExpression]
+class BoundMethodRef(el.Expression):
+    method_load: el.PhyExpression
+    instance_load: el.PhyExpression
 
-
-class UnboundMethodRef(el.PhyExpression):
-    method: Method
-
-    def __init__(self, method: Method, target: regs.Register):
-        super().__init__(method.callable_type(), target)
-        self.method = method
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'UnboundMethodRef',
-            'Method': self.method.name
-        })
-
-        return data
-
-    def emit(self):
-        return [
-            f'// Method reference {self.method.name}',
-            f'ldr &{self.method.address_label()} {self.target}'
-        ]
-
-    def bind(self, instance_load: LoadFactory):
-        return BoundMethodRef(self.method, instance_load, self.target)
-
-
-class BoundMethodRef(el.PhyExpression):
-    instance_load: LoadFactory
-    method: Method
-
-    @staticmethod
-    def from_GIM(instance_method: GlobalInstanceMethod, target: regs.Register):
-        load = lambda t: cls.GlobalInstanceLoad(instance_method.instance, t)
-        return BoundMethodRef(instance_method.method, load, target)
-
-    @staticmethod
-    def from_GPM(global_method: GlobalPointerMethod, target: regs.Register):
-        load = lambda t: GlobalInstancePointerLoad(global_method.instance_pointer, t)
-        return BoundMethodRef(global_method.method, load, target)
-
-    @staticmethod
-    def from_SPM(stack_method: StackPointerMethod, target: regs.Register):
-        load = lambda t: StackInstancePointerLoad(stack_method.instance_parameter, t)
-        return BoundMethodRef(stack_method.method, load, target)
-
-    def __init__(self, method: Method, instance_load: LoadFactory, target: regs.Register):
-        super().__init__(method.callable_type(), target)
+    def __init__(self, method_load: el.PhyExpression, instance_load: el.PhyExpression):
+        assert isinstance(method_load.target_type, MethodPointerType)
+        target_type = BoundMethodPointerType(method_load.target_type)
+        super().__init__(target_type)
+        self.method_load = method_load
         self.instance_load = instance_load
-        self.method = method
+
+    @staticmethod
+    def from_GIM(instance_method: GlobalInstanceMethod):
+        instance_load = ptrs.PointerToGlobal(instance_method.instance)
+        method_load = ptrs.PointerToGlobal(instance_method.method)
+        return BoundMethodRef(method_load, instance_load)
+
+    @staticmethod
+    def from_GPM(global_method: GlobalPointerMethod):
+        instance_load = ptrs.Deref(ptrs.PointerToGlobal(global_method.instance_pointer))
+        method_load = ptrs.PointerToGlobal(global_method.method)
+        return BoundMethodRef(method_load, instance_load)
+
+    @staticmethod
+    def from_SPM(stack_method: StackPointerMethod):
+        instance_load = ptrs.Deref(ptrs.PointerToLocal(stack_method.instance_parameter))
+        method_load = ptrs.PointerToGlobal(stack_method.method)
+        return BoundMethodRef(method_load, instance_load)
 
     def json(self):
         data = super().json()
 
         data.update({
             'Class': 'BoundMethodRef',
-            'Method': f'method:{self.method.name}'
+            'InstanceLoad': self.instance_load.json(),
+            'MethodLoad': self.method_load.json()
         })
 
         return data
 
     def __str__(self):
-        return f'ref:{self.method.name}'
-
-    def emit(self):
-        return [
-            f'// Method reference {self.method.name}',
-            f'ldr &{self.method.address_label()} {self.target}'
-        ]
+        return 'bound-method'
 
 
 class MethodCall(el.PhyExpression):
-    method_ref: BoundMethodRef
+    method_ref: el.PhyExpression
 
-    def __init__(self, method_ref: BoundMethodRef, target: regs.Register):
-        super().__init__(method_ref.method.return_type, target)
+    def __init__(self, method_ref: el.PhyExpression, target: regs.Register):
+        assert isinstance(method_ref.target_type, MethodPointerType)
+        super().__init__(method_ref.target_type.return_type, target)
         self.method_ref = method_ref
 
     def json(self):
         data = super().json()
         data['Class'] = 'MethodCall'
-        data['Method'] = str(self.method_ref)
+        data['Method'] = self.method_ref.json()
         return data
 
     def emit(self):
-        name = str(self.method_ref.method.name)
-
         return flatten([
-            f'// Begin method call {name}',
+            '// Begin method call',
             self.method_ref.emit(),
             '// Calling',
             f'cll {self.method_ref.target}',

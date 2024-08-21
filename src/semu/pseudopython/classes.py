@@ -9,6 +9,7 @@ import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.pointers as ptrs
 
 
 class ClassVariable(n.KnownName):
@@ -124,7 +125,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         if not isinstance(var, el.GlobalVariable):
             raise UserWarning(f'Variable {known_name.name} not found')
 
-        return el.GlobalVariableLoad(var, target=target)
+        return ptrs.PointerToGlobal(var, target)
 
     def emit(self):
         label = self.address_label()
@@ -164,8 +165,10 @@ class ClassMemberLoad(el.PhyExpression):
 
     def __init__(
         self, instance_load: el.PhyExpression, member: ClassVariable,
-        target: regs.Register
+        target: regs.Register = regs.DEFAULT_REGISTER
     ):
+        assert isinstance(member.target_type, t.PhysicalType)
+        target_type = t.PointerType(member.target_type)
         super().__init__(member.target_type, target)
         self.instance_load = instance_load
         self.member = member
