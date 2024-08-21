@@ -285,12 +285,15 @@ def make_direct_call(
 
 
 def make_pointer_call(
-    pointer: el.GlobalVariableLoad, args: el.Expressions, target: regs.Register
+    pointer: el.Expression, args: el.Expressions, target: regs.Register
 ):
     callable_pointers = (ptrs.FunctionPointerType, ptrs.MethodPointerType)
 
     if not isinstance(pointer.target_type, callable_pointers):
         raise UserWarning(f'Unsupported pointer type {pointer.target_type}')
+
+    if not isinstance(pointer, el.PhyExpression):
+        raise UserWarning(f'Unrepresentable function pointer {pointer}')
 
     t_type = pointer.target_type
     lg.debug(f'Indirect call to function {t_type}')
@@ -600,7 +603,8 @@ def simple_assign(target: n.KnownName, source: el.PhyExpression):
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
     if isinstance(target, el.GlobalVariable):
-        return el.GlobalVariableAssignment(target, source)
+        load = ptrs.PointerToGlobal(target)
+        return el.Assignor(load, source)
 
     if isinstance(target, calls.LocalVariable):
         return calls.LocalVariableAssignment(target, source)
@@ -625,6 +629,7 @@ def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpr
     if index.target_type != t.Int32:
         raise UserWarning(f'Unsupported index value {index}')
 
-    load = arr.GlobalArrayLoad(array, regs.DEFAULT_REGISTER)
-    assign = arr.ArrayItemAssignor(array, load, index, source)
+    load = ptrs.PointerToGlobal(array)
+    item_load = arr.ArrayItemPointerLoad(load, index)
+    assign = el.Assignor(item_load, source)
     return assign

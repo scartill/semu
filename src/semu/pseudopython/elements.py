@@ -142,69 +142,85 @@ class GlobalVariable(Element, n.KnownName):
         ]
 
 
-@dataclass
 class Assignor(Element):
-    target: n.KnownName
+    target_load: PhyExpression
     source: PhyExpression
+
+    def __init__(self, target_load: PhyExpression, source: PhyExpression):
+        super().__init__()
+        self.target_load = target_load
+        self.source = source
 
     def json(self):
         data = super().json()
 
         data.update({
             'Class': 'Assignor',
-            'Target': self.target.name,
+            'Target': self.target_load.json(),
             'Expression': self.source.json()
         })
 
         return data
 
+    def emit(self) -> b.Sequence[str]:
+        available = regs.get_available([
+            self.target_load.target,
+            self.source.target
+        ])
 
-@dataclass
-class GlobalVariableAssignment(Assignor):
+        address = available.pop()
+        value = available.pop()
+
+        return flatten([
+            f'// Assigning from reg:{self.source.target}',
+            '// Calculating value',
+            self.source.emit(),
+            f'push {self.source.target}',
+            '// Calculating address',
+            self.target_load.emit(),
+            f'mrr {self.target_load.target} {address}',
+            f'pop {value}',
+            '// Assign'
+            f'mrm {value} {address}'
+            f'// End assignment'
+        ])
+
+
+class ValueLoader(PhyExpression):
+    source: PhyExpression
+
+    def __init__(self, source: PhyExpression, target: regs.Register):
+        assert isinstance(source.target_type, t.PointerType)
+        super().__init__(source.target_type.ref_type, target)
+        self.source = source
+
     def json(self):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalVariableAssignment',
+            'Class': 'Assignor',
+            'Target': self.target,
+            'Expression': self.source.json()
         })
 
         return data
 
     def emit(self):
-        temp = regs.get_temp([self.source.target])
-        label = self.target.address_label()
-
-        return flatten([
-            f"// Calculating var:{self.target.name} into reg:{self.source.target}",
-            self.source.emit(),
-            f'// Storing var:{self.target.name}',
-            f'ldr &{label} {temp}',
-            f'mrm {self.source.target} {temp}',
+        available = regs.get_available([
+            self.source.target,
+            self.target
         ])
 
-
-class GlobalVariableLoad(PhyExpression):
-    variable: GlobalVariable
-
-    def __init__(self, variable: GlobalVariable, target: regs.Register):
-        super().__init__(variable.target_type, target)
-        self.variable = variable
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'GlobalVariableLoad'
-        data['Variable'] = self.variable.name
-        return data
-
-    def emit(self):
-        temp = regs.get_temp([self.target])
-        label = self.variable.address_label()
+        address = available.pop()
 
         return flatten([
-            f'// Loading var:{self.variable.name} address',
-            f'ldr &{label} {temp}',
-            f'// Setting var:{self.variable.name} to reg:{self.target}',
-            f'mmr {temp} {self.target}',
+            f'// Loading value from reg:{self.source.target} to reg:{self.target}',
+            '// Calculating address',
+            self.source.emit(),
+            f'mrr {self.source.target} {address}',
+            '// Load value'
+            f'mmr {address} {self.target}',
+            '// End value load'
         ])
 
 

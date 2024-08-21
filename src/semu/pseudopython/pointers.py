@@ -10,7 +10,7 @@ import semu.pseudopython.classes as cls
 class PointerToGlobal(el.PhyExpression):
     known_name: n.KnownName
 
-    def __init__(self, known_name: n.KnownName, target: regs.Register):
+    def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
         assert isinstance(known_name.target_type, t.PhysicalType)
         super().__init__(t.PointerType(known_name.target_type), target)
         self.known_name = known_name

@@ -84,37 +84,21 @@ class GlobalArray(el.Element, n.KnownName):
 type Globals = el.GlobalVariable | cls.GlobalInstance | GlobalArray
 
 
-class GlobalArrayLoad(el.PhyExpression):
-    array: GlobalArray
-
-    def __init__(self, array: GlobalArray, target: regs.Register):
-        assert isinstance(array.target_type, ArrayType)
-        pointer_type = t.PointerType(array.target_type)
-        super().__init__(pointer_type, target)
-        self.array = array
-
-    def json(self):
-        data = super().json()
-        data.update({'GlobalArrayLoad': self.array.name})
-        return data
-
-    def emit(self):
-        return [
-            f'// Creating pointer to global array {self.array.qualname()}',
-            f'ldr &{self.array.address_label()} {self.target}',
-        ]
-
-
-class ArrayItemAssignor(el.Assignor):
+class ArrayItemPointerLoad(el.PhyExpression):
     instance_load: el.PhyExpression
     index: el.PhyExpression
 
     def __init__(
         self,
-        target: n.KnownName,
-        instance_load: el.PhyExpression, index: el.PhyExpression, source: el.PhyExpression
+        instance_load: el.PhyExpression, index: el.PhyExpression,
+        target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        super().__init__(target, source)
+        assert isinstance(instance_load.target_type, t.PointerType)
+        instance_type = instance_load.target_type.ref_type
+        assert isinstance(instance_type, ArrayType)
+        item_type = instance_type.item_type
+        target_type = t.PointerType(item_type)
+        super().__init__(target_type, target)
         self.instance_load = instance_load
         self.index = index
 
@@ -131,33 +115,26 @@ class ArrayItemAssignor(el.Assignor):
 
     def emit(self) -> b.Sequence[str]:
         available = regs.get_available([
-            self.source.target,
             self.index.target,
-            self.source.target
+            self.target
         ])
 
         address = available.pop()
         index = available.pop()
-        value = available.pop()
         offset = available.pop()
-        name = self.target.name
 
         return flatten([
-            f'// Global array item assign for {name}',
-            f'// Calculating index for {name}',
+            '// Global array item pointer load',
+            '// Calculating index',
             self.index.emit(),
             f'push {self.index.target}',
-            f'// Calculating address for {name}',
+            '// Calculating address',
             self.instance_load.emit(),
-            f'push {self.instance_load.target}',
-            f'// Calculating value for {name}',
-            self.source.emit(),
-            f'mrr {self.source.target} {value}',
-            f'pop {address}',
+            f'mrr {self.instance_load.target} {address}',
             f'pop {index}',
             f'ldc {WORD_SIZE} {offset}',
             f'mul {index} {offset} {offset}',
             f'add {address} {offset} {address}',
-            f'mrm {value} {address}',
-            f'// End array item assign for {name}'
+            f'mrr {address} {self.target}',
+            '// End array item pointer load'
         ])

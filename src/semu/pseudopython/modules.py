@@ -12,6 +12,7 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
+import semu.pseudopython.pointers as ptrs
 
 
 class Module(n.KnownName, ns.Namespace, el.Element):
@@ -43,12 +44,9 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self.add_name(creator)
         return creator
 
-    def load_variable(
-        self, known_name: n.KnownName, target: regs.Register
-    ) -> el.Expression:
-
+    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         assert isinstance(known_name, el.GlobalVariable)
-        return el.GlobalVariableLoad(known_name, target=target)
+        return ptrs.PointerToGlobal(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,

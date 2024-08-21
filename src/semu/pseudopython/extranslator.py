@@ -13,6 +13,7 @@ import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
+import semu.pseudopython.pointers as ptrs
 
 
 class ExpressionTranslator:
@@ -69,7 +70,7 @@ class ExpressionTranslator:
             call = h.make_direct_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        elif isinstance(callable, el.GlobalVariableLoad):
+        elif isinstance(callable.target_type, t.PointerType):
             call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
@@ -113,8 +114,7 @@ class ExpressionTranslator:
 
     def tx_expression(
         self, source: ast.AST,
-        target: regs.Register = regs.DEFAULT_REGISTER,
-        mode: str = 'load'
+        target: regs.Register = regs.DEFAULT_REGISTER
     ) -> el.Expression:
 
         if isinstance(source, ast.Constant):
@@ -131,11 +131,8 @@ class ExpressionTranslator:
                 return namespace.load_const(known_name, target)
 
             if isinstance(known_name, el.GlobalVariable):
-                match mode:
-                    case 'load':
-                        return namespace.load_variable(known_name, target)
-                    case 'assign':
-                        raise UserWarning('Assigning to global variables is not supported')
+                load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
+                return el.ValueLoader(load, target)
 
             if isinstance(known_name, bi.BuiltinInline):
                 return bi.BuiltinInlineWrapper(known_name)
@@ -182,7 +179,7 @@ class ExpressionTranslator:
                 return meth.BoundMethodRef.from_SPM(known_name, target)
 
             if isinstance(known_name, arr.GlobalArray):
-                return arr.GlobalArrayLoad(known_name, target)
+                return ptrs.PointerToGlobal(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 
