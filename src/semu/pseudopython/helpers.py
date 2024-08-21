@@ -158,10 +158,10 @@ def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
             raise UserWarning(f'Unsupported boolop type {arg.target_type}')
 
     if isinstance(op, ast.And):
-        return boolops.And(target_type, cast(el.PhysicalExpressions, args), target)
+        return boolops.And(target_type, cast(el.PhyExpressions, args), target)
 
     if isinstance(op, ast.Or):
-        return boolops.Or(target_type, cast(el.PhysicalExpressions, args), target)
+        return boolops.Or(target_type, cast(el.PhyExpressions, args), target)
 
     raise UserWarning(f'Unsupported boolop {op}')
 
@@ -587,7 +587,7 @@ def make_bound_method_call(
     # 'this' pointer is the first argument
     this_pointer = ref.instance_load(regs.DEFAULT_REGISTER)
     full_args = [this_pointer]
-    full_args.extend(cast(el.PhysicalExpressions, args))
+    full_args.extend(cast(el.PhyExpressions, args))
     call = make_method_call(ref, full_args, target)
     return create_call_frame(call, full_args)
 
