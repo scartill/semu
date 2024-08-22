@@ -91,7 +91,7 @@ class InstancePointerType(t.PhysicalType):
         self.ref_type = ref_type
 
     def __str__(self):
-        return f'pointer<{self.ref_type.name}>'
+        return f'instance-pointer<{self.ref_type.name}>'
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, InstancePointerType):

@@ -282,16 +282,16 @@ class GlobalInstanceMethod(n.KnownName):
 
 
 class BoundMethodRef(el.Expression):
-    method: Method
+    callable_type: MethodPointerType
     method_load: el.PhyExpression
     instance_load: el.PhyExpression
 
     def __init__(
-        self, method: Method,
+        self, callable_type: MethodPointerType,
         method_load: el.PhyExpression, instance_load: el.PhyExpression
     ):
         super().__init__(t.AbstractCallable)
-        self.method = method
+        self.callable_type = callable_type
         self.method_load = method_load
         self.instance_load = instance_load
 
@@ -299,19 +299,22 @@ class BoundMethodRef(el.Expression):
     def from_GIM(instance_method: GlobalInstanceMethod):
         instance_load = ptrs.PointerToGlobal(instance_method.instance)
         method_load = ptrs.PointerToGlobal(instance_method.method)
-        return BoundMethodRef(instance_method.method, method_load, instance_load)
+        ct = instance_method.method.callable_type()
+        return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_GPM(global_method: GlobalPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToGlobal(global_method.instance_pointer))
         method_load = ptrs.PointerToGlobal(global_method.method)
-        return BoundMethodRef(global_method.method, method_load, instance_load)
+        ct = global_method.method.callable_type()
+        return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_SPM(stack_method: StackPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToLocal(stack_method.instance_parameter))
         method_load = ptrs.PointerToGlobal(stack_method.method)
-        return BoundMethodRef(stack_method.method, method_load, instance_load)
+        ct = stack_method.method.callable_type()
+        return BoundMethodRef(ct, method_load, instance_load)
 
     def json(self):
         data = super().json()
@@ -331,9 +334,11 @@ class BoundMethodRef(el.Expression):
 class MethodCall(el.PhyExpression):
     method_ref: el.PhyExpression
 
-    def __init__(self, method_ref: el.PhyExpression, target: regs.Register):
-        assert isinstance(method_ref.target_type, MethodPointerType)
-        super().__init__(method_ref.target_type.return_type, target)
+    def __init__(
+        self, method_ref: el.PhyExpression, return_type: t.PhysicalType,
+        target: regs.Register
+    ):
+        super().__init__(return_type, target)
         self.method_ref = method_ref
 
     def json(self):

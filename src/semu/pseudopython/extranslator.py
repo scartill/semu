@@ -1,5 +1,5 @@
 import ast
-from typing import List
+from typing import List, cast
 
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -77,12 +77,29 @@ class ExpressionTranslator:
             return h.create_call_frame(call, args)
 
         elif isinstance(callable.target_type, meth.MethodPointerType):
-            this_lookup = self.context.get_own_name('this')
-            formal = this_lookup.known_name
-            assert isinstance(formal, meth.InstanceFormalParameter)
-            this = ptrs.PointerToLocal(formal)
-            bound_ref = meth.BoundMethodRef(callable, this)
-            return h.make_bound_method_call(bound_ref, args, target)
+            # Autofind this
+            if len(args) == len(callable.target_type.arg_types) - 1:
+                this_lookup = self.context.get_own_name('this')
+                formal = this_lookup.known_name
+                assert isinstance(formal, meth.InstanceFormalParameter)
+                this = ptrs.PointerToLocal(formal)
+                bound_ref = meth.BoundMethodRef(callable.target_type, callable, this)
+                return h.make_bound_method_call(bound_ref, args, target)
+            # Direct method binding
+            else:
+                if not isinstance(args[0].target_type, cls.InstancePointerType):
+                    raise UserWarning(f'Unsupported instance {args[0]}')
+
+                instance_load = cast(el.PhyExpression, args[0])
+
+                bound_ref = meth.BoundMethodRef(
+                    callable.target_type,
+                    callable,
+                    instance_load
+                )
+
+                rest_args = args[1:]
+                return h.make_bound_method_call(bound_ref, rest_args, target)
 
         elif isinstance(callable.target_type, ptrs.FunctionPointerType):
             call = h.make_pointer_call(callable, args, target)
@@ -154,6 +171,9 @@ class ExpressionTranslator:
 
             if isinstance(known_name, t.DecoratorType):
                 return el.DecoratorApplication(known_name)
+
+            if isinstance(known_name, cls.Class):
+                return el.TypeWrapper(cls.InstancePointerType(known_name))
 
             if isinstance(known_name, b.TargetType):
                 return el.TypeWrapper(known_name)

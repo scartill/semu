@@ -307,7 +307,7 @@ def make_method_call(
 ):
     lg.debug(f'Direct method call to {m_ref.target_type}')
     validate_call(callable_type.arg_types, args)
-    return meth.MethodCall(m_ref, target)
+    return meth.MethodCall(m_ref, callable_type.return_type, target)
 
 
 def create_call_frame(call: el.Expression, args: el.Expressions):
@@ -443,6 +443,7 @@ def create_global_variable(
         return instance
 
     if isinstance(target_type, cls.InstancePointerType):
+        print('GLOBAL INSTANCE POINTER', name, target_type)
         return meth.GlobalInstancePointer(parent, name, target_type)
 
     if isinstance(target_type, arr.ArrayType):
@@ -464,6 +465,9 @@ def create_global_variable(
 
 
 def create_ptr_type(slice: el.Expression):
+    if isinstance(slice.target_type, cls.InstancePointerType):
+        return el.TypeWrapper(cls.InstancePointerType(slice.target_type.ref_type))
+
     if isinstance(slice.target_type, cls.Class):
         return el.TypeWrapper(cls.InstancePointerType(slice.target_type))
 
@@ -526,10 +530,10 @@ def create_methptr_type(slice: el.Expression):
     if not isinstance(class_type_expr, el.TypeWrapper):
         raise UserWarning('Unsupported method pointer type (class type is not a type)')
 
-    if not isinstance(class_type_expr.target_type, cls.Class):
+    if not isinstance(class_type_expr.target_type, cls.InstancePointerType):
         raise UserWarning('Unsupported method pointer type (class type is not a class)')
 
-    class_type = class_type_expr.target_type
+    class_type = class_type_expr.target_type.ref_type
     (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types
@@ -596,7 +600,7 @@ def make_bound_method_call(
     # 'this' pointer is the first argument
     full_args = [this]
     full_args.extend(cast(el.PhyExpressions, args))
-    call = make_method_call(ref, bound_ref.method.callable_type(), full_args, target)
+    call = make_method_call(ref, bound_ref.callable_type, full_args, target)
     return create_call_frame(call, full_args)
 
 
@@ -627,6 +631,12 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
     if isinstance(target_name, meth.StackPointerMember):
         load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
         deref = ptrs.Deref(load_instance)
+        member_load = cls.ClassMemberLoad(deref, target_name.variable)
+        return el.Assignor(member_load, source)
+
+    if isinstance(target_name, meth.GlobalPointerMember):
+        load = ptrs.PointerToGlobal(target_name.instance_pointer)
+        deref = ptrs.Deref(load)
         member_load = cls.ClassMemberLoad(deref, target_name.variable)
         return el.Assignor(member_load, source)
 
