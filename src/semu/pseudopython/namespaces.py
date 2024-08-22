@@ -53,7 +53,7 @@ class Namespace(n.INamespace):
         known_name = self.names.get(name)
 
         if known_name:
-            lg.debug(f'Found up {name} in {self.namespace()}')
+            lg.debug(f'Found {name} in {self.namespace()} (type {known_name.target_type})')
             return NameLookup(self, known_name)
 
         return self.parent.lookup_name_upwards(name)
@@ -66,7 +66,7 @@ class Namespace(n.INamespace):
         if not known_name:
             raise UserWarning(f'Unknown reference {name} in {self.namespace()}')
 
-        lg.debug(f'Found own {name} in {self.namespace()}')
+        lg.debug(f'Found own {name} in {self.namespace()} (type {known_name.target_type})')
         return NameLookup(self, known_name)
 
     def load_const(self, known_name: n.KnownName, target: regs.Register):

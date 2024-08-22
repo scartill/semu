@@ -1,16 +1,32 @@
 # type: ignore
 
-a: int
-pa: ptr[int]
+class C:
+    i: int
+    b: bool
 
-a = 1
-assert_eq(a, 1)
+c: C
 
-pa = ref(a)
+c.i = 42
+c.b = True
 
-b: int
-b = deref(pa)
-assert_eq(b, 1)
+pc: ptr[C]
+pc = c
 
-refset(pa, 2 + 3)
-assert_eq(deref(pa), 5)
+j: int
+j = pc.i
+
+assert_eq(j, 42)
+
+b: bool
+b = pc.b
+assert_eq(b, True)
+
+def foo(pj: ptr[C]):
+    j: int
+    j = pj.i
+    assert_eq(j, 42)
+    b: bool
+    b = pj.b
+    assert_eq(b, True)
+
+foo(pc)

@@ -423,9 +423,11 @@ def create_global_variable(
         is_classvar = lambda x: isinstance(x, cls.ClassVariable)
 
         for classvar in filter(is_classvar, target_type.names.values()):
-            instance.add_name(
-                create_global_variable(instance, classvar.name, classvar.target_type)
-            )
+            if not isinstance(classvar.target_type, t.PhysicalType):
+                raise UserWarning(f'Unsupported class variable {classvar.target_type}')
+
+            member_type = classvar.target_type
+            instance.add_name(create_global_variable(instance, classvar.name, member_type))
 
         is_method = lambda x: isinstance(x, meth.Method)
 

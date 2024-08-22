@@ -169,7 +169,7 @@ class ClassMemberLoad(el.PhyExpression):
     ):
         assert isinstance(member.target_type, t.PhysicalType)
         target_type = t.PointerType(member.target_type)
-        super().__init__(member.target_type, target)
+        super().__init__(target_type, target)
         self.instance_load = instance_load
         self.member = member
 
@@ -193,8 +193,9 @@ class ClassMemberLoad(el.PhyExpression):
         return [
             '// Loading instance pointer',
             self.instance_load.emit(),
+            f'mrr {self.instance_load.target} {address}',
             f'// Loading member {self.member.name}',
             f'ldc {offset} {temp_offset}',
             f'add {address} {temp_offset} {address}',
-            f'mmr {address} {self.target}'
+            f'mrr {address} {self.target}'
         ]

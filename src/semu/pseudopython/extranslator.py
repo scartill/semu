@@ -165,14 +165,16 @@ class ExpressionTranslator:
                 return cls.GlobalInstanceLoad(known_name, target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
-                address = regs.get_temp([target])
-                load = ptrs.PointerToGlobal(known_name.instance_pointer, address)
-                return cls.ClassMemberLoad(load, known_name.variable, target)
+                load = ptrs.PointerToGlobal(known_name.instance_pointer)
+                deref = ptrs.Deref(load)
+                member_load = cls.ClassMemberLoad(deref, known_name.variable)
+                return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.StackPointerMember):
-                address = regs.get_temp([target])
-                load = ptrs.PointerToLocal(known_name.instance_parameter, address)
-                return cls.ClassMemberLoad(load, known_name.variable, target)
+                load = ptrs.PointerToLocal(known_name.instance_parameter)
+                deref = ptrs.Deref(load)
+                member_load = cls.ClassMemberLoad(deref, known_name.variable)
+                return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
                 return meth.BoundMethodRef.from_GIM(known_name)

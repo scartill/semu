@@ -155,7 +155,8 @@ class GlobalPointerMember(n.KnownName):
         self, instance_pointer: GlobalInstancePointer, variable: cls.ClassVariable
     ):
         assert isinstance(variable.target_type, t.PhysicalType)
-        super().__init__(instance_pointer, variable.name, variable.target_type)
+        member_type = variable.target_type
+        super().__init__(instance_pointer, variable.name, member_type)
         self.variable = variable
         self.instance_pointer = instance_pointer
 
