@@ -70,7 +70,7 @@ class ExpressionTranslator:
             return h.make_bound_method_call(callable, args, target)
 
         if not isinstance(callable, el.PhyExpression):
-            raise UserWarning(f'Unsupported callable {callable}')
+            raise UserWarning(f'A callable {callable} is not a physical value')
 
         if isinstance(callable, calls.FunctionRef):
             call = h.make_direct_call(callable, args, target)
@@ -84,7 +84,7 @@ class ExpressionTranslator:
             bound_ref = meth.BoundMethodRef(callable, this)
             return h.make_bound_method_call(bound_ref, args, target)
 
-        elif isinstance(callable.target_type, t.PointerType):
+        elif isinstance(callable.target_type, ptrs.FunctionPointerType):
             call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
