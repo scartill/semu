@@ -189,7 +189,7 @@ class ExpressionTranslator:
 
             if isinstance(known_name, cls.Class):
                 lg.debug(f'Expression: Class {known_name.name}')
-                return el.TypeWrapper(cls.InstancePointerType(known_name))
+                return el.TypeWrapper(known_name)
 
             if isinstance(known_name, b.TargetType):
                 lg.debug(f'Expression: Target type {known_name.name}')

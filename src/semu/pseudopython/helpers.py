@@ -427,7 +427,7 @@ def create_global_variable(
 ) -> arr.Globals:
 
     if isinstance(target_type, cls.Class):
-        lg.debug(f'Creating a global instance {name} of {target_type.name}')
+        lg.debug(f'Creating a global instance {name} of {target_type}')
         instance = cls.GlobalInstance(parent, name, target_type)
 
         is_classvar = lambda x: isinstance(x, cls.ClassVariable)
@@ -453,6 +453,7 @@ def create_global_variable(
         return instance
 
     if isinstance(target_type, cls.InstancePointerType):
+        lg.debug(f'Creating a global instance pointer {name} of {target_type}')
         return meth.GlobalInstancePointer(parent, name, target_type)
 
     if isinstance(target_type, arr.ArrayType):
