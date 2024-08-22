@@ -617,7 +617,8 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
 
     if isinstance(target_name, meth.StackPointerMember):
         load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
-        member_load = cls.ClassMemberLoad(load_instance, target_name.variable)
+        deref = ptrs.Deref(load_instance)
+        member_load = cls.ClassMemberLoad(deref, target_name.variable)
         return el.Assignor(member_load, source)
 
     raise UserWarning(f'Unsupported assign target {target_name.name}')

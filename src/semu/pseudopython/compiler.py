@@ -51,8 +51,6 @@ class Translator(et.ExpressionTranslator):
         self, ast_target: ast.AST, source: el.PhyExpression
     ) -> el.Assignor:
 
-        e_type = source.target_type
-
         if isinstance(ast_target, ast.Subscript):
             array = self.resolve_object(ast_target.value).known_name
             index = self.tx_phy_expression(ast_target.slice)
@@ -232,8 +230,6 @@ class Translator(et.ExpressionTranslator):
         return function
 
     def tx_stmt(self, ast_element: ast.stmt) -> el.Element:
-        lg.debug(f'Stmt {type(ast_element)}')
-
         match type(ast_element):
             case ast.Expr:
                 value = cast(ast.Expr, ast_element).value
