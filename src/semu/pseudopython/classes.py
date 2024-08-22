@@ -187,15 +187,15 @@ class ClassMemberLoad(el.PhyExpression):
     def emit(self):
         offset = self.member.inx * WORD_SIZE
         available = regs.get_available([self.instance_load.target, self.target])
-        temp_offset = available.pop()
-        address = self.instance_load.target
+        reg_offset = available.pop()
+        reg_address = available.pop()
 
         return [
             '// Loading instance pointer',
             self.instance_load.emit(),
-            f'mrr {self.instance_load.target} {address}',
+            f'mrr {self.instance_load.target} {reg_address}',
             f'// Loading member {self.member.name}',
-            f'ldc {offset} {temp_offset}',
-            f'add {address} {temp_offset} {address}',
-            f'mrr {address} {self.target}'
+            f'ldc {offset} {reg_offset}',
+            f'add {reg_offset} {reg_offset} {reg_offset}',
+            f'mrr {reg_offset} {self.target}'
         ]

@@ -1,5 +1,6 @@
 import ast
 from typing import List, cast
+import logging as lg
 
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
@@ -56,10 +57,8 @@ class ExpressionTranslator:
         callable = self.tx_expression(ast_call.func)
 
         if isinstance(callable, bi.BuiltinInlineWrapper):
+            lg.debug(f'Call: inline {callable}')
             return self.tx_builtin_call(callable.inline, ast_call.args, target)
-
-        if not isinstance(callable.target_type, t.AbstractCallableType):
-            raise UserWarning(f'Not callable type {callable}')
 
         args = [
             self.tx_expression(ast_arg)
@@ -67,18 +66,21 @@ class ExpressionTranslator:
         ]
 
         if isinstance(callable, meth.BoundMethodRef):
+            lg.debug(f'Call: bound method {callable}')
             return h.make_bound_method_call(callable, args, target)
 
-        if not isinstance(callable, el.PhyExpression):
-            raise UserWarning(f'A callable {callable} is not a physical value')
-
         if isinstance(callable, calls.FunctionRef):
+            lg.debug(f'Call: function {callable}')
             call = h.make_direct_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        elif isinstance(callable.target_type, meth.MethodPointerType):
+        if not isinstance(callable, el.PhyExpression):
+            raise UserWarning(f'Unsupported callable {callable} (not built-in or physical)')
+
+        if isinstance(callable.target_type, meth.MethodPointerType):
             # Autofind this
             if len(args) == len(callable.target_type.arg_types) - 1:
+                lg.debug(f'Call: method pointer {callable} (auto-this)')
                 this_lookup = self.context.get_own_name('this')
                 formal = this_lookup.known_name
                 assert isinstance(formal, meth.InstanceFormalParameter)
@@ -87,6 +89,7 @@ class ExpressionTranslator:
                 return h.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
             else:
+                lg.debug(f'Call: method pointer {callable} (direct)')
                 if not isinstance(args[0].target_type, cls.InstancePointerType):
                     raise UserWarning(f'Unsupported instance {args[0]}')
 
@@ -101,12 +104,12 @@ class ExpressionTranslator:
                 rest_args = args[1:]
                 return h.make_bound_method_call(bound_ref, rest_args, target)
 
-        elif isinstance(callable.target_type, ptrs.FunctionPointerType):
+        if isinstance(callable.target_type, ptrs.FunctionPointerType):
+            lg.debug(f'Call: function pointer {callable}')
             call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        else:
-            raise UserWarning(f'Unsupported callable {callable}')
+        raise UserWarning(f'Unsupported callable {callable}: {callable.target_type}')
 
     def tx_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values

@@ -443,7 +443,6 @@ def create_global_variable(
         return instance
 
     if isinstance(target_type, cls.InstancePointerType):
-        print('GLOBAL INSTANCE POINTER', name, target_type)
         return meth.GlobalInstancePointer(parent, name, target_type)
 
     if isinstance(target_type, arr.ArrayType):
@@ -615,26 +614,31 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
     e_type = source.target_type
 
     if isinstance(source, meth.PointerToGlobalMethod):
+        lg.debug(f'Assigning method to {target_name}')
         e_type = source.get_method().callable_type()
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
     if isinstance(target_name, el.GlobalVariable):
+        lg.debug(f'Assigning to global {target_name.name}')
         load = ptrs.PointerToGlobal(target_name)
         return el.Assignor(load, source)
 
     if isinstance(target_name, calls.LocalVariable):
+        lg.debug(f'Assigning to local {target_name.name}')
         load = ptrs.PointerToLocal(target_name)
         return el.Assignor(load, source)
 
     if isinstance(target_name, meth.StackPointerMember):
+        lg.debug(f'Assigning to stack member {target_name.name}')
         load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
         deref = ptrs.Deref(load_instance)
         member_load = cls.ClassMemberLoad(deref, target_name.variable)
         return el.Assignor(member_load, source)
 
     if isinstance(target_name, meth.GlobalPointerMember):
+        lg.debug(f'Assigning to global member {target_name.name}')
         load = ptrs.PointerToGlobal(target_name.instance_pointer)
         deref = ptrs.Deref(load)
         member_load = cls.ClassMemberLoad(deref, target_name.variable)
