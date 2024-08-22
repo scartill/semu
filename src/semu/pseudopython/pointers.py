@@ -50,7 +50,6 @@ class PointerToLocal(el.PhyExpression):
     def emit(self):
         available = regs.get_available([self.target])
         temp_offset = available.pop()
-        temp = available.pop()
         offset = self.variable.offset
 
         return [
@@ -132,9 +131,10 @@ class Deref(el.PhyExpression):
         assert isinstance(self.target_type, t.PhysicalType)
 
         return flatten([
-            f'// Pointer type: {self.target_type}',
+            f'// Dereference pointer type: {self.target_type}',
+            '// Calculate the address',
             self.source.emit(),
-            '// Dereference',
+            '// Do the dereference',
             f'mmr {self.source.target} {self.target}'
         ])
 

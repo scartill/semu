@@ -648,7 +648,11 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
         return el.Assignor(member_load, source)
 
     if isinstance(target_name, meth.GlobalPointerMember):
-        lg.debug(f'Assigning to global member {target_name.name}')
+        lg.debug(
+            f'Assigning to global member {target_name.name}'
+            f' (index {target_name.variable.inx})'
+        )
+
         load = ptrs.PointerToGlobal(target_name.instance_pointer)
         deref = ptrs.Deref(load)
         member_load = cls.ClassMemberLoad(deref, target_name.variable)

@@ -191,11 +191,10 @@ class ClassMemberLoad(el.PhyExpression):
         reg_address = available.pop()
 
         return [
-            '// Loading instance pointer',
+            f'// Loading instance pointer to {self.member.name}',
             self.instance_load.emit(),
             f'mrr {self.instance_load.target} {reg_address}',
-            f'// Loading member {self.member.name}',
+            f'// Loading member {self.member.name} at {offset}',
             f'ldc {offset} {reg_offset}',
-            f'add {reg_offset} {reg_offset} {reg_offset}',
-            f'mrr {reg_offset} {self.target}'
+            f'add {reg_offset} {reg_offset} {self.target}'
         ]

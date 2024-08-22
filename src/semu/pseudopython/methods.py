@@ -145,8 +145,6 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
             if isinstance(cv, cls.ClassVariable)
         ]
 
-        lg.debug(f'Found {len(class_vars)} class variables')
-
         for cv in sorted(class_vars, key=lambda x: x.inx):
             lg.debug(f'Creating pointer member for {cv.name}')
             mp = GlobalPointerMember(self, cv)

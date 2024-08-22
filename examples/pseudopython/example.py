@@ -2,14 +2,12 @@
 
 class C:
     i: int
+    b: bool
 
 c: C
-
 c.i = 42
+c.b = True
 
-def foo(pj: ptr[C]):
-    j: int
-    j = pj.i
-    assert_eq(j, 42)
-
-foo(c)
+j: int
+j = c.i
+assert_eq(j, 42)

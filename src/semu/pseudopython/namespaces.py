@@ -49,7 +49,6 @@ class Namespace(n.INamespace):
 
     def lookup_name_upwards(self, name: str) -> NameLookup | None:
         lg.debug(f'Looking up {name} in {self.namespace()}')
-
         known_name = self.names.get(name)
 
         if known_name:

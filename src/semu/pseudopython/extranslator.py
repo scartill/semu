@@ -200,7 +200,7 @@ class ExpressionTranslator:
                 return known_name
 
             if isinstance(known_name, cls.GlobalInstance):
-                lg.debug(f'Expression: Expression: Global instance {known_name.name}')
+                lg.debug(f'Expression: Global instance {known_name.name}')
                 return cls.GlobalInstanceLoad(known_name, target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
