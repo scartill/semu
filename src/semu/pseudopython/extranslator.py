@@ -57,7 +57,7 @@ class ExpressionTranslator:
         callable = self.tx_expression(ast_call.func)
 
         if isinstance(callable, bi.BuiltinInlineWrapper):
-            lg.debug(f'Call: inline {callable}')
+            lg.debug(f'Call: inline {callable.inline.name}')
             return self.tx_builtin_call(callable.inline, ast_call.args, target)
 
         args = [
@@ -104,13 +104,7 @@ class ExpressionTranslator:
                     raise UserWarning(f'Unsupported instance {args[0]}')
 
                 instance_load = cast(el.PhyExpression, args[0])
-
-                bound_ref = meth.BoundMethodRef(
-                    callable.target_type,
-                    callable,
-                    instance_load
-                )
-
+                bound_ref = meth.BoundMethodRef(callable.target_type, callable, instance_load)
                 rest_args = args[1:]
                 return h.make_bound_method_call(bound_ref, rest_args, target)
 
@@ -154,6 +148,7 @@ class ExpressionTranslator:
         if isinstance(source, ast.Constant):
             target_type = h.get_constant_type(source)
             value = h.get_constant_value(target_type, source)
+            lg.debug(f'Literal {value} ({target_type})')
             return el.ConstantExpression(target_type, value, target)
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
@@ -162,63 +157,80 @@ class ExpressionTranslator:
             known_name = lookup.known_name
 
             if isinstance(known_name, n.Constant):
+                lg.debug(f'Expression: Constant {known_name}')
                 return namespace.load_const(known_name, target)
 
             if isinstance(known_name, el.GlobalVariable):
+                lg.debug(f'Expression: Global variable {known_name.name}')
                 load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
                 return el.ValueLoader(load, target)
 
             if isinstance(known_name, bi.BuiltinInline):
+                lg.debug(f'Expression: Builtin inline {known_name.name}')
                 return bi.BuiltinInlineWrapper(known_name)
 
             if isinstance(known_name, meth.Method):
+                lg.debug(f'Expression: Method {known_name.name}')
                 return meth.PointerToGlobalMethod(known_name, target)
 
             if isinstance(known_name, calls.Function):
+                lg.debug(f'Expression: Function {known_name.name}')
                 return calls.FunctionRef(known_name, target)
 
             if isinstance(known_name, el.StackVariable):
+                lg.debug(f'Expression: Stack variable {known_name.name}')
                 assert isinstance(namespace, calls.Function)
                 load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
                 return el.ValueLoader(load, target)
 
             if isinstance(known_name, t.DecoratorType):
+                lg.debug(f'Expression: Decorator type {known_name.name}')
                 return el.DecoratorApplication(known_name)
 
             if isinstance(known_name, cls.Class):
+                lg.debug(f'Expression: Class {known_name.name}')
                 return el.TypeWrapper(cls.InstancePointerType(known_name))
 
             if isinstance(known_name, b.TargetType):
+                lg.debug(f'Expression: Target type {known_name.name}')
                 return el.TypeWrapper(known_name)
 
             if isinstance(known_name, el.BuiltinMetaoperator):
+                lg.debug(f'Expression: Builtin metaoperator {known_name.name}')
                 return known_name
 
             if isinstance(known_name, cls.GlobalInstance):
+                lg.debug(f'Expression: Expression: Global instance {known_name.name}')
                 return cls.GlobalInstanceLoad(known_name, target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
+                lg.debug(f'Expression: Global pointer member {known_name.name}')
                 load = ptrs.PointerToGlobal(known_name.instance_pointer)
                 deref = ptrs.Deref(load)
                 member_load = cls.ClassMemberLoad(deref, known_name.variable)
                 return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.StackPointerMember):
+                lg.debug(f'Expression: Stack pointer member {known_name.name}')
                 load = ptrs.PointerToLocal(known_name.instance_parameter)
                 deref = ptrs.Deref(load)
                 member_load = cls.ClassMemberLoad(deref, known_name.variable)
                 return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
+                lg.debug(f'Expression: Global instance method {known_name.name}')
                 return meth.BoundMethodRef.from_GIM(known_name)
 
             if isinstance(known_name, meth.GlobalPointerMethod):
+                lg.debug(f'Expression: Global pointer method {known_name.name}')
                 return meth.BoundMethodRef.from_GPM(known_name)
 
             if isinstance(known_name, meth.StackPointerMethod):
+                lg.debug(f'Expression: Stack pointer method {known_name.name}')
                 return meth.BoundMethodRef.from_SPM(known_name)
 
             if isinstance(known_name, arr.GlobalArray):
+                lg.debug(f'Expression: Global array {known_name.name}')
                 return ptrs.PointerToGlobal(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')

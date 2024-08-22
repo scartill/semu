@@ -27,17 +27,27 @@ import semu.pseudopython.arrays as arr
 class CompileSettings:
     verbose: bool
     pp_path: str
+    produce_ast: bool
 
     def __init__(self):
         self.verbose = False
         self.pp_path = ''
+        self.produce_ast = False
 
-    def update(self, verbose: bool | None = None, pp_path: str | None = None):
+    def update(
+        self,
+        verbose: bool | None = None,
+        pp_path: str | None = None,
+        produce_ast: bool | None = None
+    ):
         if verbose is not None:
             self.verbose = verbose
 
         if pp_path is not None:
             self.pp_path = pp_path
+
+        if produce_ast is not None:
+            self.produce_ast = produce_ast
 
         return self
 

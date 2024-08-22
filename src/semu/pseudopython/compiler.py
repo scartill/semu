@@ -294,7 +294,7 @@ Params = Dict[str, Any]
 def emit(settings: h.CompileSettings, translator: Translator):
     top = translator.top()
 
-    if settings.verbose:
+    if settings.produce_ast:
         eprint('------------------ AST -----------------------')
         eprint(json.dumps(top.json(), indent=2))
 
@@ -324,8 +324,9 @@ def compile_file(settings: h.CompileSettings, input: Path, output: Path):
 
 @click.command()
 @click.pass_context
-@click.option('-v', '--verbose', is_flag=True, help='sets logging level to debug')
-@click.option('--pp-path', type=str, help='path to the pseudopython package')
+@click.option('-v', '--verbose', is_flag=True, help='Sets logging level to debug')
+@click.option('--pp-path', type=str, help='Path to the pseudopython package')
+@click.option('--produce-ast', is_flag=True, help='Produce AST output')
 @click.argument('input', type=Path)
 @click.argument('output', type=Path, required=False)
 def compile(ctx: click.Context, input: Path, output: Path | None, **params):
