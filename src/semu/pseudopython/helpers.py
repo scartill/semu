@@ -254,7 +254,7 @@ def create_method(
 
 
 def validate_function(func: calls.Function):
-    if func.target_type != t.Unit and not func.returns:
+    if func.return_type != t.Unit and not func.returns:
         raise UserWarning(f'Function {func.name} does not return')
 
 
@@ -302,11 +302,11 @@ def make_pointer_call(
 
 
 def make_method_call(
-    m_ref: el.PhyExpression, args: el.Expressions, target: regs.Register
+    m_ref: el.PhyExpression, callable_type: meth.MethodPointerType,
+    args: el.Expressions, target: regs.Register
 ):
-    assert isinstance(m_ref.target_type, meth.MethodPointerType)
     lg.debug(f'Direct method call to {m_ref.target_type}')
-    validate_call(m_ref.target_type.arg_types, args)
+    validate_call(callable_type.arg_types, args)
     return meth.MethodCall(m_ref, target)
 
 
@@ -596,13 +596,22 @@ def make_bound_method_call(
     # 'this' pointer is the first argument
     full_args = [this]
     full_args.extend(cast(el.PhyExpressions, args))
-    call = make_method_call(ref, full_args, target)
+    call = make_method_call(ref, bound_ref.method.callable_type(), full_args, target)
     return create_call_frame(call, full_args)
 
 
 def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
+    lg.debug(
+        f'Assigning {source}: {source.target_type}'
+        ' to '
+        f'{target_name.name}:{target_name.target_type}'
+    )
+
     t_type = target_name.target_type
     e_type = source.target_type
+
+    if isinstance(source, meth.PointerToGlobalMethod):
+        e_type = source.get_method().callable_type()
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')

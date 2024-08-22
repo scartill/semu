@@ -83,7 +83,7 @@ class PhysicalType(b.TargetType):
         b.TargetType.__init__(self)
 
     def __str__(self) -> str:
-        return 'physical-type'
+        return f'type:{self.json()["Class"]}'
 
     def json(self):
         data = super().json()
@@ -201,3 +201,4 @@ Bool32 = Bool32Type()
 AbstractPointer = AbstractPointerType()
 AbstractPhysical = PhysicalType()
 BuiltinCallable = BuiltinCallableType()
+AbstractCallable = AbstractCallableType()

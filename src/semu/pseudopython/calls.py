@@ -24,7 +24,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, return_type)
+        n.KnownName.__init__(self, parent, name, t.AbstractCallable)
         ns.Namespace.__init__(self, name, parent)
         self.decorators = list()
         self.return_type = return_type
@@ -119,6 +119,28 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             f'// Function {name} return',
             'ret'
         ])
+
+
+class PointerToGlobal(el.PhyExpression):
+    known_name: n.KnownName
+
+    def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
+        assert isinstance(known_name.target_type, t.PhysicalType)
+        super().__init__(t.PointerType(known_name.target_type), target)
+        self.known_name = known_name
+
+    def json(self):
+        data = el.Expression.json(self)
+        data.update({'PointerToGlobal': self.known_name.name})
+        return data
+
+    def emit(self):
+        label = self.known_name.address_label()
+
+        return [
+            f'// Loading global pointer to {self.known_name.name}',
+            f'ldr &{label} {self.target}'
+        ]
 
 
 class FormalParameter(el.StackVariable):

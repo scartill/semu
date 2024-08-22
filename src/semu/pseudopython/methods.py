@@ -30,6 +30,24 @@ class Method(calls.Function):
         return data
 
 
+class PointerToGlobalMethod(ptrs.PointerToGlobal):
+    method: Method
+
+    def __init__(
+        self, method: Method, target: regs.Register = regs.DEFAULT_REGISTER
+    ):
+        super().__init__(method, target)
+
+    def get_method(self) -> Method:
+        assert isinstance(self.known_name, Method)
+        return self.known_name
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'PointerToGlobalMethod'
+        return data
+
+
 class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
     def __init__(
         self, namespace: ns.Namespace, name: str, offset: int,
@@ -264,13 +282,16 @@ class GlobalInstanceMethod(n.KnownName):
 
 
 class BoundMethodRef(el.Expression):
+    method: Method
     method_load: el.PhyExpression
     instance_load: el.PhyExpression
 
-    def __init__(self, method_load: el.PhyExpression, instance_load: el.PhyExpression):
-        assert isinstance(method_load.target_type, MethodPointerType)
-        target_type = BoundMethodPointerType(method_load.target_type)
-        super().__init__(target_type)
+    def __init__(
+        self, method: Method,
+        method_load: el.PhyExpression, instance_load: el.PhyExpression
+    ):
+        super().__init__(t.AbstractCallable)
+        self.method = method
         self.method_load = method_load
         self.instance_load = instance_load
 
@@ -278,19 +299,19 @@ class BoundMethodRef(el.Expression):
     def from_GIM(instance_method: GlobalInstanceMethod):
         instance_load = ptrs.PointerToGlobal(instance_method.instance)
         method_load = ptrs.PointerToGlobal(instance_method.method)
-        return BoundMethodRef(method_load, instance_load)
+        return BoundMethodRef(instance_method.method, method_load, instance_load)
 
     @staticmethod
     def from_GPM(global_method: GlobalPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToGlobal(global_method.instance_pointer))
         method_load = ptrs.PointerToGlobal(global_method.method)
-        return BoundMethodRef(method_load, instance_load)
+        return BoundMethodRef(global_method.method, method_load, instance_load)
 
     @staticmethod
     def from_SPM(stack_method: StackPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToLocal(stack_method.instance_parameter))
         method_load = ptrs.PointerToGlobal(stack_method.method)
-        return BoundMethodRef(method_load, instance_load)
+        return BoundMethodRef(stack_method.method, method_load, instance_load)
 
     def json(self):
         data = super().json()

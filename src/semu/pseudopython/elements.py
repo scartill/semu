@@ -79,6 +79,10 @@ class PhyExpression(Expression, Element):
             'Element': Element.json(self)
         }
 
+    def __str__(self) -> str:
+        eclass = self.__class__.__name__
+        return f'expression<{eclass} -> reg:{self.target}>'
+
 
 Expressions = Sequence[Expression]
 

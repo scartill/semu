@@ -142,7 +142,7 @@ class ExpressionTranslator:
                 return bi.BuiltinInlineWrapper(known_name)
 
             if isinstance(known_name, meth.Method):
-                return ptrs.PointerToGlobal(known_name, target)
+                return meth.PointerToGlobalMethod(known_name, target)
 
             if isinstance(known_name, calls.Function):
                 return calls.FunctionRef(known_name, target)

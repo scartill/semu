@@ -180,7 +180,7 @@ class Translator(et.ExpressionTranslator):
 
         if ast_return.value:
             value = self.tx_expression(ast_return.value)
-            f_type = func.target_type
+            f_type = func.return_type
             e_type = value.target_type
 
             if f_type != e_type:
@@ -192,7 +192,7 @@ class Translator(et.ExpressionTranslator):
             func.returns = True
             return calls.ReturnValue(func, value)
         else:
-            if func.target_type != t.Unit:
+            if func.return_type != t.Unit:
                 raise UserWarning('Function has no target type')
 
             return calls.ReturnUnit(func)
