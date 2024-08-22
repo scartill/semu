@@ -46,7 +46,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
     def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
         assert isinstance(known_name, el.GlobalVariable)
-        return ptrs.PointerToGlobal(known_name, target)
+        return ptrs.GlobalInstanceLoad(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,

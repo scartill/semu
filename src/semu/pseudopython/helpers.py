@@ -632,7 +632,7 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
 
     if isinstance(target_name, el.GlobalVariable):
         lg.debug(f'Assigning to global {target_name.name}')
-        load = ptrs.PointerToGlobal(target_name)
+        load = ptrs.GlobalInstanceLoad(target_name)
         return el.Assignor(load, source)
 
     if isinstance(target_name, calls.LocalVariable):
@@ -647,15 +647,14 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
         member_load = cls.ClassMemberLoad(deref, target_name.variable)
         return el.Assignor(member_load, source)
 
-    if isinstance(target_name, meth.GlobalPointerMember):
+    if isinstance(target_name, meth.GlobalInstanceMember):
         lg.debug(
             f'Assigning to global member {target_name.name}'
             f' (index {target_name.variable.inx})'
         )
 
-        load = ptrs.PointerToGlobal(target_name.instance_pointer)
-        deref = ptrs.Deref(load)
-        member_load = cls.ClassMemberLoad(deref, target_name.variable)
+        load = ptrs.GlobalInstanceLoad(target_name.instance_pointer)
+        member_load = cls.ClassMemberLoad(load, target_name.variable)
         return el.Assignor(member_load, source)
 
     raise UserWarning(f'Unsupported assign target {target_name.name}')
@@ -675,7 +674,7 @@ def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpr
     if index.target_type != t.Int32:
         raise UserWarning(f'Unsupported index value {index}')
 
-    load = ptrs.PointerToGlobal(array)
+    load = ptrs.GlobalInstanceLoad(array)
     item_load = arr.ArrayItemPointerLoad(load, index)
     assign = el.Assignor(item_load, source)
     return assign

@@ -198,14 +198,16 @@ class Assignor(PhyExpression):
         value = available.pop()
 
         return flatten([
-            f'// Assigning from reg:{self.source.target}',
-            '// Calculating value',
+            '// Assingment begin',
+            '// Calculating value begin',
             self.source.emit(),
             f'push {self.source.target}',
+            '// Calculating value end',
             '// Calculating address',
             self.target_load.emit(),
             f'mrr {self.target_load.target} {address}',
             f'pop {value}',
+            '// Calculating address end',
             '// Assign',
             f'mrm {value} {address}',
             '// End assignment'

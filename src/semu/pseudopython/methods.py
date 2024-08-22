@@ -30,7 +30,7 @@ class Method(calls.Function):
         return data
 
 
-class PointerToGlobalMethod(ptrs.PointerToGlobal):
+class PointerToGlobalMethod(ptrs.GlobalInstanceLoad):
     method: Method
 
     def __init__(
@@ -147,7 +147,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
 
         for cv in sorted(class_vars, key=lambda x: x.inx):
             lg.debug(f'Creating pointer member for {cv.name}')
-            mp = GlobalPointerMember(self, cv)
+            mp = GlobalInstanceMember(self, cv)
             self.add_name(mp)
 
         for method in target_type.ref_type.names.values():
@@ -163,7 +163,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
         return data
 
 
-class GlobalPointerMember(n.KnownName):
+class GlobalInstanceMember(n.KnownName):
     variable: cls.ClassVariable
     instance_pointer: GlobalInstancePointer
 
@@ -180,7 +180,7 @@ class GlobalPointerMember(n.KnownName):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalPointerMember',
+            'Class': 'GlobalInstanceMember',
             'Member': self.variable.name
         })
 
@@ -295,22 +295,22 @@ class BoundMethodRef(el.Expression):
 
     @staticmethod
     def from_GIM(instance_method: GlobalInstanceMethod):
-        instance_load = ptrs.PointerToGlobal(instance_method.instance)
-        method_load = ptrs.PointerToGlobal(instance_method.method)
+        instance_load = ptrs.GlobalInstanceLoad(instance_method.instance)
+        method_load = ptrs.GlobalInstanceLoad(instance_method.method)
         ct = instance_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_GPM(global_method: GlobalPointerMethod):
-        instance_load = ptrs.Deref(ptrs.PointerToGlobal(global_method.instance_pointer))
-        method_load = ptrs.PointerToGlobal(global_method.method)
+        instance_load = ptrs.Deref(ptrs.GlobalInstanceLoad(global_method.instance_pointer))
+        method_load = ptrs.GlobalInstanceLoad(global_method.method)
         ct = global_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_SPM(stack_method: StackPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToLocal(stack_method.instance_parameter))
-        method_load = ptrs.PointerToGlobal(stack_method.method)
+        method_load = ptrs.GlobalInstanceLoad(stack_method.method)
         ct = stack_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 

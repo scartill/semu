@@ -125,7 +125,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         if not isinstance(var, el.GlobalVariable):
             raise UserWarning(f'Variable {known_name.name} not found')
 
-        return ptrs.PointerToGlobal(var, target)
+        return ptrs.GlobalInstanceLoad(var, target)
 
     def emit(self):
         label = self.address_label()
@@ -188,13 +188,11 @@ class ClassMemberLoad(el.PhyExpression):
         offset = self.member.inx * WORD_SIZE
         available = regs.get_available([self.instance_load.target, self.target])
         reg_offset = available.pop()
-        reg_address = available.pop()
 
         return [
             f'// Loading instance pointer to {self.member.name}',
             self.instance_load.emit(),
-            f'mrr {self.instance_load.target} {reg_address}',
             f'// Loading member {self.member.name} at {offset}',
             f'ldc {offset} {reg_offset}',
-            f'add {reg_offset} {reg_offset} {self.target}'
+            f'add {self.instance_load.target} {reg_offset} {self.target}'
         ]

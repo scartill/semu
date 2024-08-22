@@ -121,7 +121,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
 
-class PointerToGlobal(el.PhyExpression):
+class GlobalInstanceLoad(el.PhyExpression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
@@ -131,7 +131,7 @@ class PointerToGlobal(el.PhyExpression):
 
     def json(self):
         data = el.Expression.json(self)
-        data.update({'PointerToGlobal': self.known_name.name})
+        data.update({'GlobalInstanceLoad': self.known_name.name})
         return data
 
     def emit(self):
