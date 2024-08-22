@@ -77,6 +77,16 @@ class ExpressionTranslator:
         if not isinstance(callable, el.PhyExpression):
             raise UserWarning(f'Unsupported callable {callable} (not built-in or physical)')
 
+        if isinstance(callable, meth.PointerToGlobalMethod):
+            lg.debug(f'Call: global method {callable}')
+            this_lookup = self.context.get_own_name('this')
+            formal = this_lookup.known_name
+            assert isinstance(formal, meth.InstanceFormalParameter)
+            this = ptrs.Deref(ptrs.PointerToLocal(formal))
+            target_type = callable.get_method().callable_type()
+            bound_ref = meth.BoundMethodRef(target_type, callable, this)
+            return h.make_bound_method_call(bound_ref, args, target)
+
         if isinstance(callable.target_type, meth.MethodPointerType):
             # Autofind this
             if len(args) == len(callable.target_type.arg_types) - 1:

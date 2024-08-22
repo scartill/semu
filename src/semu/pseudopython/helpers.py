@@ -271,7 +271,7 @@ def validate_call(arg_types: t.PhysicalTypes, args: el.Expressions):
     for arg_type, arg in zip(arg_types, args):
         if arg_type != arg.target_type:
             raise UserWarning(
-                f'Argument type mismatch {arg_type} != {arg.target_type}'
+                f'Argument type mismatch: need {arg_type}, got {arg.target_type}'
             )
 
 
