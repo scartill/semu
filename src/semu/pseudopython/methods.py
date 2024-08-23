@@ -31,8 +31,6 @@ class Method(calls.Function):
 
 
 class PointerToGlobalMethod(ptrs.PointerToGlobal):
-    method: Method
-
     def __init__(
         self, method: Method, target: regs.Register = regs.DEFAULT_REGISTER
     ):
@@ -296,21 +294,21 @@ class BoundMethodRef(el.Expression):
     @staticmethod
     def from_GIM(instance_method: GlobalInstanceMethod):
         instance_load = cls.GlobalInstanceLoad(instance_method.instance)
-        method_load = ptrs.PointerToGlobal(instance_method.method)
+        method_load = PointerToGlobalMethod(instance_method.method)
         ct = instance_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_GPM(global_method: GlobalPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToGlobal(global_method.instance_pointer))
-        method_load = ptrs.PointerToGlobal(global_method.method)
+        method_load = PointerToGlobalMethod(global_method.method)
         ct = global_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 
     @staticmethod
     def from_SPM(stack_method: StackPointerMethod):
         instance_load = ptrs.Deref(ptrs.PointerToLocal(stack_method.instance_parameter))
-        method_load = ptrs.PointerToGlobal(stack_method.method)
+        method_load = PointerToGlobalMethod(stack_method.method)
         ct = stack_method.method.callable_type()
         return BoundMethodRef(ct, method_load, instance_load)
 
