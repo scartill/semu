@@ -1,23 +1,31 @@
 # type: ignore
 
-class C:
-    b: int
+class A:
+    i: int
 
-    def is_greater_than(a: int) -> bool:
-        return a > this.b
+    @staticmethod
+    def static():
+        checkpoint(2)
 
-pf: method[C, [int], bool]
-pf = C.is_greater_than
+    def method_c():
+        checkpoint(3)
 
-c: C
-c.b = 2
+    def method_a():
+        checkpoint(1)
+        assert_eq(this.i, 1)
+        this.method_c()
 
-b: bool
-b = c.is_greater_than(1)
-assert_eq(b, False)
+    def method_b():
+        checkpoint(0)
+        static()
+        this.method_a()
 
-b = pf(ref(c), 3)
-assert_eq(b, True)
+a: A
+a.i = 1
 
-b = pf(ref(c), 1)
-assert_eq(b, False)
+A.static()
+a.method_b()
+
+pa: ptr[A]
+pa = a
+pa.method_a()

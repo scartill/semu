@@ -27,5 +27,5 @@ A.static()
 a.method_b()
 
 pa: ptr[A]
-pa = a
+pa = ref(a)
 pa.method_a()
