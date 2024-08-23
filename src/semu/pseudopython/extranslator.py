@@ -197,7 +197,7 @@ class ExpressionTranslator:
                 lg.debug(f'Expression: Global instance {known_name.name}')
                 return cls.GlobalInstanceLoad(known_name, target)
 
-            if isinstance(known_name, meth.GlobalInstanceMember):
+            if isinstance(known_name, meth.GlobalPointerMember):
                 lg.debug(f'Expression: Global pointer member {known_name.name}')
                 load = ptrs.GlobalInstanceLoad(known_name.instance_pointer)
                 member_load = cls.ClassMemberLoad(load, known_name.variable)

@@ -147,7 +147,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
 
         for cv in sorted(class_vars, key=lambda x: x.inx):
             lg.debug(f'Creating pointer member for {cv.name}')
-            mp = GlobalInstanceMember(self, cv)
+            mp = GlobalPointerMember(self, cv)
             self.add_name(mp)
 
         for method in target_type.ref_type.names.values():
@@ -163,7 +163,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
         return data
 
 
-class GlobalInstanceMember(n.KnownName):
+class GlobalPointerMember(n.KnownName):
     variable: cls.ClassVariable
     instance_pointer: GlobalInstancePointer
 
@@ -180,7 +180,7 @@ class GlobalInstanceMember(n.KnownName):
         data = super().json()
 
         data.update({
-            'Class': 'GlobalInstanceMember',
+            'Class': 'GlobalPointerMember',
             'Member': self.variable.name
         })
 
