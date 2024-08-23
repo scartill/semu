@@ -121,9 +121,19 @@ class ConstantExpression(PhyExpression):
 type PhyExpressions = Sequence[PhyExpression]
 
 
-class GlobalVariable(Element, n.KnownName):
+class GenericVariable(n.KnownName):
     def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
         n.KnownName.__init__(self, namespace, name, target_type)
+
+    def json(self):
+        data = n.KnownName.json(self)
+        data['Class'] = 'GenericVariable'
+        return data
+
+
+class GlobalVariable(Element, GenericVariable):
+    def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
+        GenericVariable.__init__(self, namespace, name, target_type)
         Element.__init__(self)
 
     def typelabel(self) -> str:
@@ -131,7 +141,7 @@ class GlobalVariable(Element, n.KnownName):
 
     def json(self):
         data: b.JSON = {'Class': 'GlobalVariable'}
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = GenericVariable.json(self)
         data['Element'] = Element.json(self)
         return data
 
@@ -146,14 +156,14 @@ class GlobalVariable(Element, n.KnownName):
         ]
 
 
-class StackVariable(n.KnownName):
+class StackVariable(GenericVariable):
     offset: int
 
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int,
         target_type: t.PhysicalType
     ):
-        n.KnownName.__init__(self, namespace, name, target_type)
+        super().__init__(namespace, name, target_type)
         self.offset = offset
 
     def json(self):

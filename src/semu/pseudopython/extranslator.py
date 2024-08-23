@@ -160,8 +160,8 @@ class ExpressionTranslator:
                 lg.debug(f'Expression: Constant {known_name}')
                 return namespace.load_const(known_name, target)
 
-            if isinstance(known_name, el.GlobalVariable):
-                lg.debug(f'Expression: Global variable {known_name.name}')
+            if isinstance(known_name, el.GenericVariable):
+                lg.debug(f'Expression: Generic variable {known_name.name}')
                 load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
                 return el.ValueLoader(load, target)
 
@@ -176,12 +176,6 @@ class ExpressionTranslator:
             if isinstance(known_name, calls.Function):
                 lg.debug(f'Expression: Function {known_name.name}')
                 return calls.FunctionRef(known_name, target)
-
-            if isinstance(known_name, el.StackVariable):
-                lg.debug(f'Expression: Stack variable {known_name.name}')
-                assert isinstance(namespace, calls.Function)
-                load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
-                return el.ValueLoader(load, target)
 
             if isinstance(known_name, t.DecoratorType):
                 lg.debug(f'Expression: Decorator type {known_name.name}')
