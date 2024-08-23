@@ -7,7 +7,7 @@ import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 
 
-class GlobalInstanceLoad(el.PhyExpression):
+class PointerToGlobal(el.PhyExpression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
@@ -17,7 +17,7 @@ class GlobalInstanceLoad(el.PhyExpression):
 
     def json(self):
         data = el.Expression.json(self)
-        data.update({'GlobalInstanceLoad': self.known_name.name})
+        data.update({'PointerToGlobal': self.known_name.name})
         return data
 
     def emit(self):

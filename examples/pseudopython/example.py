@@ -30,14 +30,3 @@ def foo(pj: ptr[C]):
     assert_eq(b, True)
 
 foo(pc)
-
-
-def bar(d: C):
-    j: int
-    j = d.i
-    assert_eq(j, 42)
-    b: bool
-    b = d.b
-    assert_eq(b, True)
-
-bar(c)

@@ -202,7 +202,7 @@ class ExpressionTranslator:
 
             if isinstance(known_name, meth.GlobalPointerMember):
                 lg.debug(f'Expression: Global pointer member {known_name.name}')
-                load = ptrs.GlobalInstanceLoad(known_name.instance_pointer)
+                load = ptrs.PointerToGlobal(known_name.instance_pointer)
                 deref = ptrs.Deref(load)
                 member_load = cls.ClassMemberLoad(deref, known_name.variable)
                 return el.ValueLoader(member_load, target)
@@ -228,7 +228,7 @@ class ExpressionTranslator:
 
             if isinstance(known_name, arr.GlobalArray):
                 lg.debug(f'Expression: Global array {known_name.name}')
-                return ptrs.GlobalInstanceLoad(known_name, target)
+                return ptrs.PointerToGlobal(known_name, target)
 
             raise UserWarning(f'Unsupported name {known_name} as expression')
 

@@ -125,7 +125,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
         if not isinstance(var, el.GlobalVariable):
             raise UserWarning(f'Variable {known_name.name} not found')
 
-        return ptrs.GlobalInstanceLoad(var, target)
+        return ptrs.PointerToGlobal(var, target)
 
     def emit(self):
         label = self.address_label()
@@ -141,7 +141,9 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
 class GlobalInstanceLoad(el.PhyExpression):
     instance: GlobalInstance
 
-    def __init__(self, instance: GlobalInstance, target: regs.Register):
+    def __init__(
+        self, instance: GlobalInstance, target: regs.Register = regs.DEFAULT_REGISTER
+    ):
         assert isinstance(instance.target_type, Class)
         pointer_type = InstancePointerType(instance.target_type)
         super().__init__(pointer_type, target)
