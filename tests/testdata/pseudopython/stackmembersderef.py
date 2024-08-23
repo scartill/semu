@@ -10,7 +10,7 @@ c.b = True
 c.i = 42
 
 pc: ptr[C]
-pc = c
+pc = ref(c)
 
 def read(po: ptr[C]):
     checkpoint(0)
@@ -18,4 +18,3 @@ def read(po: ptr[C]):
     assert_eq(bool_to_int(po.b), 1)
 
 read(pc)
-read(c)
