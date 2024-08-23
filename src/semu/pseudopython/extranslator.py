@@ -37,7 +37,7 @@ class ExpressionTranslator:
             if not isinstance(lookup.known_name, ns.Namespace):
                 raise UserWarning(
                     f'Unsupported path lookup {lookup.known_name.name}'
-                    ' has no members'
+                    f' (type {lookup.known_name.target_type}) has no members'
                 )
 
             lookup = lookup.known_name.get_own_name(next_name)
@@ -169,6 +169,12 @@ class ExpressionTranslator:
                 lg.debug(f'Expression: Generic variable {known_name.name}')
                 load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
                 return el.ValueLoader(load, target)
+
+            if isinstance(known_name, cls.GlobalInstanceMember):
+                lg.debug(f'Expression: Global instance member {known_name.name}')
+                load = cls.GlobalInstanceLoad(known_name.instance())
+                member_load = cls.ClassMemberLoad(load, known_name.classvar)
+                return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, bi.BuiltinInline):
                 lg.debug(f'Expression: Builtin inline {known_name.name}')

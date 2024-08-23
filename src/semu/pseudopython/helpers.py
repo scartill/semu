@@ -437,7 +437,9 @@ def create_global_variable(
                 raise UserWarning(f'Unsupported class variable {classvar.target_type}')
 
             member_type = classvar.target_type
-            instance.add_name(create_global_variable(instance, classvar.name, member_type))
+            assert isinstance(classvar, cls.ClassVariable)
+            member = cls.GlobalInstanceMember(instance, classvar, member_type)
+            instance.add_name(member)
 
         is_method = lambda x: isinstance(x, meth.Method)
 
@@ -636,6 +638,12 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
         lg.debug(f'Assigning to global {target_name.name}')
         load = ptrs.PointerToGlobal(target_name)
         return el.Assignor(load, source)
+
+    if isinstance(target_name, cls.GlobalInstanceMember):
+        lg.debug(f'Assigning to global member {target_name.name}')
+        load = cls.GlobalInstanceLoad(target_name.instance())
+        member_load = cls.ClassMemberLoad(load, target_name.classvar)
+        return el.Assignor(member_load, source)
 
     if isinstance(target_name, calls.LocalVariable):
         lg.debug(f'Assigning to local {target_name.name}')

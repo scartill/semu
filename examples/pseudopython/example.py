@@ -1,31 +1,22 @@
 # type: ignore
 
-class A:
+class B:
     i: int
+    b: bool
 
-    @staticmethod
-    def static():
-        checkpoint(2)
-
-    def method_c():
-        checkpoint(3)
-
-    def method_a():
-        checkpoint(1)
-        assert_eq(this.i, 1)
-        this.method_c()
-
-    def method_b():
-        checkpoint(0)
-        static()
-        this.method_a()
+class A:
+    j: int
+    pb: ptr[B]
 
 a: A
-a.i = 1
+b: B
+a.pb = ref(b)
 
-A.static()
-a.method_b()
+ppb: ptr[B]
+ppb = a.pb
 
-pa: ptr[A]
-pa = a
-pa.method_a()
+a.pb.i = 42
+a.pb.b = True
+
+assert_eq(b.i, 42)
+assert_eq(b.b, True)

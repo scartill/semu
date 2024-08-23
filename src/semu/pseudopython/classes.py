@@ -9,7 +9,6 @@ import semu.pseudopython.pptypes as t
 import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
-import semu.pseudopython.pointers as ptrs
 
 
 class ClassVariable(n.KnownName):
@@ -38,11 +37,11 @@ class Class(t.NamedType, ns.Namespace, el.Element):
     def json(self):
         el_data = el.Element.json(self)
         ns_data = ns.Namespace.json(self)
-        n_data = n.KnownName.json(self)
+        nt_data = t.NamedType.json(self)
         data = {'Class': 'Class'}
         data.update(el_data)
         data.update(ns_data)
-        data.update(n_data)
+        data.update(nt_data)
         return data
 
     def create_variable(self, name: str, target_type: t.PhysicalType) -> n.KnownName:
@@ -100,64 +99,30 @@ class InstancePointerType(t.PointerType):
         return self.ref_type == value.ref_type
 
 
-class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
-    def __init__(self, parent: ns.Namespace, name: str, target_type: Class):
-        el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, target_type)
-        ns.Namespace.__init__(self, name, parent)
-
-    def json(self):
-        data = {'Class': 'GlobalInstance'}
-        el_data = el.Element.json(self)
-        ns_data = ns.Namespace.json(self)
-        n_data = n.KnownName.json(self)
-        data.update(el_data)
-        data.update(ns_data)
-        data.update(n_data)
-        return data
-
-    def typelabel(self):
-        return 'global_instance'
-
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
-        var = self.names.get(known_name.name)
-
-        if not isinstance(var, el.GlobalVariable):
-            raise UserWarning(f'Variable {known_name.name} not found')
-
-        return ptrs.PointerToGlobal(var, target)
-
-    def emit(self):
-        label = self.address_label()
-
-        return flatten([
-            f'// Global instance {self.qualname()}',
-            f'{label}:',  # instance label
-            [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
-            f'// Global instance {self.qualname()} end'
-        ])
-
-
-class GlobalInstanceLoad(el.PhyExpression):
-    instance: GlobalInstance
+class GlobalInstanceMember(n.KnownName, el.Element):
+    classvar: ClassVariable
 
     def __init__(
-        self, instance: GlobalInstance, target: regs.Register = regs.DEFAULT_REGISTER
+        self, namespace: n.INamespace, classvar: ClassVariable, target_type: b.TargetType
     ):
-        assert isinstance(instance.target_type, Class)
-        pointer_type = InstancePointerType(instance.target_type)
-        super().__init__(pointer_type, target)
-        self.instance = instance
+        super().__init__(namespace, classvar.name, target_type)
+        self.classvar = classvar
+
+    def instance(self):
+        assert isinstance(self.parent, GlobalInstance)
+        return self.parent
 
     def json(self):
-        data = super().json()
-        data.update({'GlobalInstanceLoad': self.instance.name})
-        return data
+        data = {'Class': 'GlobalInstanceMember'}
+        el_data = el.Element.json(self)
+        n_data = n.KnownName.json(self)
+        data.update(el_data)
+        data.update(n_data)
 
     def emit(self):
         return [
-            f'// Creating pointer to global instance {self.instance.qualname()}',
-            f'ldr &{self.instance.address_label()} {self.target}',
+            f'// Global instance member {self.qualname()}',
+            'nop'
         ]
 
 
@@ -197,4 +162,75 @@ class ClassMemberLoad(el.PhyExpression):
             f'// Loading member {self.member.name} at {offset}',
             f'ldc {offset} {reg_offset}',
             f'add {self.instance_load.target} {reg_offset} {self.target}'
+        ]
+
+
+class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
+    def __init__(self, parent: ns.Namespace, name: str, target_type: Class):
+        el.Element.__init__(self)
+        n.KnownName.__init__(self, parent, name, target_type)
+        ns.Namespace.__init__(self, name, parent)
+
+    def json(self):
+        data = {'Class': 'GlobalInstance'}
+        el_data = el.Element.json(self)
+        ns_data = ns.Namespace.json(self)
+        n_data = n.KnownName.json(self)
+        data.update(el_data)
+        data.update(ns_data)
+        data.update(n_data)
+        return data
+
+    def typelabel(self):
+        return 'global_instance'
+
+    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+        member = self.names.get(known_name.name)
+
+        if not isinstance(member, GlobalInstanceMember):
+            raise UserWarning(f'Variable {known_name.name} not found')
+
+        instance = GlobalInstanceLoad(self)
+        return ClassMemberLoad(instance, member.classvar, target)
+
+    def emit(self):
+        label = self.address_label()
+
+        return flatten([
+            f'// Global instance {self.qualname()}',
+            f'{label}:',  # instance label
+            '// Memebers',
+            [
+                e.emit() for e in self.names.values()
+                if isinstance(e, GlobalInstanceMember)
+            ],
+            '// Methods',
+            [
+                e.emit() for e in self.names.values()
+                if isinstance(e, el.Element) and not isinstance(e, GlobalInstanceMember)
+            ],
+            f'// Global instance {self.qualname()} end'
+        ])
+
+
+class GlobalInstanceLoad(el.PhyExpression):
+    instance: GlobalInstance
+
+    def __init__(
+        self, instance: GlobalInstance, target: regs.Register = regs.DEFAULT_REGISTER
+    ):
+        assert isinstance(instance.target_type, Class)
+        pointer_type = InstancePointerType(instance.target_type)
+        super().__init__(pointer_type, target)
+        self.instance = instance
+
+    def json(self):
+        data = super().json()
+        data.update({'GlobalInstanceLoad': self.instance.name})
+        return data
+
+    def emit(self):
+        return [
+            f'// Creating pointer to global instance {self.instance.qualname()}',
+            f'ldr &{self.instance.address_label()} {self.target}',
         ]
