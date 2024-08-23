@@ -121,28 +121,6 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         ])
 
 
-class GlobalInstanceLoad(el.PhyExpression):
-    known_name: n.KnownName
-
-    def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
-        assert isinstance(known_name.target_type, t.PhysicalType)
-        super().__init__(t.PointerType(known_name.target_type), target)
-        self.known_name = known_name
-
-    def json(self):
-        data = el.Expression.json(self)
-        data.update({'GlobalInstanceLoad': self.known_name.name})
-        return data
-
-    def emit(self):
-        label = self.known_name.address_label()
-
-        return [
-            f'// Loading global pointer to {self.known_name.name}',
-            f'ldr &{label} {self.target}'
-        ]
-
-
 class FormalParameter(el.StackVariable):
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
