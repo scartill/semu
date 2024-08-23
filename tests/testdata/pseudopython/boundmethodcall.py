@@ -16,8 +16,8 @@ b: bool
 b = c.is_greater_than(1)
 assert_eq(b, False)
 
-b = pf(c, 3)
+b = pf(ref(c), 3)
 assert_eq(b, True)
 
-b = pf(c, 1)
+b = pf(ref(c), 1)
 assert_eq(b, False)

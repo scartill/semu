@@ -540,10 +540,10 @@ def create_methptr_type(slice: el.Expression):
     if not isinstance(class_type_expr, el.TypeWrapper):
         raise UserWarning('Unsupported method pointer type (class type is not a type)')
 
-    if not isinstance(class_type_expr.target_type, cls.InstancePointerType):
+    if not isinstance(class_type_expr.target_type, cls.Class):
         raise UserWarning('Unsupported method pointer type (class type is not a class)')
 
-    class_type = class_type_expr.target_type.ref_type
+    class_type = class_type_expr.target_type
     (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types

@@ -104,7 +104,9 @@ class ExpressionTranslator:
             else:
                 lg.debug(f'Call: method pointer {callable} (direct)')
                 if not isinstance(args[0].target_type, cls.InstancePointerType):
-                    raise UserWarning(f'Unsupported instance {args[0]}')
+                    raise UserWarning(
+                        f'Unsupported instance {args[0]} (type {args[0].target_type})'
+                    )
 
                 instance_load = cast(el.PhyExpression, args[0])
                 bound_ref = meth.BoundMethodRef(callable.target_type, callable, instance_load)

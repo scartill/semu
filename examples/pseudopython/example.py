@@ -1,32 +1,23 @@
 # type: ignore
 
 class C:
-    i: int
-    b: bool
+    b: int
+
+    def is_greater_than(a: int) -> bool:
+        return a > this.b
+
+pf: method[C, [int], bool]
+pf = C.is_greater_than
 
 c: C
-
-c.i = 42
-c.b = True
-
-pc: ptr[C]
-pc = ref(c)
-
-j: int
-j = pc.i
-
-assert_eq(j, 42)
+c.b = 2
 
 b: bool
-b = pc.b
+b = c.is_greater_than(1)
+assert_eq(b, False)
+
+b = pf(ref(c), 3)
 assert_eq(b, True)
 
-def foo(pj: ptr[C]):
-    j: int
-    j = pj.i
-    assert_eq(j, 42)
-    b: bool
-    b = pj.b
-    assert_eq(b, True)
-
-foo(pc)
+b = pf(ref(c), 1)
+assert_eq(b, False)
