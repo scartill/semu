@@ -26,13 +26,13 @@ class ClassVariable(n.KnownName):
         return data
 
 
-class Class(t.NamedPhysicalType, ns.Namespace, el.Element):
+class Class(t.NamedType, ns.Namespace, el.Element):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         el.Element.__init__(self)
-        t.NamedPhysicalType.__init__(self, name)
+        t.NamedType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
@@ -84,7 +84,7 @@ class Class(t.NamedPhysicalType, ns.Namespace, el.Element):
         ])
 
 
-class InstancePointerType(t.PhysicalType):
+class InstancePointerType(t.PointerType):
     ref_type: Class
 
     def __init__(self, ref_type: Class):

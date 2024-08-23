@@ -35,7 +35,10 @@ class ExpressionTranslator:
             next_name = path.pop(0)
 
             if not isinstance(lookup.known_name, ns.Namespace):
-                raise UserWarning(f'Unsupported path lookup {lookup.known_name}')
+                raise UserWarning(
+                    f'Unsupported path lookup {lookup.known_name.name}'
+                    ' has no members'
+                )
 
             lookup = lookup.known_name.get_own_name(next_name)
 
@@ -195,12 +198,13 @@ class ExpressionTranslator:
 
             if isinstance(known_name, cls.GlobalInstance):
                 lg.debug(f'Expression: Global instance {known_name.name}')
-                return cls.GlobalInstanceLoad(known_name, target)
+                return el.ValueLoader(cls.GlobalInstanceLoad(known_name, target), target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
                 lg.debug(f'Expression: Global pointer member {known_name.name}')
                 load = ptrs.GlobalInstanceLoad(known_name.instance_pointer)
-                member_load = cls.ClassMemberLoad(load, known_name.variable)
+                deref = ptrs.Deref(load)
+                member_load = cls.ClassMemberLoad(deref, known_name.variable)
                 return el.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.StackPointerMember):

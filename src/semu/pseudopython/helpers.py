@@ -615,6 +615,7 @@ def make_bound_method_call(
 
 
 def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
+
     lg.debug(
         f'Assigning {source}: {source.target_type}'
         ' to '

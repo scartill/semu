@@ -47,9 +47,13 @@ class Translator(et.ExpressionTranslator):
         self.context.add_name(n.Constant(self.context, name, t.Int32, value))
         return el.VoidElement(f'Const {name} = {value}')
 
-    def tx_assign_target(
-        self, ast_target: ast.AST, source: el.PhyExpression
-    ) -> el.Assignor:
+    def tx_assign(self, ast_assign: ast.Assign):
+        if len(ast_assign.targets) != 1:
+            raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
+
+        ast_target = ast_assign.targets[0]
+        ast_value = ast_assign.value
+        source = self.tx_phy_expression(ast_value)
 
         if isinstance(ast_target, ast.Subscript):
             array = self.resolve_object(ast_target.value).known_name
@@ -62,16 +66,6 @@ class Translator(et.ExpressionTranslator):
         else:
             target = self.resolve_object(ast_target).known_name
             return h.simple_assign(target, source)
-
-    def tx_assign(self, ast_assign: ast.Assign):
-        if len(ast_assign.targets) != 1:
-            raise UserWarning(f'Assign expects 1 target, got {len(ast_assign.targets)}')
-
-        ast_target = ast_assign.targets[0]
-        ast_value = ast_assign.value
-        source = self.tx_phy_expression(ast_value)
-        assignor = self.tx_assign_target(ast_target, source)
-        return assignor
 
     def tx_type(self, ast_type: ast.AST):
         pp_expr = self.tx_expression(ast_type)

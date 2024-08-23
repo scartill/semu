@@ -208,7 +208,7 @@ class Assignor(PhyExpression):
         value = available.pop()
 
         return flatten([
-            '// Assingment begin',
+            '// Assignment begin',
             '// Calculating value begin',
             self.source.emit(),
             f'push {self.source.target}',

@@ -10,7 +10,7 @@ c.i = 42
 c.b = True
 
 pc: ptr[C]
-pc = c
+pc = ref(c)
 
 j: int
 j = pc.i
