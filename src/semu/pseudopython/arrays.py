@@ -5,7 +5,6 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
@@ -45,7 +44,7 @@ class ArrayType(t.PhysicalType):
         data['Length'] = self.length
 
 
-class GlobalArray(el.Element, n.KnownName):
+class GlobalArray(el.Element, b.KnownName):
     items: List['Globals']
 
     def __init__(
@@ -53,7 +52,7 @@ class GlobalArray(el.Element, n.KnownName):
         items: List['Globals']
     ):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, namespace, name, pp_type)
+        b.KnownName.__init__(self, namespace, name, pp_type)
         self.items = items
 
     def item_type(self) -> t.PhysicalType:
@@ -64,7 +63,7 @@ class GlobalArray(el.Element, n.KnownName):
 
     def json(self):
         data: b.JSON = {'Class': 'GlobalArray'}
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = b.KnownName.json(self)
         data['Element'] = el.Element.json(self)
         return data
 

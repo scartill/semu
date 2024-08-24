@@ -8,7 +8,7 @@ import json
 import click
 
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
+import semu.pseudopython.base as b
 import semu.pseudopython.elements as el
 import semu.pseudopython.flow as flow
 import semu.pseudopython.helpers as h
@@ -44,7 +44,7 @@ class Translator(et.ExpressionTranslator):
             )
 
         value = h.int32const(ast_value)
-        self.context.add_name(n.Constant(self.context, name, t.Int32, value))
+        self.context.add_name(b.Constant(self.context, name, t.Int32, value))
         return el.VoidElement(f'Const {name} = {value}')
 
     def tx_assign(self, ast_assign: ast.Assign):
@@ -126,7 +126,7 @@ class Translator(et.ExpressionTranslator):
         name = ast_is.left.id
         return self.tx_const_assign(name, ast_is.comparators[0])
 
-    def tx_import_name(self, names: List[str]) -> n.KnownName | None:
+    def tx_import_name(self, names: List[str]) -> b.KnownName | None:
         (found, namespace, name, rest_names) = h.find_module(self.top_level, names)
 
         lg.debug(f'Module lookup result: {found} ({namespace}.{name})')

@@ -2,15 +2,15 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
+import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 
 
 class PointerToGlobal(el.PhyExpression):
-    known_name: n.KnownName
+    known_name: b.KnownName
 
-    def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
+    def __init__(self, known_name: b.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
         assert isinstance(known_name.pp_type, t.PhysicalType)
         super().__init__(t.PointerType(known_name.pp_type), target)
         self.known_name = known_name

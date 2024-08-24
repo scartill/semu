@@ -9,7 +9,6 @@ import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
-import semu.pseudopython.names as n
 import semu.pseudopython.intops as intops
 import semu.pseudopython.calls as calls
 import semu.pseudopython.boolops as boolops
@@ -616,7 +615,7 @@ def make_bound_method_call(
     return create_call_frame(call, full_args)
 
 
-def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
+def simple_assign(target_name: b.KnownName, source: el.PhyExpression):
 
     lg.debug(
         f'Assigning {source}: {source.pp_type}'
@@ -670,7 +669,7 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
     raise UserWarning(f'Unsupported assign target {target_name.name}')
 
 
-def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpression):
+def array_assign(array: b.KnownName, index: el.PhyExpression, source: el.PhyExpression):
     e_type = source.pp_type
 
     if not isinstance(array, arr.GlobalArray):

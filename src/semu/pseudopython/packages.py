@@ -5,26 +5,25 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 
 
-class Package(ns.Namespace, n.KnownName, el.Element):
+class Package(ns.Namespace, b.KnownName, el.Element):
     path: Path
 
     def __init__(self, name: str, parent: ns.Namespace, path: Path):
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
-        n.KnownName.__init__(self, parent, name, t.Package)
+        b.KnownName.__init__(self, parent, name, t.Package)
         self.path = path
 
     def json(self):
         data_el = el.Element.json(self)
         data_ns = ns.Namespace.json(self)
-        data_n = n.KnownName.json(self)
+        data_n = b.KnownName.json(self)
         data: b.JSON = {'Class': 'Package'}
         data.update(data_el)
         data.update(data_ns)

@@ -1,7 +1,6 @@
 from typing import Sequence
 
 import semu.pseudopython.base as b
-import semu.pseudopython.names as n
 
 
 class ModuleType(b.PPType):
@@ -43,15 +42,15 @@ class ClassType(b.PPType):
         return data
 
 
-class NamedType(b.PPType, n.KnownName):
-    def __init__(self, name: str, namespace: n.INamespace | None = None):
+class NamedType(b.PPType, b.KnownName):
+    def __init__(self, name: str, namespace: b.INamespace | None = None):
         b.PPType.__init__(self)
-        n.KnownName.__init__(self, namespace, name, b.Builtin)
+        b.KnownName.__init__(self, namespace, name, b.Builtin)
 
     def json(self):
         data: b.JSON = {'Class': 'NamedType'}
         data['PPType'] = b.PPType.json(self)
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = b.KnownName.json(self)
         return data
 
     def __str__(self) -> str:
@@ -69,7 +68,7 @@ class UnitType(NamedType):
 
 
 class DecoratorType(NamedType):
-    def __init__(self, name: str, namespace: n.INamespace):
+    def __init__(self, name: str, namespace: b.INamespace):
         super().__init__(name, namespace)
 
     def json(self):
@@ -94,17 +93,17 @@ class PhysicalType(b.PPType):
 type PhysicalTypes = Sequence[PhysicalType]
 
 
-class NamedPhysicalType(PhysicalType, n.KnownName):
+class NamedPhysicalType(PhysicalType, b.KnownName):
     def __init__(self, name: str):
         PhysicalType.__init__(self)
-        n.KnownName.__init__(self, None, name, b.Builtin)
+        b.KnownName.__init__(self, None, name, b.Builtin)
 
     def __str__(self):
         return f'physical<{self.name}>'
 
     def json(self):
         data: b.JSON = {'Class': 'NamedPhysicalType'}
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = b.KnownName.json(self)
         data['PhysicalType'] = PhysicalType.json(self)
         return data
 

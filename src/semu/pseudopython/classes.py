@@ -6,20 +6,19 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 
 
-class ClassVariable(n.KnownName):
+class ClassVariable(b.KnownName):
     inx: int
 
     def __init__(self, parent: 'Class', name: str, inx: int, pp_type: b.PPType):
-        n.KnownName.__init__(self, parent, name, pp_type)
+        b.KnownName.__init__(self, parent, name, pp_type)
         self.inx = inx
 
     def json(self):
-        n_data = n.KnownName.json(self)
+        n_data = b.KnownName.json(self)
         data = {'Class': 'ClassVariable'}
         data.update(n_data)
         return data
@@ -44,7 +43,7 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         data.update(nt_data)
         return data
 
-    def create_variable(self, name: str, pp_type: t.PhysicalType) -> n.KnownName:
+    def create_variable(self, name: str, pp_type: t.PhysicalType) -> b.KnownName:
         n_vars = len([x for x in self.names.values() if isinstance(x, ClassVariable)])
         var = ClassVariable(self, name, n_vars, pp_type)
         self.add_name(var)
@@ -99,11 +98,11 @@ class InstancePointerType(t.PointerType):
         return self.ref_type == value.ref_type
 
 
-class GlobalInstanceMember(n.KnownName, el.Element):
+class GlobalInstanceMember(b.KnownName, el.Element):
     classvar: ClassVariable
 
     def __init__(
-        self, namespace: n.INamespace, classvar: ClassVariable, pp_type: b.PPType
+        self, namespace: b.INamespace, classvar: ClassVariable, pp_type: b.PPType
     ):
         super().__init__(namespace, classvar.name, pp_type)
         self.classvar = classvar
@@ -115,7 +114,7 @@ class GlobalInstanceMember(n.KnownName, el.Element):
     def json(self):
         data = {'Class': 'GlobalInstanceMember'}
         el_data = el.Element.json(self)
-        n_data = n.KnownName.json(self)
+        n_data = b.KnownName.json(self)
         data.update(el_data)
         data.update(n_data)
 
@@ -165,17 +164,17 @@ class ClassMemberLoad(el.PhyExpression):
         ]
 
 
-class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
+class GlobalInstance(b.KnownName, el.Element, ns.Namespace):
     def __init__(self, parent: ns.Namespace, name: str, pp_type: Class):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, pp_type)
+        b.KnownName.__init__(self, parent, name, pp_type)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
         data = {'Class': 'GlobalInstance'}
         el_data = el.Element.json(self)
         ns_data = ns.Namespace.json(self)
-        n_data = n.KnownName.json(self)
+        n_data = b.KnownName.json(self)
         data.update(el_data)
         data.update(ns_data)
         data.update(n_data)
@@ -184,7 +183,7 @@ class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
     def typelabel(self):
         return 'global_instance'
 
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> el.Expression:
         member = self.names.get(known_name.name)
 
         if not isinstance(member, GlobalInstanceMember):

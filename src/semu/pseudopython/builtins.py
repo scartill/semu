@@ -6,7 +6,6 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.arrays as arr
@@ -15,16 +14,16 @@ import semu.pseudopython.arrays as arr
 Factory = Callable[[el.Expressions, regs.Register], el.Expression]
 
 
-class BuiltinInline(n.KnownName):
+class BuiltinInline(b.KnownName):
     factory: Factory
     return_type: b.PPType
 
     def __init__(
-        self, namespace: n.INamespace, name: str,
+        self, namespace: b.INamespace, name: str,
         return_type: b.PPType,
         factory: Factory
     ):
-        n.KnownName.__init__(self, namespace, name, b.Builtin)
+        b.KnownName.__init__(self, namespace, name, b.Builtin)
         # Builtin functions have no address
         self.factory = factory
         self.return_type = return_type
@@ -236,7 +235,7 @@ def create_ref(args: el.Expressions, target: regs.Register):
     return el.Retarget(source, target)
 
 
-def get(namespace: n.INamespace) -> Sequence[n.KnownName]:
+def get(namespace: b.INamespace) -> Sequence[b.KnownName]:
     t.Unit.parent = namespace
     t.Int32.parent = namespace
     t.Bool32.parent = namespace

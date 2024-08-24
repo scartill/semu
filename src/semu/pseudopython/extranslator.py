@@ -5,7 +5,6 @@ import logging as lg
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.helpers as h
@@ -161,7 +160,7 @@ class ExpressionTranslator:
             namespace = lookup.namespace
             known_name = lookup.known_name
 
-            if isinstance(known_name, n.Constant):
+            if isinstance(known_name, b.Constant):
                 lg.debug(f'Expression: Constant {known_name}')
                 return namespace.load_const(known_name, target)
 

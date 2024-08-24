@@ -5,7 +5,6 @@ from semu.pseudopython.flatten import flatten
 
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 import semu.pseudopython.elements as el
 import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
@@ -15,11 +14,11 @@ import semu.pseudopython.classes as cls
 import semu.pseudopython.pointers as ptrs
 
 
-class Module(n.KnownName, ns.Namespace, el.Element):
+class Module(b.KnownName, ns.Namespace, el.Element):
     body: Sequence[el.Element]
 
     def __init__(self, name: str, parent: ns.Namespace):
-        n.KnownName.__init__(self, parent, name, t.Module)
+        b.KnownName.__init__(self, parent, name, t.Module)
         el.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
@@ -28,10 +27,10 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         data: b.JSON = {'Class': 'Module'}
         data['Element'] = el.Element.json(self)
         data['Namespace'] = ns.Namespace.json(self)
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = b.KnownName.json(self)
 
         data.update({
-            'Body': [e.json() for e in self.body if not isinstance(e, n.KnownName)]
+            'Body': [e.json() for e in self.body if not isinstance(e, b.KnownName)]
         })
 
         return data
@@ -44,7 +43,7 @@ class Module(n.KnownName, ns.Namespace, el.Element):
         self.add_name(creator)
         return creator
 
-    def load_variable(self, known_name: n.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> el.Expression:
         assert isinstance(known_name, el.GlobalVariable)
         return ptrs.PointerToGlobal(known_name, target)
 

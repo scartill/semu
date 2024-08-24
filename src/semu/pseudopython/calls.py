@@ -5,14 +5,13 @@ from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
-import semu.pseudopython.names as n
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.pointers as ptrs
 
 
-class Function(n.KnownName, ns.Namespace, el.Element):
+class Function(b.KnownName, ns.Namespace, el.Element):
     factory: Callable | None = None
 
     decorators: List[el.DecoratorApplication]
@@ -24,7 +23,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, t.AbstractCallable)
+        b.KnownName.__init__(self, parent, name, t.AbstractCallable)
         ns.Namespace.__init__(self, name, parent)
         self.decorators = list()
         self.return_type = return_type
@@ -40,7 +39,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         data: b.JSON = {'Class': 'Function'}
         data['Element'] = el.Element.json(self)
         data['Namespace'] = ns.Namespace.json(self)
-        data['Knownname'] = n.KnownName.json(self)
+        data['Knownname'] = b.KnownName.json(self)
 
         data.update({
             'ReturnType': str(self.return_type),
@@ -75,7 +74,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
         self.add_name(local)
         return local
 
-    def load_variable(self, known_name: n.KnownName, target: regs.Register):
+    def load_variable(self, known_name: b.KnownName, target: regs.Register):
         assert isinstance(known_name, el.StackVariable)
         return ptrs.PointerToLocal(known_name, target)
 
@@ -123,7 +122,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
 class FormalParameter(el.StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, pp_type: t.PhysicalType
+        self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
         super().__init__(namespace, name, offset, pp_type)
 
@@ -135,7 +134,7 @@ class FormalParameter(el.StackVariable):
 
 class SimpleFormalParameter(FormalParameter):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int,
+        self, namespace: b.INamespace, name: str, offset: int,
         pp_type: t.PhysicalType
     ):
         super().__init__(namespace, name, offset, pp_type)
@@ -148,7 +147,7 @@ class SimpleFormalParameter(FormalParameter):
 
 class LocalVariable(el.StackVariable, el.Element):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, pp_type: t.PhysicalType
+        self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
         el.Element.__init__(self)
         el.StackVariable.__init__(self, namespace, name, offset, pp_type)
@@ -156,7 +155,7 @@ class LocalVariable(el.StackVariable, el.Element):
     def json(self):
         data = super().json()
         data['Class'] = 'LocalVariable'
-        data['KnownName'] = n.KnownName.json(self)
+        data['KnownName'] = b.KnownName.json(self)
         data['Element'] = el.Element.json(self)
         return data
 

@@ -6,7 +6,6 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.names as n
 
 
 class Element:
@@ -121,18 +120,18 @@ class ConstantExpression(PhyExpression):
 type PhyExpressions = Sequence[PhyExpression]
 
 
-class GenericVariable(n.KnownName):
-    def __init__(self, namespace: n.INamespace, name: str, pp_type: b.PPType):
-        n.KnownName.__init__(self, namespace, name, pp_type)
+class GenericVariable(b.KnownName):
+    def __init__(self, namespace: b.INamespace, name: str, pp_type: b.PPType):
+        b.KnownName.__init__(self, namespace, name, pp_type)
 
     def json(self):
-        data = n.KnownName.json(self)
+        data = b.KnownName.json(self)
         data['Class'] = 'GenericVariable'
         return data
 
 
 class GlobalVariable(Element, GenericVariable):
-    def __init__(self, namespace: n.INamespace, name: str, pp_type: b.PPType):
+    def __init__(self, namespace: b.INamespace, name: str, pp_type: b.PPType):
         GenericVariable.__init__(self, namespace, name, pp_type)
         Element.__init__(self)
 
@@ -160,7 +159,7 @@ class StackVariable(GenericVariable):
     offset: int
 
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int,
+        self, namespace: b.INamespace, name: str, offset: int,
         pp_type: t.PhysicalType
     ):
         super().__init__(namespace, name, pp_type)
@@ -315,13 +314,13 @@ class TypeWrapper(Expression):
 
 
 # Built-in operator with no physical representation (e.g. type declaration)
-class BuiltinMetaoperator(n.KnownName, Expression):
+class BuiltinMetaoperator(b.KnownName, Expression):
     def __init__(self, name: str):
-        n.KnownName.__init__(self, None, name, b.Builtin)
+        b.KnownName.__init__(self, None, name, b.Builtin)
         Expression.__init__(self, b.Builtin)
 
     def json(self):
-        data = n.KnownName.json(self)
+        data = b.KnownName.json(self)
         data.update({'Class': 'Metaoperator', 'Name': self.name})
         return data
 

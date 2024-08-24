@@ -4,7 +4,6 @@ from typing import cast
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
-import semu.pseudopython.names as n
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.namespaces as ns
@@ -161,7 +160,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
         return data
 
 
-class GlobalPointerMember(n.KnownName):
+class GlobalPointerMember(b.KnownName):
     variable: cls.ClassVariable
     instance_pointer: GlobalInstancePointer
 
@@ -185,7 +184,7 @@ class GlobalPointerMember(n.KnownName):
         return data
 
 
-class GlobalPointerMethod(n.KnownName):
+class GlobalPointerMethod(b.KnownName):
     method: Method
     instance_pointer: GlobalInstancePointer
 
@@ -207,7 +206,7 @@ class GlobalPointerMethod(n.KnownName):
         return data
 
 
-class StackPointerMember(n.KnownName):
+class StackPointerMember(b.KnownName):
     variable: cls.ClassVariable
     instance_parameter: InstanceFormalParameter
 
@@ -231,7 +230,7 @@ class StackPointerMember(n.KnownName):
         })
 
 
-class StackPointerMethod(n.KnownName):
+class StackPointerMethod(b.KnownName):
     method: Method
     instance_parameter: InstanceFormalParameter
 
@@ -254,7 +253,7 @@ class StackPointerMethod(n.KnownName):
         return data
 
 
-class GlobalInstanceMethod(n.KnownName):
+class GlobalInstanceMethod(b.KnownName):
     instance: cls.GlobalInstance
     method: Method
 
