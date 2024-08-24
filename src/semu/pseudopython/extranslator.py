@@ -7,13 +7,14 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
 import semu.pseudopython.builtins as bi
-import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
 import semu.pseudopython.pointers as ptrs
+import semu.pseudopython.helpers as h
+import semu.pseudopython.factories as f
 
 
 class ExpressionTranslator:
@@ -53,7 +54,7 @@ class ExpressionTranslator:
         for i, ast_arg in enumerate(ast_args):
             args.append(self.tx_expression(ast_arg, regs.REGISTERS[i]))
 
-        return h.create_inline(callable, args, target)
+        return f.create_inline(callable, args, target)
 
     def tx_call(self, ast_call: ast.Call, target: regs.Register):
         callable = self.tx_expression(ast_call.func)
@@ -69,12 +70,12 @@ class ExpressionTranslator:
 
         if isinstance(callable, meth.BoundMethodRef):
             lg.debug(f'Call: bound method {callable}')
-            return h.make_bound_method_call(callable, args, target)
+            return f.make_bound_method_call(callable, args, target)
 
         if isinstance(callable, calls.FunctionRef):
             lg.debug(f'Call: function {callable}')
-            call = h.make_direct_call(callable, args, target)
-            return h.create_call_frame(call, args)
+            call = f.make_direct_call(callable, args, target)
+            return f.create_call_frame(call, args)
 
         if not isinstance(callable, el.PhyExpression):
             raise UserWarning(f'Unsupported callable {callable} (not built-in or physical)')
@@ -87,7 +88,7 @@ class ExpressionTranslator:
             this = ptrs.Deref(ptrs.PointerToLocal(formal))
             pp_type = callable.get_method().callable_type()
             bound_ref = meth.BoundMethodRef(pp_type, callable, this)
-            return h.make_bound_method_call(bound_ref, args, target)
+            return f.make_bound_method_call(bound_ref, args, target)
 
         if isinstance(callable.pp_type, meth.MethodPointerType):
             # Autofind this
@@ -98,7 +99,7 @@ class ExpressionTranslator:
                 assert isinstance(formal, meth.InstanceFormalParameter)
                 this = ptrs.PointerToLocal(formal)
                 bound_ref = meth.BoundMethodRef(callable.pp_type, callable, this)
-                return h.make_bound_method_call(bound_ref, args, target)
+                return f.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
             else:
                 lg.debug(f'Call: method pointer {callable} (direct)')
@@ -110,19 +111,19 @@ class ExpressionTranslator:
                 instance_load = cast(el.PhyExpression, args[0])
                 bound_ref = meth.BoundMethodRef(callable.pp_type, callable, instance_load)
                 rest_args = args[1:]
-                return h.make_bound_method_call(bound_ref, rest_args, target)
+                return f.make_bound_method_call(bound_ref, rest_args, target)
 
         if isinstance(callable.pp_type, ptrs.FunctionPointerType):
             lg.debug(f'Call: function pointer {callable}')
-            call = h.make_pointer_call(callable, args, target)
-            return h.create_call_frame(call, args)
+            call = f.make_pointer_call(callable, args, target)
+            return f.create_call_frame(call, args)
 
         raise UserWarning(f'Unsupported callable {callable}: {callable.pp_type}')
 
     def tx_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
         args = [self.tx_expression(value) for value in values]
-        return h.create_boolop(args, source.op, target)
+        return f.create_boolop(args, source.op, target)
 
     def tx_phy_expression(
         self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
@@ -142,7 +143,7 @@ class ExpressionTranslator:
 
         value = self.tx_expression(source.value, value_target)
         slice = self.tx_expression(source.slice, slice_target)
-        return h.create_subscript(value, slice, target)
+        return f.create_subscript(value, slice, target)
 
     def tx_expression(
         self, source: ast.AST,
@@ -242,14 +243,14 @@ class ExpressionTranslator:
         if isinstance(source, ast.BinOp):
             left = self.tx_expression(source.left, regs.REGISTERS[0])
             right = self.tx_expression(source.right, regs.REGISTERS[1])
-            return h.create_binop(left, right, source.op, target)
+            return f.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
             return self.tx_call(source, target)
 
         if isinstance(source, ast.UnaryOp):
             right = self.tx_expression(source.operand, regs.REGISTERS[0])
-            return h.create_unary(right, source.op, target)
+            return f.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
             return self.tx_boolop(source, target)
@@ -266,7 +267,7 @@ class ExpressionTranslator:
             assert len(ops) == 1
 
             right = self.tx_expression(source.comparators[0], regs.REGISTERS[1])
-            return h.create_compare(left, ops[0], right, target)
+            return f.create_compare(left, ops[0], right, target)
 
         if isinstance(source, ast.Subscript):
             return self.tx_subscript(source, target)

@@ -11,20 +11,23 @@ import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
 import semu.pseudopython.elements as el
 import semu.pseudopython.flow as flow
-import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 import semu.pseudopython.arrays as arr
+import semu.pseudopython.helpers as h
+import semu.pseudopython.factories as f
 import semu.pseudopython.extranslator as et
 
 
 # Late binding
-calls.Function.factory = h.create_function
-cls.Class.fun_factory = h.create_function
-cls.Class.method_factory = h.create_method
+calls.Function.factory = f.create_function
+cls.Class.fun_factory = f.create_function
+cls.Class.method_factory = f.create_method
+mods.Module.fun_factory = f.create_function
+mods.Module.global_var_factory = f.create_global_variable
 
 
 class Translator(et.ExpressionTranslator):

@@ -1,12 +1,11 @@
 
-from typing import Sequence, cast
+from typing import Sequence, cast, Callable
 
 from semu.pseudopython.flatten import flatten
 
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.elements as el
-import semu.pseudopython.helpers as h
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
@@ -15,7 +14,9 @@ import semu.pseudopython.pointers as ptrs
 
 
 class Module(b.KnownName, ns.Namespace, el.Element):
+    fun_factory: Callable | None = None
     body: Sequence[el.Element]
+    global_var_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         b.KnownName.__init__(self, parent, name, t.Module)
@@ -39,7 +40,8 @@ class Module(b.KnownName, ns.Namespace, el.Element):
         return 'module'
 
     def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
-        creator = h.create_global_variable(self, name, pp_type)
+        assert Module.global_var_factory
+        creator = Module.global_var_factory(self, name, pp_type)
         self.add_name(creator)
         return creator
 
@@ -52,7 +54,8 @@ class Module(b.KnownName, ns.Namespace, el.Element):
         decors: el.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
-        function = h.create_function(self, name, args, decors, pp_type)
+        assert Module.fun_factory
+        function = Module.fun_factory(self, name, args, decors, pp_type)
         self.add_name(function)
         return function
 
