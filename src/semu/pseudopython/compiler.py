@@ -9,7 +9,7 @@ import click
 
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 import semu.pseudopython.flow as flow
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls

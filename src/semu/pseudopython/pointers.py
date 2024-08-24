@@ -4,7 +4,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 
 
 class PointerToGlobal(el.PhyExpression):

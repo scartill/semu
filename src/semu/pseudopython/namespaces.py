@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Type
 from dataclasses import dataclass
 
 import semu.pseudopython.base as b
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 import semu.pseudopython.registers as regs
 
 

@@ -5,7 +5,7 @@ import logging as lg
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls

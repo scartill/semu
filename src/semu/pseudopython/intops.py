@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import PhyExpression
+from semu.pseudopython.expressions import PhyExpression
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 

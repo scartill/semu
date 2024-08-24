@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import PhyExpression
+from semu.pseudopython.expressions import PhyExpression
 import semu.pseudopython.base as b
 import semu.pseudopython.registers as regs
 

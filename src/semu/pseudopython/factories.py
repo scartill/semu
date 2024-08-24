@@ -7,7 +7,7 @@ from semu.common.hwconf import WORD_SIZE
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 import semu.pseudopython.intops as intops
 import semu.pseudopython.calls as calls
 import semu.pseudopython.boolops as boolops

@@ -3,7 +3,7 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.base as b
-import semu.pseudopython.elements as el
+import semu.pseudopython.expressions as el
 import semu.pseudopython.registers as regs
 
 
