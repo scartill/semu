@@ -2,15 +2,16 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
+import semu.pseudopython.base as b
 import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
 
 
 @dataclass
-class If(el.Element):
+class If(b.Element):
     test: el.PhyExpression
-    true_body: el.Elements
-    false_body: el.Elements
+    true_body: b.Elements
+    false_body: b.Elements
 
     def json(self):
         data = super().json()
@@ -25,7 +26,7 @@ class If(el.Element):
 
     def __init__(
         self, test: el.PhyExpression,
-        true_body: el.Elements, false_body: el.Elements
+        true_body: b.Elements, false_body: b.Elements
     ):
         super().__init__()
         self.test = test
@@ -57,11 +58,11 @@ class If(el.Element):
 
 
 @dataclass
-class While(el.Element):
+class While(b.Element):
     test: el.PhyExpression
-    body: el.Elements
+    body: b.Elements
 
-    def __init__(self, test: el.PhyExpression, body: el.Elements):
+    def __init__(self, test: el.PhyExpression, body: b.Elements):
         super().__init__()
         self.test = test
         self.body = body

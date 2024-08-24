@@ -1,5 +1,6 @@
-
-from typing import Sequence, Dict, Any
+from dataclasses import dataclass
+from typing import Sequence, Dict, Any, Set
+from random import randint
 
 
 type JSON = Dict[str, Any]
@@ -80,6 +81,45 @@ class Constant(KnownName):
         data = super().json()
         data['Class'] = 'Constant'
         data['Value'] = self.value
+        return data
+
+
+class Element:
+    labels: Set[str] = set()
+
+    def __init__(self):
+        pass
+
+    def _make_label(self, description) -> str:
+        label = f'_label_{description}_{randint(1_000_000, 9_000_000)}'
+
+        if label in Element.labels:
+            return self._make_label(description)
+        else:
+            Element.labels.add(label)
+            return label
+
+    def emit(self) -> Sequence[str]:
+        raise NotImplementedError()
+
+    def json(self) -> JSON:
+        return {'Class': 'Element'}
+
+
+Elements = Sequence[Element]
+
+
+@dataclass
+class VoidElement(Element):
+    comment: str
+
+    def emit(self):
+        return [f'// {self.comment}']
+
+    def json(self):
+        data = Element.json(self)
+        data['Class'] = 'VoidElement'
+        data['Void'] = self.comment
         return data
 
 

@@ -24,17 +24,17 @@ class ClassVariable(b.KnownName):
         return data
 
 
-class Class(t.NamedType, ns.Namespace, el.Element):
+class Class(t.NamedType, ns.Namespace, b.Element):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         t.NamedType.__init__(self, name)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
-        el_data = el.Element.json(self)
+        el_data = b.Element.json(self)
         ns_data = ns.Namespace.json(self)
         nt_data = t.NamedType.json(self)
         data = {'Class': 'Class'}
@@ -77,7 +77,7 @@ class Class(t.NamedType, ns.Namespace, el.Element):
     def emit(self):
         return flatten([
             f'// Class {self.qualname()}',
-            [e.emit() for e in self.names.values() if isinstance(e, el.Element)],
+            [e.emit() for e in self.names.values() if isinstance(e, b.Element)],
             f'// Class {self.qualname()} end'
         ])
 
@@ -98,7 +98,7 @@ class InstancePointerType(t.PointerType):
         return self.ref_type == value.ref_type
 
 
-class GlobalInstanceMember(b.KnownName, el.Element):
+class GlobalInstanceMember(b.KnownName, b.Element):
     classvar: ClassVariable
 
     def __init__(
@@ -113,7 +113,7 @@ class GlobalInstanceMember(b.KnownName, el.Element):
 
     def json(self):
         data = {'Class': 'GlobalInstanceMember'}
-        el_data = el.Element.json(self)
+        el_data = b.Element.json(self)
         n_data = b.KnownName.json(self)
         data.update(el_data)
         data.update(n_data)
@@ -164,15 +164,15 @@ class ClassMemberLoad(el.PhyExpression):
         ]
 
 
-class GlobalInstance(b.KnownName, el.Element, ns.Namespace):
+class GlobalInstance(b.KnownName, b.Element, ns.Namespace):
     def __init__(self, parent: ns.Namespace, name: str, pp_type: Class):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         b.KnownName.__init__(self, parent, name, pp_type)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
         data = {'Class': 'GlobalInstance'}
-        el_data = el.Element.json(self)
+        el_data = b.Element.json(self)
         ns_data = ns.Namespace.json(self)
         n_data = b.KnownName.json(self)
         data.update(el_data)
@@ -206,7 +206,7 @@ class GlobalInstance(b.KnownName, el.Element, ns.Namespace):
             '// Methods',
             [
                 e.emit() for e in self.names.values()
-                if isinstance(e, el.Element) and not isinstance(e, GlobalInstanceMember)
+                if isinstance(e, b.Element) and not isinstance(e, GlobalInstanceMember)
             ],
             f'// Global instance {self.qualname()} end'
         ])

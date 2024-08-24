@@ -48,7 +48,7 @@ class Translator(et.ExpressionTranslator):
 
         value = h.int32const(ast_value)
         self.context.add_name(b.Constant(self.context, name, t.Int32, value))
-        return el.VoidElement(f'Const {name} = {value}')
+        return b.VoidElement(f'Const {name} = {value}')
 
     def tx_assign(self, ast_assign: ast.Assign):
         if len(ast_assign.targets) != 1:
@@ -98,7 +98,7 @@ class Translator(et.ExpressionTranslator):
         if ast_if.orelse:
             false_body = self.tx_body(ast_if.orelse)
         else:
-            false_body = [el.VoidElement('no else')]
+            false_body = [b.VoidElement('no else')]
 
         return flow.If(test, true_body, false_body)
 
@@ -153,7 +153,7 @@ class Translator(et.ExpressionTranslator):
         for alias in ast_import.names:
             self.tx_import_name(alias.name.split('.'))
 
-        return el.VoidElement('import')
+        return b.VoidElement('import')
 
     def tx_class(self, ast_class: ast.ClassDef):
         classdef = cls.Class(ast_class.name, self.context)
@@ -169,7 +169,7 @@ class Translator(et.ExpressionTranslator):
         self.context = cast(ns.Namespace, classdef.parent)
         return classdef
 
-    def tx_return(self, ast_return: ast.Return) -> el.Element:
+    def tx_return(self, ast_return: ast.Return) -> b.Element:
         if isinstance(self.context, calls.Function):
             func = self.context
         else:
@@ -226,7 +226,7 @@ class Translator(et.ExpressionTranslator):
         self.context = cast(ns.Namespace, function.parent)
         return function
 
-    def tx_stmt(self, ast_element: ast.stmt) -> el.Element:
+    def tx_stmt(self, ast_element: ast.stmt) -> b.Element:
         match type(ast_element):
             case ast.Expr:
                 value = cast(ast.Expr, ast_element).value
@@ -237,7 +237,7 @@ class Translator(et.ExpressionTranslator):
                 else:
                     return self.tx_phy_expression(value)
             case ast.Pass:
-                return el.VoidElement('pass')
+                return b.VoidElement('pass')
             case ast.Assign:
                 return self.tx_assign(cast(ast.Assign, ast_element))
             case ast.AnnAssign:
@@ -256,11 +256,11 @@ class Translator(et.ExpressionTranslator):
                 return self.tx_import(cast(ast.Import, ast_element))
 
         lg.warning(f'Unsupported element {ast_element} ({type(ast_element)})')
-        return el.VoidElement('unsupported')
+        return b.VoidElement('unsupported')
 
-    def tx_body(self, ast_body: Sequence[ast.stmt]) -> el.Elements:
-        return cast(el.Elements, list(filter(
-            lambda x: isinstance(x, el.Element),
+    def tx_body(self, ast_body: Sequence[ast.stmt]) -> b.Elements:
+        return cast(b.Elements, list(filter(
+            lambda x: isinstance(x, b.Element),
             (self.tx_stmt(ast_element) for ast_element in ast_body)
         )))
 

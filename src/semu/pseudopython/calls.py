@@ -11,18 +11,18 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.pointers as ptrs
 
 
-class Function(b.KnownName, ns.Namespace, el.Element):
+class Function(b.KnownName, ns.Namespace, b.Element):
     factory: Callable | None = None
 
     decorators: List[el.DecoratorApplication]
-    body: el.Elements
+    body: b.Elements
     return_type: b.PPType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         b.KnownName.__init__(self, parent, name, t.AbstractCallable)
         ns.Namespace.__init__(self, name, parent)
         self.decorators = list()
@@ -37,7 +37,7 @@ class Function(b.KnownName, ns.Namespace, el.Element):
 
     def json(self):
         data: b.JSON = {'Class': 'Function'}
-        data['Element'] = el.Element.json(self)
+        data['Element'] = b.Element.json(self)
         data['Namespace'] = ns.Namespace.json(self)
         data['Knownname'] = b.KnownName.json(self)
 
@@ -64,7 +64,7 @@ class Function(b.KnownName, ns.Namespace, el.Element):
             lambda p: isinstance(p, FormalParameter), self.names.values()
         ))
 
-    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
+    def create_variable(self, name: str, pp_type: b.PPType) -> b.Element:
         if not isinstance(pp_type, t.PhysicalType):
             raise ValueError(f'Invalid target type {pp_type}')
 
@@ -145,18 +145,18 @@ class SimpleFormalParameter(FormalParameter):
         return data
 
 
-class LocalVariable(el.StackVariable, el.Element):
+class LocalVariable(el.StackVariable, b.Element):
     def __init__(
         self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         el.StackVariable.__init__(self, namespace, name, offset, pp_type)
 
     def json(self):
         data = super().json()
         data['Class'] = 'LocalVariable'
         data['KnownName'] = b.KnownName.json(self)
-        data['Element'] = el.Element.json(self)
+        data['Element'] = b.Element.json(self)
         return data
 
     def emit(self):
@@ -170,7 +170,7 @@ class LocalVariable(el.StackVariable, el.Element):
         ]
 
 
-class ActualParameter(el.Element):
+class ActualParameter(b.Element):
     inx: int
     expression: el.PhyExpression
 
@@ -224,12 +224,12 @@ class FunctionRef(el.PhyExpression):
 
 
 @dataclass
-class Return(el.Element):
+class Return(b.Element):
     def return_type(self) -> b.PPType:
         raise NotImplementedError()
 
     def json(self):
-        data = el.Element.json(self)
+        data = b.Element.json(self)
         data['Class'] = 'Return'
         data['ReturnType'] = str(self.return_type())
         return data
@@ -272,7 +272,7 @@ class ReturnValue(Return):
 
 
 @dataclass
-class ReturnUnit(el.Element):
+class ReturnUnit(b.Element):
     func: Function
 
     def return_type(self):

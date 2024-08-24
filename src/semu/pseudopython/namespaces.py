@@ -75,7 +75,7 @@ class Namespace(b.INamespace):
             known_name.pp_type, known_name.value, target
         )
 
-    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
+    def create_variable(self, name: str, pp_type: b.PPType) -> b.Element:
         raise NotImplementedError()
 
     def load_variable(

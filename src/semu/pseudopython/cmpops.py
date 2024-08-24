@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
-from semu.pseudopython.elements import Element, PhyExpression
+import semu.pseudopython.base as b
+import semu.pseudopython.elements as el
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.registers as regs
 
 
 @dataclass
-class CompareOp(Element):
+class CompareOp(b.Element):
     def json(self):
         data = super().json()
         data.update({'Type': 'compare'})
@@ -147,14 +148,14 @@ class GtE(CompareOp):
 
 
 @dataclass
-class Compare(PhyExpression):
-    left: PhyExpression
+class Compare(el.PhyExpression):
+    left: el.PhyExpression
     op: CompareOp
-    right: PhyExpression
+    right: el.PhyExpression
 
     def __init__(
         self, target: regs.Register,
-        left: PhyExpression, op: CompareOp, right: PhyExpression
+        left: el.PhyExpression, op: CompareOp, right: el.PhyExpression
     ):
         super().__init__(pp_type=t.Bool32, target=target)
         self.left = left

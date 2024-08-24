@@ -13,20 +13,20 @@ import semu.pseudopython.classes as cls
 import semu.pseudopython.pointers as ptrs
 
 
-class Module(b.KnownName, ns.Namespace, el.Element):
+class Module(b.KnownName, ns.Namespace, b.Element):
     fun_factory: Callable | None = None
-    body: Sequence[el.Element]
+    body: Sequence[b.Element]
     global_var_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         b.KnownName.__init__(self, parent, name, t.Module)
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.body = list()
 
     def json(self):
         data: b.JSON = {'Class': 'Module'}
-        data['Element'] = el.Element.json(self)
+        data['Element'] = b.Element.json(self)
         data['Namespace'] = ns.Namespace.json(self)
         data['KnownName'] = b.KnownName.json(self)
 
@@ -39,7 +39,7 @@ class Module(b.KnownName, ns.Namespace, el.Element):
     def typelabel(self) -> str:
         return 'module'
 
-    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
+    def create_variable(self, name: str, pp_type: b.PPType) -> b.Element:
         assert Module.global_var_factory
         creator = Module.global_var_factory(self, name, pp_type)
         self.add_name(creator)

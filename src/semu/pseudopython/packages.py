@@ -11,17 +11,17 @@ import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
 
 
-class Package(ns.Namespace, b.KnownName, el.Element):
+class Package(ns.Namespace, b.KnownName, b.Element):
     path: Path
 
     def __init__(self, name: str, parent: ns.Namespace, path: Path):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         b.KnownName.__init__(self, parent, name, t.Package)
         self.path = path
 
     def json(self):
-        data_el = el.Element.json(self)
+        data_el = b.Element.json(self)
         data_ns = ns.Namespace.json(self)
         data_n = b.KnownName.json(self)
         data: b.JSON = {'Class': 'Package'}
@@ -42,7 +42,7 @@ class Package(ns.Namespace, b.KnownName, el.Element):
         ])
 
 
-class TopLevel(ns.Namespace, el.Element):
+class TopLevel(ns.Namespace, b.Element):
     main: mods.Module | None = None
 
     def __init__(self):
@@ -51,7 +51,7 @@ class TopLevel(ns.Namespace, el.Element):
 
     def json(self):
         data: b.JSON = {'Class': 'TopLevel'}
-        data['Element'] = el.Element.json(self)
+        data['Element'] = b.Element.json(self)
         data['Namespace'] = ns.Namespace.json(self)
         return data
 

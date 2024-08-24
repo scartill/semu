@@ -1,50 +1,10 @@
-from typing import Sequence, Set
+from typing import Sequence
 from dataclasses import dataclass
-from random import randint
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-
-
-class Element:
-    labels: Set[str] = set()
-
-    def __init__(self):
-        pass
-
-    def _make_label(self, description) -> str:
-        label = f'_label_{description}_{randint(1_000_000, 9_000_000)}'
-
-        if label in Element.labels:
-            return self._make_label(description)
-        else:
-            Element.labels.add(label)
-            return label
-
-    def emit(self) -> Sequence[str]:
-        raise NotImplementedError()
-
-    def json(self) -> b.JSON:
-        return {'Class': 'Element'}
-
-
-Elements = Sequence[Element]
-
-
-@dataclass
-class VoidElement(Element):
-    comment: str
-
-    def emit(self):
-        return [f'// {self.comment}']
-
-    def json(self):
-        data = Element.json(self)
-        data['Class'] = 'VoidElement'
-        data['Void'] = self.comment
-        return data
 
 
 @dataclass
@@ -62,12 +22,12 @@ class Expression:
         }
 
 
-class PhyExpression(Expression, Element):
+class PhyExpression(Expression, b.Element):
     target: regs.Register
 
     def __init__(self, pp_type: b.PPType, target: regs.Register):
         Expression.__init__(self, pp_type)
-        Element.__init__(self)
+        b.Element.__init__(self)
         self.target = target
 
     def json(self):
@@ -75,7 +35,7 @@ class PhyExpression(Expression, Element):
             'Class': 'PhyExpression',
             'Target': self.target,
             'Expression': Expression.json(self),
-            'Element': Element.json(self)
+            'Element': b.Element.json(self)
         }
 
     def __str__(self) -> str:
@@ -130,10 +90,10 @@ class GenericVariable(b.KnownName):
         return data
 
 
-class GlobalVariable(Element, GenericVariable):
+class GlobalVariable(b.Element, GenericVariable):
     def __init__(self, namespace: b.INamespace, name: str, pp_type: b.PPType):
         GenericVariable.__init__(self, namespace, name, pp_type)
-        Element.__init__(self)
+        b.Element.__init__(self)
 
     def typelabel(self) -> str:
         return 'global'
@@ -141,7 +101,7 @@ class GlobalVariable(Element, GenericVariable):
     def json(self):
         data: b.JSON = {'Class': 'GlobalVariable'}
         data['KnownName'] = GenericVariable.json(self)
-        data['Element'] = Element.json(self)
+        data['Element'] = b.Element.json(self)
         return data
 
     def emit(self):

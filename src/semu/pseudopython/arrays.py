@@ -44,14 +44,14 @@ class ArrayType(t.PhysicalType):
         data['Length'] = self.length
 
 
-class GlobalArray(el.Element, b.KnownName):
+class GlobalArray(b.Element, b.KnownName):
     items: List['Globals']
 
     def __init__(
         self, namespace: ns.Namespace, name: str, pp_type: ArrayType,
         items: List['Globals']
     ):
-        el.Element.__init__(self)
+        b.Element.__init__(self)
         b.KnownName.__init__(self, namespace, name, pp_type)
         self.items = items
 
@@ -64,7 +64,7 @@ class GlobalArray(el.Element, b.KnownName):
     def json(self):
         data: b.JSON = {'Class': 'GlobalArray'}
         data['KnownName'] = b.KnownName.json(self)
-        data['Element'] = el.Element.json(self)
+        data['Element'] = b.Element.json(self)
         return data
 
     def emit(self):
