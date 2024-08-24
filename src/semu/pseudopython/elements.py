@@ -9,18 +9,18 @@ import semu.pseudopython.pptypes as t
 
 
 class Element:
-    labels: Set[str]
+    labels: Set[str] = set()
 
     def __init__(self):
-        self.labels = set()
+        pass
 
     def _make_label(self, description) -> str:
         label = f'_label_{description}_{randint(1_000_000, 9_000_000)}'
 
-        if label in self.labels:
+        if label in Element.labels:
             return self._make_label(description)
         else:
-            self.labels.add(label)
+            Element.labels.add(label)
             return label
 
     def emit(self) -> Sequence[str]:

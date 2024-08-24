@@ -2,7 +2,7 @@
 from typing import Sequence, Dict, Any
 
 
-JSON = Dict[str, Any]
+type JSON = Dict[str, Any]
 
 
 class PPType:
@@ -27,7 +27,6 @@ class BuiltinType(PPType):
 
 
 type PPTypes = Sequence[PPType]
-Builtin = BuiltinType()
 
 
 class INamespace:
@@ -82,3 +81,6 @@ class Constant(KnownName):
         data['Class'] = 'Constant'
         data['Value'] = self.value
         return data
+
+
+Builtin = BuiltinType()
