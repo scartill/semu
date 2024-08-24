@@ -5,7 +5,7 @@ import logging as lg
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
@@ -77,7 +77,7 @@ class ExpressionTranslator:
             call = f.make_direct_call(callable, args, target)
             return f.create_call_frame(call, args)
 
-        if not isinstance(callable, el.PhyExpression):
+        if not isinstance(callable, ex.PhyExpression):
             raise UserWarning(f'Unsupported callable {callable} (not built-in or physical)')
 
         if isinstance(callable, meth.PointerToGlobalMethod):
@@ -108,7 +108,7 @@ class ExpressionTranslator:
                         f'Unsupported instance {args[0]} (type {args[0].pp_type})'
                     )
 
-                instance_load = cast(el.PhyExpression, args[0])
+                instance_load = cast(ex.PhyExpression, args[0])
                 bound_ref = meth.BoundMethodRef(callable.pp_type, callable, instance_load)
                 rest_args = args[1:]
                 return f.make_bound_method_call(bound_ref, rest_args, target)
@@ -127,11 +127,11 @@ class ExpressionTranslator:
 
     def tx_phy_expression(
         self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
-    ) -> el.PhyExpression:
+    ) -> ex.PhyExpression:
 
         expression = self.tx_expression(source, target)
 
-        if not isinstance(expression, el.PhyExpression):
+        if not isinstance(expression, ex.PhyExpression):
             raise UserWarning(f'Physical value required {expression}')
 
         return expression
@@ -148,13 +148,13 @@ class ExpressionTranslator:
     def tx_expression(
         self, source: ast.AST,
         target: regs.Register = regs.DEFAULT_REGISTER
-    ) -> el.Expression:
+    ) -> ex.Expression:
 
         if isinstance(source, ast.Constant):
             pp_type = h.get_constant_type(source)
             value = h.get_constant_value(pp_type, source)
             lg.debug(f'Literal {value} ({pp_type})')
-            return el.ConstantExpression(pp_type, value, target)
+            return ex.ConstantExpression(pp_type, value, target)
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
             lookup = self.resolve_object(source)
@@ -165,16 +165,16 @@ class ExpressionTranslator:
                 lg.debug(f'Expression: Constant {known_name}')
                 return namespace.load_const(known_name, target)
 
-            if isinstance(known_name, el.GenericVariable):
+            if isinstance(known_name, ex.GenericVariable):
                 lg.debug(f'Expression: Generic variable {known_name.name}')
                 load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
-                return el.ValueLoader(load, target)
+                return ex.ValueLoader(load, target)
 
             if isinstance(known_name, cls.GlobalInstanceMember):
                 lg.debug(f'Expression: Global instance member {known_name.name}')
                 load = cls.GlobalInstanceLoad(known_name.instance())
                 member_load = cls.ClassMemberLoad(load, known_name.classvar)
-                return el.ValueLoader(member_load, target)
+                return ex.ValueLoader(member_load, target)
 
             if isinstance(known_name, bi.BuiltinInline):
                 lg.debug(f'Expression: Builtin inline {known_name.name}')
@@ -190,37 +190,37 @@ class ExpressionTranslator:
 
             if isinstance(known_name, t.DecoratorType):
                 lg.debug(f'Expression: Decorator type {known_name.name}')
-                return el.DecoratorApplication(known_name)
+                return ex.DecoratorApplication(known_name)
 
             if isinstance(known_name, cls.Class):
                 lg.debug(f'Expression: Class {known_name.name}')
-                return el.TypeWrapper(known_name)
+                return ex.TypeWrapper(known_name)
 
             if isinstance(known_name, b.PPType):
                 lg.debug(f'Expression: Target type {known_name.name}')
-                return el.TypeWrapper(known_name)
+                return ex.TypeWrapper(known_name)
 
-            if isinstance(known_name, el.BuiltinMetaoperator):
+            if isinstance(known_name, ex.BuiltinMetaoperator):
                 lg.debug(f'Expression: Builtin metaoperator {known_name.name}')
                 return known_name
 
             if isinstance(known_name, cls.GlobalInstance):
                 lg.debug(f'Expression: Global instance {known_name.name}')
-                return el.ValueLoader(cls.GlobalInstanceLoad(known_name, target), target)
+                return ex.ValueLoader(cls.GlobalInstanceLoad(known_name, target), target)
 
             if isinstance(known_name, meth.GlobalPointerMember):
                 lg.debug(f'Expression: Global pointer member {known_name.name}')
                 load = ptrs.PointerToGlobal(known_name.instance_pointer)
                 deref = ptrs.Deref(load)
                 member_load = cls.ClassMemberLoad(deref, known_name.variable)
-                return el.ValueLoader(member_load, target)
+                return ex.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.StackPointerMember):
                 lg.debug(f'Expression: Stack pointer member {known_name.name}')
                 load = ptrs.PointerToLocal(known_name.instance_parameter)
                 deref = ptrs.Deref(load)
                 member_load = cls.ClassMemberLoad(deref, known_name.variable)
-                return el.ValueLoader(member_load, target)
+                return ex.ValueLoader(member_load, target)
 
             if isinstance(known_name, meth.GlobalInstanceMethod):
                 lg.debug(f'Expression: Global instance method {known_name.name}')
@@ -273,6 +273,6 @@ class ExpressionTranslator:
             return self.tx_subscript(source, target)
 
         if isinstance(source, (ast.Tuple, ast.List)):
-            return el.MetaList(list(self.tx_expression(e) for e in source.elts))
+            return ex.MetaList(list(self.tx_expression(e) for e in source.elts))
 
         raise UserWarning(f'Unsupported expression {source}')

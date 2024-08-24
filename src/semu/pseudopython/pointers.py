@@ -4,10 +4,10 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 
 
-class PointerToGlobal(el.PhyExpression):
+class PointerToGlobal(ex.PhyExpression):
     known_name: b.KnownName
 
     def __init__(self, known_name: b.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
@@ -16,7 +16,7 @@ class PointerToGlobal(el.PhyExpression):
         self.known_name = known_name
 
     def json(self):
-        data = el.Expression.json(self)
+        data = ex.Expression.json(self)
         data.update({'PointerToGlobal': self.known_name.name})
         return data
 
@@ -29,11 +29,11 @@ class PointerToGlobal(el.PhyExpression):
         ]
 
 
-class PointerToLocal(el.PhyExpression):
-    variable: el.StackVariable
+class PointerToLocal(ex.PhyExpression):
+    variable: ex.StackVariable
 
     def __init__(
-        self, variable: el.StackVariable,
+        self, variable: ex.StackVariable,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
         assert isinstance(variable.pp_type, t.PhysicalType)
@@ -59,12 +59,12 @@ class PointerToLocal(el.PhyExpression):
         ]
 
 
-class PointerOperatorType(el.BuiltinMetaoperator):
+class PointerOperatorType(ex.BuiltinMetaoperator):
     def __init__(self):
         super().__init__('ptr')
 
 
-class FunctionPointerOperatorType(el.BuiltinMetaoperator):
+class FunctionPointerOperatorType(ex.BuiltinMetaoperator):
     def __init__(self):
         super().__init__('fun')
 
@@ -74,7 +74,7 @@ class FunctionPointerOperatorType(el.BuiltinMetaoperator):
         return data
 
 
-class MethodPointerOperatorType(el.BuiltinMetaoperator):
+class MethodPointerOperatorType(ex.BuiltinMetaoperator):
     def __init__(self):
         super().__init__('method')
 
@@ -112,22 +112,22 @@ class FunctionPointerType(t.AbstractCallableType):
         return data
 
 
-class Deref(el.PhyExpression):
-    source: el.PhyExpression
+class Deref(ex.PhyExpression):
+    source: ex.PhyExpression
 
     def __init__(
-        self, source: el.PhyExpression, target: regs.Register = regs.DEFAULT_REGISTER
+        self, source: ex.PhyExpression, target: regs.Register = regs.DEFAULT_REGISTER
     ):
         assert isinstance(source.pp_type, t.PointerType)
         super().__init__(source.pp_type.ref_type, target)
         self.source = source
 
     def json(self):
-        data = el.Expression.json(self)
+        data = ex.Expression.json(self)
         data.update({'DerefOf': self.pp_type.json()})
         return data
 
-    def emit(self) -> el.Sequence[str]:
+    def emit(self) -> ex.Sequence[str]:
         assert isinstance(self.pp_type, t.PhysicalType)
 
         return flatten([

@@ -7,7 +7,7 @@ from semu.common.hwconf import WORD_SIZE
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.intops as intops
 import semu.pseudopython.calls as calls
 import semu.pseudopython.boolops as boolops
@@ -22,13 +22,13 @@ import semu.pseudopython.helpers as h
 
 
 def create_binop(
-    left: el.Expression, right: el.Expression, op: ast.AST,
+    left: ex.Expression, right: ex.Expression, op: ast.AST,
     target: regs.Register
 ):
-    if not isinstance(left, el.PhyExpression):
+    if not isinstance(left, ex.PhyExpression):
         raise UserWarning(f'Unsupported binop left {left}')
 
-    if not isinstance(right, el.PhyExpression):
+    if not isinstance(right, ex.PhyExpression):
         raise UserWarning(f'Unsupported binop right {right}')
 
     required_type: b.PPType | None = None
@@ -60,8 +60,8 @@ def create_binop(
     return Op(pp_type, left, right, target)
 
 
-def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
-    if not isinstance(right, el.PhyExpression):
+def create_unary(right: ex.Expression, op: ast.AST, target: regs.Register):
+    if not isinstance(right, ex.PhyExpression):
         raise UserWarning(f'Unsupported unary right {right}')
 
     required_type: b.PPType | None = None
@@ -86,21 +86,21 @@ def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
     return Op(pp_type, right, target)
 
 
-def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
+def create_boolop(args: ex.Expressions, op: ast.AST, target: regs.Register):
     pp_type: b.PPType = t.Bool32
 
     for arg in args:
-        if not isinstance(arg, el.PhyExpression):
+        if not isinstance(arg, ex.PhyExpression):
             raise UserWarning(f'Unsupported boolop arg {arg}')
 
         if arg.pp_type != t.Bool32:
             raise UserWarning(f'Unsupported boolop type {arg.pp_type}')
 
     if isinstance(op, ast.And):
-        return boolops.And(pp_type, cast(el.PhyExpressions, args), target)
+        return boolops.And(pp_type, cast(ex.PhyExpressions, args), target)
 
     if isinstance(op, ast.Or):
-        return boolops.Or(pp_type, cast(el.PhyExpressions, args), target)
+        return boolops.Or(pp_type, cast(ex.PhyExpressions, args), target)
 
     raise UserWarning(f'Unsupported boolop {op}')
 
@@ -116,13 +116,13 @@ COMPARE_OPS = {
 
 
 def create_compare(
-    left: el.Expression, ast_op: ast.AST, right: el.Expression,
+    left: ex.Expression, ast_op: ast.AST, right: ex.Expression,
     target: regs.Register
 ):
-    if not isinstance(left, el.PhyExpression):
+    if not isinstance(left, ex.PhyExpression):
         raise UserWarning(f'Unsupported compare left {left}')
 
-    if not isinstance(right, el.PhyExpression):
+    if not isinstance(right, ex.PhyExpression):
         raise UserWarning(f'Unsupported compare right {right}')
 
     operand_type = left.pp_type
@@ -141,13 +141,13 @@ def create_compare(
 def create_callable(
     Cls: Type[h.TFunction],
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, pp_type: b.PPType
+    decors: ex.Expressions, pp_type: b.PPType
 ) -> h.TFunction:
 
     function = Cls(name, context, pp_type)
 
     for d in decors:
-        if not isinstance(d, el.DecoratorApplication):
+        if not isinstance(d, ex.DecoratorApplication):
             raise UserWarning('Unsupported decorator type {d}')
 
         function.add_decorator(d)
@@ -175,7 +175,7 @@ def create_callable(
 
 def create_function(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, pp_type: b.PPType
+    decors: ex.Expressions, pp_type: b.PPType
 ) -> calls.Function:
 
     return create_callable(calls.Function, context, name, args, decors, pp_type)
@@ -183,26 +183,26 @@ def create_function(
 
 def create_method(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, pp_type: b.PPType
+    decors: ex.Expressions, pp_type: b.PPType
 ) -> meth.Method:
 
     return create_callable(meth.Method, context, name, args, decors, pp_type)
 
 
-def create_inline(inline: bi.BuiltinInline, args: el.Expressions, target: regs.Register):
+def create_inline(inline: bi.BuiltinInline, args: ex.Expressions, target: regs.Register):
     return inline.factory(args, target)
 
 
-def create_call_frame(call: el.Expression, args: el.Expressions):
-    if not isinstance(call, el.PhyExpression):
+def create_call_frame(call: ex.Expression, args: ex.Expressions):
+    if not isinstance(call, ex.PhyExpression):
         raise UserWarning(f'Unsupported call target {call}')
 
     for arg in args:
-        if not isinstance(arg, el.PhyExpression):
+        if not isinstance(arg, ex.PhyExpression):
             raise UserWarning(f'Unsupported call arg {arg}')
 
     actuals = [
-        calls.ActualParameter(inx, cast(el.PhyExpression, arg))
+        calls.ActualParameter(inx, cast(ex.PhyExpression, arg))
         for inx, arg in enumerate(args)
     ]
 
@@ -259,25 +259,25 @@ def create_global_variable(
         raise UserWarning(f'Type {name} must be representable')
 
     lg.debug(f'Creating a global variable {name}')
-    create = el.GlobalVariable(parent, name, pp_type)
+    create = ex.GlobalVariable(parent, name, pp_type)
     return create
 
 
-def create_ptr_type(slice: el.Expression):
+def create_ptr_type(slice: ex.Expression):
     if isinstance(slice.pp_type, cls.InstancePointerType):
-        return el.TypeWrapper(cls.InstancePointerType(slice.pp_type.ref_type))
+        return ex.TypeWrapper(cls.InstancePointerType(slice.pp_type.ref_type))
 
     if isinstance(slice.pp_type, cls.Class):
-        return el.TypeWrapper(cls.InstancePointerType(slice.pp_type))
+        return ex.TypeWrapper(cls.InstancePointerType(slice.pp_type))
 
     if isinstance(slice.pp_type, t.PhysicalType):
-        return el.TypeWrapper(t.PointerType(slice.pp_type))
+        return ex.TypeWrapper(t.PointerType(slice.pp_type))
 
     raise UserWarning(f'Unsupported pointer type {slice.pp_type}')
 
 
-def create_funptr_type(slice: el.Expression):
-    if not isinstance(slice, el.MetaList):
+def create_funptr_type(slice: ex.Expression):
+    if not isinstance(slice, ex.MetaList):
         raise UserWarning('Unsupported function pointer type')
 
     if len(slice.elements) != 2:
@@ -286,11 +286,11 @@ def create_funptr_type(slice: el.Expression):
     param_types = slice.elements[0]
     return_type = slice.elements[1]
     (arg_types, return_type) = h.funptr_validate(param_types, return_type)
-    return el.TypeWrapper(ptrs.FunctionPointerType(arg_types, return_type))
+    return ex.TypeWrapper(ptrs.FunctionPointerType(arg_types, return_type))
 
 
-def create_methptr_type(slice: el.Expression):
-    if not isinstance(slice, el.MetaList):
+def create_methptr_type(slice: ex.Expression):
+    if not isinstance(slice, ex.MetaList):
         raise UserWarning('Unsupported method pointer type')
 
     if len(slice.elements) != 3:
@@ -300,7 +300,7 @@ def create_methptr_type(slice: el.Expression):
     param_type_expr = slice.elements[1]
     return_type_expr = slice.elements[2]
 
-    if not isinstance(class_type_expr, el.TypeWrapper):
+    if not isinstance(class_type_expr, ex.TypeWrapper):
         raise UserWarning('Unsupported method pointer type (class type is not a type)')
 
     if not isinstance(class_type_expr.pp_type, cls.Class):
@@ -310,11 +310,11 @@ def create_methptr_type(slice: el.Expression):
     (arg_types, return_type) = h.funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types
-    return el.TypeWrapper(meth.MethodPointerType(class_type, full_arg_types, return_type))
+    return ex.TypeWrapper(meth.MethodPointerType(class_type, full_arg_types, return_type))
 
 
-def create_array_type(slice: el.Expression):
-    if not isinstance(slice, el.MetaList):
+def create_array_type(slice: ex.Expression):
+    if not isinstance(slice, ex.MetaList):
         raise UserWarning('Malformed array type definition')
 
     if len(slice.elements) != 2:
@@ -323,7 +323,7 @@ def create_array_type(slice: el.Expression):
     item_type_expr = slice.elements[0]
     len_expr = slice.elements[1]
 
-    if not isinstance(item_type_expr, el.TypeWrapper):
+    if not isinstance(item_type_expr, ex.TypeWrapper):
         raise UserWarning('Unsupported item type (item type is not a type)')
 
     item_type = item_type_expr.pp_type
@@ -331,7 +331,7 @@ def create_array_type(slice: el.Expression):
     if not isinstance(item_type, t.PhysicalType):
         raise UserWarning(f'Item type must be representable {item_type}')
 
-    if not isinstance(len_expr, el.ConstantExpression):
+    if not isinstance(len_expr, ex.ConstantExpression):
         raise UserWarning('Array length must be a constant')
 
     value = len_expr.value
@@ -343,10 +343,10 @@ def create_array_type(slice: el.Expression):
         raise UserWarning('Array length must be integer')
 
     array_type = arr.ArrayType(item_type, value)
-    return el.TypeWrapper(array_type)
+    return ex.TypeWrapper(array_type)
 
 
-def create_subscript(value: el.Expression, slice: el.Expression, target):
+def create_subscript(value: ex.Expression, slice: ex.Expression, target):
     match value:
         case ptrs.PointerOperator:
             return create_ptr_type(slice)
@@ -361,7 +361,7 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
 
 
 def make_direct_call(
-    func_ref: calls.FunctionRef, args: el.Expressions, target: regs.Register
+    func_ref: calls.FunctionRef, args: ex.Expressions, target: regs.Register
 ):
     lg.debug(f'Direct call to {func_ref.func.name}')
     c_type = func_ref.func.callable_type()
@@ -370,14 +370,14 @@ def make_direct_call(
 
 
 def make_pointer_call(
-    pointer: el.Expression, args: el.Expressions, target: regs.Register
+    pointer: ex.Expression, args: ex.Expressions, target: regs.Register
 ):
     callable_pointers = (ptrs.FunctionPointerType, meth.MethodPointerType)
 
     if not isinstance(pointer.pp_type, callable_pointers):
         raise UserWarning(f'Unsupported pointer type {pointer.pp_type}')
 
-    if not isinstance(pointer, el.PhyExpression):
+    if not isinstance(pointer, ex.PhyExpression):
         raise UserWarning(f'Unrepresentable function pointer {pointer}')
 
     t_type = pointer.pp_type
@@ -387,8 +387,8 @@ def make_pointer_call(
 
 
 def make_method_call(
-    m_ref: el.PhyExpression, callable_type: meth.MethodPointerType,
-    args: el.Expressions, target: regs.Register
+    m_ref: ex.PhyExpression, callable_type: meth.MethodPointerType,
+    args: ex.Expressions, target: regs.Register
 ):
     lg.debug(f'Direct method call to {m_ref.pp_type}')
     h.validate_call(callable_type.arg_types, args)
@@ -396,17 +396,17 @@ def make_method_call(
 
 
 def make_bound_method_call(
-    bound_ref: meth.BoundMethodRef, args: el.Expressions, target: regs.Register
+    bound_ref: meth.BoundMethodRef, args: ex.Expressions, target: regs.Register
 ):
     this = bound_ref.instance_load
     ref = bound_ref.method_load
 
     for arg in args:
-        if not isinstance(arg, el.PhyExpression):
+        if not isinstance(arg, ex.PhyExpression):
             raise UserWarning(f'Unsupported bound method call arg {arg}')
 
     # 'this' pointer is the first argument
     full_args = [this]
-    full_args.extend(cast(el.PhyExpressions, args))
+    full_args.extend(cast(ex.PhyExpressions, args))
     call = make_method_call(ref, bound_ref.callable_type, full_args, target)
     return create_call_frame(call, full_args)

@@ -5,7 +5,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
 import semu.pseudopython.calls as calls
@@ -130,11 +130,11 @@ class BoundMethodPointerType(b.PPType):
         return f'bound<{self.unbound_type}>'
 
 
-class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
+class GlobalInstancePointer(ex.GlobalVariable, ns.Namespace):
     def __init__(
         self, parent: ns.Namespace, name: str, pp_type: cls.InstancePointerType
     ):
-        el.GlobalVariable.__init__(self, parent, name, pp_type)
+        ex.GlobalVariable.__init__(self, parent, name, pp_type)
         ns.Namespace.__init__(self, name, parent)
 
         class_vars = [
@@ -153,7 +153,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
 
     def json(self):
         data = {'Class': 'GlobalInstancePointer'}
-        gv_data = el.GlobalVariable.json(self)
+        gv_data = ex.GlobalVariable.json(self)
         ns_data = ns.Namespace.json(self)
         data.update(gv_data)
         data.update(ns_data)
@@ -276,14 +276,14 @@ class GlobalInstanceMethod(b.KnownName):
         return data
 
 
-class BoundMethodRef(el.Expression):
+class BoundMethodRef(ex.Expression):
     callable_type: MethodPointerType
-    method_load: el.PhyExpression
-    instance_load: el.PhyExpression
+    method_load: ex.PhyExpression
+    instance_load: ex.PhyExpression
 
     def __init__(
         self, callable_type: MethodPointerType,
-        method_load: el.PhyExpression, instance_load: el.PhyExpression
+        method_load: ex.PhyExpression, instance_load: ex.PhyExpression
     ):
         super().__init__(t.AbstractCallable)
         self.callable_type = callable_type
@@ -326,11 +326,11 @@ class BoundMethodRef(el.Expression):
         return 'bound-method'
 
 
-class MethodCall(el.PhyExpression):
-    method_ref: el.PhyExpression
+class MethodCall(ex.PhyExpression):
+    method_ref: ex.PhyExpression
 
     def __init__(
-        self, method_ref: el.PhyExpression, return_type: t.PhysicalType,
+        self, method_ref: ex.PhyExpression, return_type: t.PhysicalType,
         target: regs.Register
     ):
         super().__init__(return_type, target)

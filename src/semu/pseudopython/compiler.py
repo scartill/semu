@@ -9,7 +9,7 @@ import click
 
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.flow as flow
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
@@ -73,7 +73,7 @@ class Translator(et.ExpressionTranslator):
     def tx_type(self, ast_type: ast.AST):
         pp_expr = self.tx_expression(ast_type)
 
-        if not isinstance(pp_expr, el.TypeWrapper):
+        if not isinstance(pp_expr, ex.TypeWrapper):
             raise UserWarning(f'Unsupported type expression {pp_expr}')
 
         return pp_expr.pp_type
@@ -106,7 +106,7 @@ class Translator(et.ExpressionTranslator):
         test = self.tx_expression(ast_while.test)
         body = self.tx_body(ast_while.body)
 
-        if not isinstance(test, el.PhyExpression):
+        if not isinstance(test, ex.PhyExpression):
             raise UserWarning(f'While test must be a physical expression, got {test}')
 
         if test.pp_type != t.Bool32:
@@ -183,7 +183,7 @@ class Translator(et.ExpressionTranslator):
             if f_type != e_type:
                 raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
 
-            if not isinstance(value, el.PhyExpression):
+            if not isinstance(value, ex.PhyExpression):
                 raise UserWarning(f'Unsupported return value {value}')
 
             func.returns = True

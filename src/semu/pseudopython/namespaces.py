@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Type
 from dataclasses import dataclass
 
 import semu.pseudopython.base as b
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.registers as regs
 
 
@@ -71,7 +71,7 @@ class Namespace(b.INamespace):
         if not isinstance(known_name, b.Constant):
             raise UserWarning(f'Unsupported const reference {known_name.name}')
 
-        return el.ConstantExpression(
+        return ex.ConstantExpression(
             known_name.pp_type, known_name.value, target
         )
 
@@ -80,15 +80,15 @@ class Namespace(b.INamespace):
 
     def load_variable(
         self, known_name: b.KnownName, target: regs.Register
-    ) -> el.PhyExpression:
+    ) -> ex.PhyExpression:
 
         raise NotImplementedError()
 
-    def assign_variable(self, known_name: b.KnownName) -> Type[el.Assignor]:
+    def assign_variable(self, known_name: b.KnownName) -> Type[ex.Assignor]:
         raise NotImplementedError()
 
     def create_function(
-        self, name: str, args: ArgDefs, decors: el.Expressions, pp_type: b.PPType
+        self, name: str, args: ArgDefs, decors: ex.Expressions, pp_type: b.PPType
     ) -> 'Namespace':
 
         raise NotImplementedError()

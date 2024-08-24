@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 
 
@@ -51,13 +51,13 @@ class Class(t.NamedType, ns.Namespace, b.Element):
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, pp_type: b.PPType
+        decors: ex.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
         static = any(
             lambda d: x.name == 'staticmethod'
             for x in decors
-            if isinstance(x, el.DecoratorApplication)
+            if isinstance(x, ex.DecoratorApplication)
         )
 
         if static:
@@ -125,12 +125,12 @@ class GlobalInstanceMember(b.KnownName, b.Element):
         ]
 
 
-class ClassMemberLoad(el.PhyExpression):
-    instance_load: el.PhyExpression
+class ClassMemberLoad(ex.PhyExpression):
+    instance_load: ex.PhyExpression
     member: ClassVariable
 
     def __init__(
-        self, instance_load: el.PhyExpression, member: ClassVariable,
+        self, instance_load: ex.PhyExpression, member: ClassVariable,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
         assert isinstance(member.pp_type, t.PhysicalType)
@@ -183,7 +183,7 @@ class GlobalInstance(b.KnownName, b.Element, ns.Namespace):
     def typelabel(self):
         return 'global_instance'
 
-    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> el.Expression:
+    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> ex.Expression:
         member = self.names.get(known_name.name)
 
         if not isinstance(member, GlobalInstanceMember):
@@ -212,7 +212,7 @@ class GlobalInstance(b.KnownName, b.Element, ns.Namespace):
         ])
 
 
-class GlobalInstanceLoad(el.PhyExpression):
+class GlobalInstanceLoad(ex.PhyExpression):
     instance: GlobalInstance
 
     def __init__(

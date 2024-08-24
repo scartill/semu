@@ -3,13 +3,13 @@ from typing import Sequence
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.base as b
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.registers as regs
 
 
 @dataclass
 class If(b.Element):
-    test: el.PhyExpression
+    test: ex.PhyExpression
     true_body: b.Elements
     false_body: b.Elements
 
@@ -25,7 +25,7 @@ class If(b.Element):
         return data
 
     def __init__(
-        self, test: el.PhyExpression,
+        self, test: ex.PhyExpression,
         true_body: b.Elements, false_body: b.Elements
     ):
         super().__init__()
@@ -59,10 +59,10 @@ class If(b.Element):
 
 @dataclass
 class While(b.Element):
-    test: el.PhyExpression
+    test: ex.PhyExpression
     body: b.Elements
 
-    def __init__(self, test: el.PhyExpression, body: b.Elements):
+    def __init__(self, test: ex.PhyExpression, body: b.Elements):
         super().__init__()
         self.test = test
         self.body = body

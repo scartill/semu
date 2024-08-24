@@ -6,7 +6,7 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.pointers as ptrs
 
@@ -14,7 +14,7 @@ import semu.pseudopython.pointers as ptrs
 class Function(b.KnownName, ns.Namespace, b.Element):
     factory: Callable | None = None
 
-    decorators: List[el.DecoratorApplication]
+    decorators: List[ex.DecoratorApplication]
     body: b.Elements
     return_type: b.PPType
     return_target: regs.Register = regs.DEFAULT_REGISTER
@@ -50,7 +50,7 @@ class Function(b.KnownName, ns.Namespace, b.Element):
 
         return data
 
-    def add_decorator(self, decorator: el.DecoratorApplication):
+    def add_decorator(self, decorator: ex.DecoratorApplication):
         self.decorators.append(decorator)
 
     def typelabel(self) -> str:
@@ -75,12 +75,12 @@ class Function(b.KnownName, ns.Namespace, b.Element):
         return local
 
     def load_variable(self, known_name: b.KnownName, target: regs.Register):
-        assert isinstance(known_name, el.StackVariable)
+        assert isinstance(known_name, ex.StackVariable)
         return ptrs.PointerToLocal(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, pp_type: b.PPType
+        decors: ex.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
         assert Function.factory
@@ -120,7 +120,7 @@ class Function(b.KnownName, ns.Namespace, b.Element):
         ])
 
 
-class FormalParameter(el.StackVariable):
+class FormalParameter(ex.StackVariable):
     def __init__(
         self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
@@ -145,12 +145,12 @@ class SimpleFormalParameter(FormalParameter):
         return data
 
 
-class LocalVariable(el.StackVariable, b.Element):
+class LocalVariable(ex.StackVariable, b.Element):
     def __init__(
         self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
         b.Element.__init__(self)
-        el.StackVariable.__init__(self, namespace, name, offset, pp_type)
+        ex.StackVariable.__init__(self, namespace, name, offset, pp_type)
 
     def json(self):
         data = super().json()
@@ -172,9 +172,9 @@ class LocalVariable(el.StackVariable, b.Element):
 
 class ActualParameter(b.Element):
     inx: int
-    expression: el.PhyExpression
+    expression: ex.PhyExpression
 
-    def __init__(self, inx: int, expression: el.PhyExpression):
+    def __init__(self, inx: int, expression: ex.PhyExpression):
         super().__init__()
         self.inx = inx
         self.expression = expression
@@ -199,7 +199,7 @@ class ActualParameter(b.Element):
         ])
 
 
-class FunctionRef(el.PhyExpression):
+class FunctionRef(ex.PhyExpression):
     func: Function
 
     def __init__(self, func: Function, target: regs.Register):
@@ -238,7 +238,7 @@ class Return(b.Element):
 @dataclass
 class ReturnValue(Return):
     func: Function
-    expression: el.PhyExpression
+    expression: ex.PhyExpression
 
     def return_type(self):
         return self.expression.pp_type
@@ -299,11 +299,11 @@ class ReturnUnit(b.Element):
         ])
 
 
-class FunctionCall(el.PhyExpression):
-    func_ref: el.PhyExpression
+class FunctionCall(ex.PhyExpression):
+    func_ref: ex.PhyExpression
 
     def __init__(
-        self, func_ref: el.PhyExpression, return_type: t.PhysicalType,
+        self, func_ref: ex.PhyExpression, return_type: t.PhysicalType,
         target: regs.Register
     ):
         super().__init__(return_type, target)
@@ -332,13 +332,13 @@ class FunctionCall(el.PhyExpression):
         ])
 
 
-class CallFrame(el.PhyExpression):
+class CallFrame(ex.PhyExpression):
     actuals: list[ActualParameter]
-    call: el.PhyExpression
+    call: ex.PhyExpression
 
     def __init__(
         self, pp_type: b.PPType,
-        actuals: list[ActualParameter], call: el.PhyExpression,
+        actuals: list[ActualParameter], call: ex.PhyExpression,
         target: regs.Register
     ):
         super().__init__(pp_type, target)

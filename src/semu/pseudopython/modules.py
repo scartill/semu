@@ -5,7 +5,7 @@ from semu.pseudopython.flatten import flatten
 
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.registers as regs
 import semu.pseudopython.calls as calls
@@ -45,13 +45,13 @@ class Module(b.KnownName, ns.Namespace, b.Element):
         self.add_name(creator)
         return creator
 
-    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> el.Expression:
-        assert isinstance(known_name, el.GlobalVariable)
+    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> ex.Expression:
+        assert isinstance(known_name, ex.GlobalVariable)
         return ptrs.PointerToGlobal(known_name, target)
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, pp_type: b.PPType
+        decors: ex.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
         assert Module.fun_factory
@@ -74,7 +74,7 @@ class Module(b.KnownName, ns.Namespace, b.Element):
             f'jmp {temp}'
         ])
 
-        globals = lambda n: isinstance(n, el.GlobalVariable)
+        globals = lambda n: isinstance(n, ex.GlobalVariable)
         functions = lambda n: isinstance(n, calls.Function)
         classes = lambda n: isinstance(n, cls.Class)
         others = lambda n: not globals(n) and not functions(n) and not classes(n)

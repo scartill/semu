@@ -6,12 +6,12 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.base as b
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.arrays as arr
 
 
-Factory = Callable[[el.Expressions, regs.Register], el.Expression]
+Factory = Callable[[ex.Expressions, regs.Register], ex.Expression]
 
 
 class BuiltinInline(b.KnownName):
@@ -29,7 +29,7 @@ class BuiltinInline(b.KnownName):
         self.return_type = return_type
 
 
-class BuiltinInlineWrapper(el.Expression):
+class BuiltinInlineWrapper(ex.Expression):
     inline: BuiltinInline
 
     def __init__(self, inline: BuiltinInline):
@@ -37,7 +37,7 @@ class BuiltinInlineWrapper(el.Expression):
         self.inline = inline
 
 
-class Checkpoint(el.PhyExpression):
+class Checkpoint(ex.PhyExpression):
     arg: int
 
     def __init__(self, arg: int):
@@ -56,11 +56,11 @@ class Checkpoint(el.PhyExpression):
         return data
 
 
-class Assertion(el.PhyExpression):
-    source: el.PhyExpression
+class Assertion(ex.PhyExpression):
+    source: ex.PhyExpression
     value: int
 
-    def __init__(self, source: el.PhyExpression, value: int):
+    def __init__(self, source: ex.PhyExpression, value: int):
         super().__init__(t.Unit, regs.VOID_REGISTER)
         self.source = source
         self.value = value
@@ -83,10 +83,10 @@ class Assertion(el.PhyExpression):
         ])
 
 
-class BoolToInt(el.PhyExpression):
-    source: el.PhyExpression
+class BoolToInt(ex.PhyExpression):
+    source: ex.PhyExpression
 
-    def __init__(self, source: el.PhyExpression, target: regs.Register):
+    def __init__(self, source: ex.PhyExpression, target: regs.Register):
         super().__init__(t.Int32, target)
         self.source = source
 
@@ -95,7 +95,7 @@ class BoolToInt(el.PhyExpression):
         return self.source.emit()
 
 
-def create_checkpoint(args: el.Expressions, target: regs.Register):
+def create_checkpoint(args: ex.Expressions, target: regs.Register):
     lg.debug('Checkpoint')
 
     if len(args) != 1:
@@ -103,7 +103,7 @@ def create_checkpoint(args: el.Expressions, target: regs.Register):
 
     arg = args[0]
 
-    if not isinstance(arg, el.ConstantExpression):
+    if not isinstance(arg, ex.ConstantExpression):
         raise UserWarning(f"'checkpoint' expects a constant argument, got {arg}")
 
     # Inlining the checkpoint number
@@ -111,18 +111,18 @@ def create_checkpoint(args: el.Expressions, target: regs.Register):
     return Checkpoint(value)
 
 
-def create_assert(args: el.Expressions, target: regs.Register):
+def create_assert(args: ex.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'assertion' expects 2 arguments, got {len(args)}")
 
     source = args[0]
 
-    if not isinstance(source, el.PhyExpression):
+    if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'assertion' expects a physical source, got {source}")
 
     value_expr = args[1]
 
-    if not isinstance(value_expr, el.ConstantExpression):
+    if not isinstance(value_expr, ex.ConstantExpression):
         raise UserWarning(f"'assert_eq' expects a constant value, got {value_expr}")
 
     if source.pp_type not in [t.Int32, t.Bool32]:
@@ -150,7 +150,7 @@ def create_assert(args: el.Expressions, target: regs.Register):
     return Assertion(source, value)
 
 
-def create_bool2int(args: el.Expressions, target: regs.Register):
+def create_bool2int(args: ex.Expressions, target: regs.Register):
     lg.debug('BoolToInt')
 
     if len(args) != 1:
@@ -158,7 +158,7 @@ def create_bool2int(args: el.Expressions, target: regs.Register):
 
     source = args[0]
 
-    if not isinstance(source, el.PhyExpression):
+    if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'bool_to_int' expects a physical source, got {source}")
 
     if source.pp_type != t.Bool32:
@@ -167,7 +167,7 @@ def create_bool2int(args: el.Expressions, target: regs.Register):
     return BoolToInt(source, target)
 
 
-def create_deref(args: el.Expressions, target: regs.Register):
+def create_deref(args: ex.Expressions, target: regs.Register):
     lg.debug('Deref32')
 
     if len(args) != 1:
@@ -175,7 +175,7 @@ def create_deref(args: el.Expressions, target: regs.Register):
 
     source = args[0]
 
-    if not isinstance(source, el.PhyExpression):
+    if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'deref' expects a physical source, got {source}")
 
     if not isinstance(source.pp_type, t.PointerType):
@@ -184,22 +184,22 @@ def create_deref(args: el.Expressions, target: regs.Register):
     return ptrs.Deref(source, target)
 
 
-def create_refset(args: el.Expressions, target: regs.Register):
+def create_refset(args: ex.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'refset' expects 2 arguments, got {len(args)}")
 
     loader = args[0]
 
-    if not isinstance(loader, el.ValueLoader):
+    if not isinstance(loader, ex.ValueLoader):
         raise UserWarning(f"'refset' expects a physical target, got {loader}")
 
     ref_target = loader.source
     ref_source = args[1]
 
-    if not isinstance(ref_target, el.PhyExpression):
+    if not isinstance(ref_target, ex.PhyExpression):
         raise UserWarning(f"'refset' expects a physical target, got {ref_target}")
 
-    if not isinstance(ref_source, el.PhyExpression):
+    if not isinstance(ref_source, ex.PhyExpression):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
 
     assert isinstance(ref_target.pp_type, t.PointerType)
@@ -217,10 +217,10 @@ def create_refset(args: el.Expressions, target: regs.Register):
     available = regs.get_available([ref_target.target, ref_source.target, target])
     deref_target = available.pop()
     assignor_target = available.pop()
-    return el.Assignor(ptrs.Deref(ref_target, deref_target), ref_source, assignor_target)
+    return ex.Assignor(ptrs.Deref(ref_target, deref_target), ref_source, assignor_target)
 
 
-def create_ref(args: el.Expressions, target: regs.Register):
+def create_ref(args: ex.Expressions, target: regs.Register):
     lg.debug('Ref')
 
     if len(args) != 1:
@@ -228,11 +228,11 @@ def create_ref(args: el.Expressions, target: regs.Register):
 
     loader = args[0]
 
-    if not isinstance(loader, el.ValueLoader):
+    if not isinstance(loader, ex.ValueLoader):
         raise UserWarning(f"'ref' expects a physical source, got {loader}")
 
     source = loader.source
-    return el.Retarget(source, target)
+    return ex.Retarget(source, target)
 
 
 def get(namespace: b.INamespace) -> Sequence[b.KnownName]:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.calls as calls
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
@@ -92,7 +92,7 @@ def validate_function(func: calls.Function):
         raise UserWarning(f'Function {func.name} does not return')
 
 
-def validate_call(arg_types: t.PhysicalTypes, args: el.Expressions):
+def validate_call(arg_types: t.PhysicalTypes, args: ex.Expressions):
     if len(arg_types) != len(args):
         raise UserWarning(
             f'Argument count mismatch: need {len(arg_types)}, got {len(args)}'
@@ -191,11 +191,11 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
         raise UserWarning(f'No module found for {name}')
 
 
-def funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expression):
-    if not isinstance(param_type_expr, el.MetaList):
+def funptr_validate(param_type_expr: ex.Expression, return_type_expr: ex.Expression):
+    if not isinstance(param_type_expr, ex.MetaList):
         raise UserWarning('Unsupported function pointer type (params are not a list)')
 
-    if not isinstance(return_type_expr, el.TypeWrapper):
+    if not isinstance(return_type_expr, ex.TypeWrapper):
         raise UserWarning('Unsupported function pointer type (return type is not a type)')
 
     if not isinstance(return_type_expr.pp_type, t.NamedPhysicalType):
@@ -204,7 +204,7 @@ def funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Express
         )
 
     for param_type in param_type_expr.elements:
-        if not isinstance(param_type, el.TypeWrapper):
+        if not isinstance(param_type, ex.TypeWrapper):
             raise UserWarning('Unsupported function pointer type (param type is not a type)')
 
         if not isinstance(param_type.pp_type, t.NamedPhysicalType):
@@ -217,7 +217,7 @@ def funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Express
     return (arg_types, return_type)
 
 
-def simple_assign(target_name: b.KnownName, source: el.PhyExpression):
+def simple_assign(target_name: b.KnownName, source: ex.PhyExpression):
 
     lg.debug(
         f'Assigning {source}: {source.pp_type}'
@@ -235,28 +235,28 @@ def simple_assign(target_name: b.KnownName, source: el.PhyExpression):
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
-    if isinstance(target_name, el.GlobalVariable):
+    if isinstance(target_name, ex.GlobalVariable):
         lg.debug(f'Assigning to global {target_name.name}')
         load = ptrs.PointerToGlobal(target_name)
-        return el.Assignor(load, source)
+        return ex.Assignor(load, source)
 
     if isinstance(target_name, cls.GlobalInstanceMember):
         lg.debug(f'Assigning to global member {target_name.name}')
         load = cls.GlobalInstanceLoad(target_name.instance())
         member_load = cls.ClassMemberLoad(load, target_name.classvar)
-        return el.Assignor(member_load, source)
+        return ex.Assignor(member_load, source)
 
     if isinstance(target_name, calls.LocalVariable):
         lg.debug(f'Assigning to local {target_name.name}')
         load = ptrs.PointerToLocal(target_name)
-        return el.Assignor(load, source)
+        return ex.Assignor(load, source)
 
     if isinstance(target_name, meth.StackPointerMember):
         lg.debug(f'Assigning to stack member {target_name.name}')
         load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
         deref = ptrs.Deref(load_instance)
         member_load = cls.ClassMemberLoad(deref, target_name.variable)
-        return el.Assignor(member_load, source)
+        return ex.Assignor(member_load, source)
 
     if isinstance(target_name, meth.GlobalPointerMember):
         lg.debug(
@@ -266,12 +266,12 @@ def simple_assign(target_name: b.KnownName, source: el.PhyExpression):
 
         load = ptrs.PointerToGlobal(target_name.instance_pointer)
         member_load = cls.ClassMemberLoad(load, target_name.variable)
-        return el.Assignor(member_load, source)
+        return ex.Assignor(member_load, source)
 
     raise UserWarning(f'Unsupported assign target {target_name.name}')
 
 
-def array_assign(array: b.KnownName, index: el.PhyExpression, source: el.PhyExpression):
+def array_assign(array: b.KnownName, index: ex.PhyExpression, source: ex.PhyExpression):
     e_type = source.pp_type
 
     if not isinstance(array, arr.GlobalArray):
@@ -287,5 +287,5 @@ def array_assign(array: b.KnownName, index: el.PhyExpression, source: el.PhyExpr
 
     load = ptrs.PointerToGlobal(array)
     item_load = arr.ArrayItemPointerLoad(load, index)
-    assign = el.Assignor(item_load, source)
+    assign = ex.Assignor(item_load, source)
     return assign

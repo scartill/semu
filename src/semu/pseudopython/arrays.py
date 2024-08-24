@@ -5,12 +5,12 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as el
+import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
 
 
-class ArrayOperatorType(el.BuiltinMetaoperator):
+class ArrayOperatorType(ex.BuiltinMetaoperator):
     def __init__(self):
         super().__init__('array')
 
@@ -80,16 +80,16 @@ class GlobalArray(b.Element, b.KnownName):
         ])
 
 
-type Globals = el.GlobalVariable | cls.GlobalInstance | GlobalArray
+type Globals = ex.GlobalVariable | cls.GlobalInstance | GlobalArray
 
 
-class ArrayItemPointerLoad(el.PhyExpression):
-    instance_load: el.PhyExpression
-    index: el.PhyExpression
+class ArrayItemPointerLoad(ex.PhyExpression):
+    instance_load: ex.PhyExpression
+    index: ex.PhyExpression
 
     def __init__(
         self,
-        instance_load: el.PhyExpression, index: el.PhyExpression,
+        instance_load: ex.PhyExpression, index: ex.PhyExpression,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
         assert isinstance(instance_load.pp_type, t.PointerType)
