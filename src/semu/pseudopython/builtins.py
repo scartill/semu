@@ -249,7 +249,7 @@ def get(namespace: b.INamespace) -> Sequence[b.KnownName]:
         ptrs.FunctionPointerOperator,
         ptrs.MethodPointerOperator,
         arr.ArrayOperator,
-        t.DecoratorType('staticmethod', namespace),
+        t.DecoratorType(namespace, 'staticmethod'),
         BuiltinInline(namespace, 'checkpoint', t.Unit, create_checkpoint),
         BuiltinInline(namespace, 'assert_eq', t.Unit, create_assert),
         BuiltinInline(namespace, 'bool_to_int', t.Int32, create_bool2int),

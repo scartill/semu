@@ -24,23 +24,27 @@ class ClassVariable(b.KnownName):
         return data
 
 
-class Class(t.NamedType, ns.Namespace, b.Element):
+class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
-        b.Element.__init__(self)
-        t.NamedType.__init__(self, name)
+        b.PPType.__init__(self)
+        b.KnownName.__init__(self, parent, name, b.Builtin)
         ns.Namespace.__init__(self, name, parent)
+        b.Element.__init__(self)
 
     def json(self):
+        data = {'Class': 'Class'}
+        t_data = b.PPType.json(self)
+        n_data = b.KnownName.json(self)
         el_data = b.Element.json(self)
         ns_data = ns.Namespace.json(self)
-        nt_data = t.NamedType.json(self)
         data = {'Class': 'Class'}
+        data.update(t_data)
+        data.update(n_data)
         data.update(el_data)
         data.update(ns_data)
-        data.update(nt_data)
         return data
 
     def create_variable(self, name: str, pp_type: t.PhysicalType) -> b.KnownName:

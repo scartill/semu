@@ -42,24 +42,10 @@ class ClassType(b.PPType):
         return data
 
 
-class NamedType(b.PPType, b.KnownName):
-    def __init__(self, name: str, namespace: b.INamespace | None = None):
-        b.PPType.__init__(self)
-        b.KnownName.__init__(self, namespace, name, b.Builtin)
-
-    def json(self):
-        data: b.JSON = {'Class': 'NamedType'}
-        data['PPType'] = b.PPType.json(self)
-        data['KnownName'] = b.KnownName.json(self)
-        return data
-
-    def __str__(self) -> str:
-        return self.name
-
-
-class UnitType(NamedType):
+class UnitType(b.PPType, b.KnownName):
     def __init__(self):
-        super().__init__('unit')
+        b.PPType.__init__(self)
+        b.KnownName.__init__(self, None, 'unit', b.Builtin)
 
     def json(self):
         data = super().json()
@@ -67,9 +53,10 @@ class UnitType(NamedType):
         return data
 
 
-class DecoratorType(NamedType):
-    def __init__(self, name: str, namespace: b.INamespace):
-        super().__init__(name, namespace)
+class DecoratorType(b.PPType, b.KnownName):
+    def __init__(self, parent: b.INamespace, name: str):
+        b.PPType.__init__(self)
+        b.KnownName.__init__(self, parent, name, b.Builtin)
 
     def json(self):
         data = super().json()
@@ -93,57 +80,48 @@ class PhysicalType(b.PPType):
 type PhysicalTypes = Sequence[PhysicalType]
 
 
-class NamedPhysicalType(PhysicalType, b.KnownName):
-    def __init__(self, name: str):
-        PhysicalType.__init__(self)
-        b.KnownName.__init__(self, None, name, b.Builtin)
-
-    def __str__(self):
-        return f'physical<{self.name}>'
-
-    def json(self):
-        data: b.JSON = {'Class': 'NamedPhysicalType'}
-        data['KnownName'] = b.KnownName.json(self)
-        data['PhysicalType'] = PhysicalType.json(self)
-        return data
-
-
-NamedPhysicalTypes = Sequence[NamedPhysicalType]
-
-
-class Int32Type(NamedPhysicalType):
+class Int32Type(PhysicalType, b.KnownName):
     def __init__(self):
-        super().__init__('int')
+        PhysicalType.__init__(self)
+        b.KnownName.__init__(self, None, 'int', b.Builtin)
 
     def __str__(self):
         return 'int32'
 
     def json(self):
         data = super().json()
-        data.update({'Class': 'Int32Type', 'Builtin': 'int32'})
+        data['Class'] = 'Int32Type'
+        data['KnownName'] = b.KnownName.json(self)
+        data['PhysicalType'] = PhysicalType.json(self)
         return data
 
 
-class Bool32Type(NamedPhysicalType):
+class Bool32Type(PhysicalType, b.KnownName):
     def __init__(self):
-        super().__init__('bool')
+        PhysicalType.__init__(self)
+        b.KnownName.__init__(self, None, 'bool', b.Builtin)
 
     def __str__(self):
         return 'bool32'
 
     def json(self):
         data = super().json()
-        data.update({'Class': 'Bool32Type', 'Builtin': 'bool32'})
+        data['Class'] = 'Bool32Type'
+        data['KnownName'] = b.KnownName.json(self)
+        data['PhysicalType'] = PhysicalType.json(self)
         return data
 
 
-class AbstractPointerType(NamedType):
+class AbstractPointerType(PhysicalType, b.KnownName):
     def __init__(self):
-        super().__init__('pointer')
+        PhysicalType.__init__(self)
+        b.KnownName.__init__(self, None, 'pointer', b.Builtin)
 
     def json(self):
         data = super().json()
-        data.update({'Class': 'AbstractPointerType', 'Builtin': 'pointer'})
+        data['Class'] = 'AbstractPointerType'
+        data['KnownName'] = b.KnownName.json(self)
+        data['PhysicalType'] = PhysicalType.json(self)
         return data
 
 
@@ -153,7 +131,7 @@ class AbstractCallableType(PhysicalType):
 
     def json(self):
         data = super().json()
-        data.update({'Class': 'AbstractCallableType'})
+        data['Class'] = 'AbstractCallableType'
         return data
 
 
@@ -163,7 +141,7 @@ class BuiltinCallableType(AbstractCallableType):
 
     def json(self):
         data = super().json()
-        data.update({'Builtin': 'BuiltinCallable'})
+        data['Class'] = 'BuiltinCallableType'
         return data
 
 
@@ -188,6 +166,9 @@ class PointerType(PhysicalType):
         data['Class'] = 'PointerType'
         data['RefType'] = str(self.ref_type)
         return data
+
+
+# class CompoundType()
 
 
 Module = ModuleType()

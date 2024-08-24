@@ -198,7 +198,7 @@ def funptr_validate(param_type_expr: ex.Expression, return_type_expr: ex.Express
     if not isinstance(return_type_expr, ex.TypeWrapper):
         raise UserWarning('Unsupported function pointer type (return type is not a type)')
 
-    if not isinstance(return_type_expr.pp_type, t.NamedPhysicalType):
+    if not isinstance(return_type_expr.pp_type, t.PhysicalType):
         raise UserWarning(
             'Unsupported function pointer type (return type is not a named type)'
         )
@@ -207,12 +207,12 @@ def funptr_validate(param_type_expr: ex.Expression, return_type_expr: ex.Express
         if not isinstance(param_type, ex.TypeWrapper):
             raise UserWarning('Unsupported function pointer type (param type is not a type)')
 
-        if not isinstance(param_type.pp_type, t.NamedPhysicalType):
+        if not isinstance(param_type.pp_type, t.PhysicalType):
             raise UserWarning(
                 'Unsupported function pointer type (param type is not a named type)'
             )
 
-    arg_types = [cast(t.NamedPhysicalType, e.pp_type) for e in param_type_expr.elements]
+    arg_types = [cast(t.PhysicalType, e.pp_type) for e in param_type_expr.elements]
     return_type = return_type_expr.pp_type
     return (arg_types, return_type)
 
