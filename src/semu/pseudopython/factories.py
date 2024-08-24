@@ -217,28 +217,13 @@ def create_global_variable(
         lg.debug(f'Creating a global instance {name} of {pp_type}')
         instance = cls.GlobalInstance(parent, name, pp_type)
 
-        is_classvar = lambda x: isinstance(x, cls.ClassVariable)
+        members = [
+            cls.GlobalInstanceMember(instance, classvar)
+            for classvar in pp_type.names.values()
+            if isinstance(classvar, cls.ClassVariable)
+        ]
 
-        for classvar in filter(is_classvar, pp_type.names.values()):
-            if not isinstance(classvar.pp_type, t.PhysicalType):
-                raise UserWarning(f'Unsupported class variable {classvar.pp_type}')
-
-            member_type = classvar.pp_type
-            assert isinstance(classvar, cls.ClassVariable)
-            member = cls.GlobalInstanceMember(instance, classvar, member_type)
-            instance.add_name(member)
-
-        is_method = lambda x: isinstance(x, meth.Method)
-
-        for method in filter(is_method, pp_type.names.values()):
-
-            method = meth.GlobalInstanceMethod(
-                instance,
-                cast(meth.Method, method)
-            )
-
-            instance.add_name(method)
-
+        instance.members = members
         return instance
 
     if isinstance(pp_type, cls.InstancePointerType):

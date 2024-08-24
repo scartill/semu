@@ -16,7 +16,6 @@ import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
-import semu.pseudopython.arrays as arr
 import semu.pseudopython.helpers as h
 import semu.pseudopython.factories as f
 import semu.pseudopython.extranslator as et
@@ -57,18 +56,12 @@ class Translator(et.ExpressionTranslator):
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
         source = self.tx_phy_expression(ast_value)
+        target = self.tx_phy_expression(ast_target)
 
-        if isinstance(ast_target, ast.Subscript):
-            array = self.resolve_object(ast_target.value).known_name
-            index = self.tx_phy_expression(ast_target.slice)
+        if not isinstance(target, ex.ValueLoader):
+            raise UserWarning(f'Unsupported assign target {target}')
 
-            if isinstance(array, arr.GlobalArray):
-                return h.array_assign(array, index, source)
-
-            raise UserWarning('Subscript not supported')
-        else:
-            target = self.resolve_object(ast_target).known_name
-            return h.simple_assign(target, source)
+        return h.simple_assign(target, source)
 
     def tx_type(self, ast_type: ast.AST):
         pp_expr = self.tx_expression(ast_type)

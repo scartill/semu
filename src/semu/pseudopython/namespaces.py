@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple, Type
 from dataclasses import dataclass
 
 import semu.pseudopython.base as b
+import semu.pseudopython.pptypes as t
 import semu.pseudopython.expressions as ex
 import semu.pseudopython.registers as regs
 
@@ -46,7 +47,7 @@ class Namespace(b.INamespace):
         lg.debug(f'Adding {known_name.name} to {self.namespace()}')
         self.names[known_name.name] = known_name
 
-    def lookup_name_upwards(self, name: str) -> NameLookup | None:
+    def lookup_name_upwards(self, name: str) -> NameLookup:
         lg.debug(f'Looking up {name} in {self.namespace()}')
         known_name = self.names.get(name)
 
@@ -92,3 +93,17 @@ class Namespace(b.INamespace):
     ) -> 'Namespace':
 
         raise NotImplementedError()
+
+
+class NamespaceWrapper(ex.Expression):
+    namespace: Namespace
+
+    def __init__(self, namespace: Namespace):
+        super().__init__(t.Unit)
+        self.namespace = namespace
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'NamespaceWrapper'
+        data['Namespace'] = self.namespace.name
+        return data

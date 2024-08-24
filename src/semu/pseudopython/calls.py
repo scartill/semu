@@ -11,7 +11,7 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.pointers as ptrs
 
 
-class Function(b.KnownName, ns.Namespace, b.Element):
+class Function(b.IFunction, ns.Namespace, b.Element):
     factory: Callable | None = None
 
     decorators: List[ex.DecoratorApplication]
@@ -23,7 +23,7 @@ class Function(b.KnownName, ns.Namespace, b.Element):
 
     def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
         b.Element.__init__(self)
-        b.KnownName.__init__(self, parent, name, t.AbstractCallable)
+        b.IFunction.__init__(self, parent, name, t.AbstractCallable)
         ns.Namespace.__init__(self, name, parent)
         self.decorators = list()
         self.return_type = return_type

@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Callable
+from typing import Callable, Sequence
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -13,26 +13,26 @@ import semu.pseudopython.namespaces as ns
 class ClassVariable(b.KnownName):
     inx: int
 
-    def __init__(self, parent: 'Class', name: str, inx: int, pp_type: b.PPType):
+    def __init__(self, parent: ns.Namespace, name: str, inx: int, pp_type: b.PPType):
         b.KnownName.__init__(self, parent, name, pp_type)
         self.inx = inx
 
     def json(self):
-        n_data = b.KnownName.json(self)
-        data = {'Class': 'ClassVariable'}
-        data.update(n_data)
+        data = b.KnownName.json(self)
+        data['Class'] = 'ClassVariable'
         return data
 
 
-class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
+class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
     def __init__(self, name: str, parent: ns.Namespace):
         b.PPType.__init__(self)
         b.KnownName.__init__(self, parent, name, b.Builtin)
-        ns.Namespace.__init__(self, name, parent)
         b.Element.__init__(self)
+        ns.Namespace.__init__(self, name, parent)
+        self.class_vars = {}
 
     def json(self):
         data = {'Class': 'Class'}
@@ -47,8 +47,8 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
         data.update(ns_data)
         return data
 
-    def create_variable(self, name: str, pp_type: t.PhysicalType) -> b.KnownName:
-        n_vars = len([x for x in self.names.values() if isinstance(x, ClassVariable)])
+    def create_variable(self, name: str, pp_type: t.PhysicalType):
+        n_vars = len(list(filter(lambda x: isinstance(x, ClassVariable), self.names.values())))
         var = ClassVariable(self, name, n_vars, pp_type)
         self.add_name(var)
         return var
@@ -57,7 +57,7 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
         self, name: str, args: ns.ArgDefs,
         decors: ex.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
-
+        # TODO: extract to factories
         static = any(
             lambda d: x.name == 'staticmethod'
             for x in decors
@@ -77,6 +77,17 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
 
         self.add_name(function)
         return function
+
+    def load_member(
+        self, parent_load: ex.PhyExpression, name: str, target: regs.Register
+    ) -> ex.PhyExpression:
+
+        classvar = self.names.get(name)
+
+        if not isinstance(classvar, ClassVariable):
+            raise UserWarning(f'Class variable {name} not found')
+
+        return ClassMemberLoad(parent_load, classvar, target)
 
     def emit(self):
         return flatten([
@@ -102,31 +113,32 @@ class InstancePointerType(t.PointerType):
         return self.ref_type == value.ref_type
 
 
-class GlobalInstanceMember(b.KnownName, b.Element):
+class GlobalInstanceMember(b.Element):
+    instance: 'GlobalInstance'
     classvar: ClassVariable
 
-    def __init__(
-        self, namespace: b.INamespace, classvar: ClassVariable, pp_type: b.PPType
-    ):
-        super().__init__(namespace, classvar.name, pp_type)
+    def __init__(self, instance: 'GlobalInstance', classvar: ClassVariable):
+        self.instance = instance
         self.classvar = classvar
 
-    def instance(self):
-        assert isinstance(self.parent, GlobalInstance)
-        return self.parent
+    def get_instance(self):
+        return self.instance
 
     def json(self):
-        data = {'Class': 'GlobalInstanceMember'}
-        el_data = b.Element.json(self)
-        n_data = b.KnownName.json(self)
-        data.update(el_data)
-        data.update(n_data)
+        data = super().json()
+        data['Class'] = 'GlobalInstanceMember'
+        data['ClassVariable'] = self.classvar.name
+        data['Instance'] = self.instance.name
+        return data
 
     def emit(self):
         return [
-            f'// Global instance member {self.qualname()}',
+            f'// Global instance member {self.instance.qualname()}@{self.classvar.qualname()}',
             'nop'
         ]
+
+
+type GlobalInstanceMembers = Sequence[GlobalInstanceMember]
 
 
 class ClassMemberLoad(ex.PhyExpression):
@@ -168,50 +180,35 @@ class ClassMemberLoad(ex.PhyExpression):
         ]
 
 
-class GlobalInstance(b.KnownName, b.Element, ns.Namespace):
-    def __init__(self, parent: ns.Namespace, name: str, pp_type: Class):
+class GlobalInstance(b.KnownName, b.Element):
+    members: GlobalInstanceMembers
+
+    def __init__(
+        self, parent: ns.Namespace, name: str, pp_type: Class
+    ):
         b.Element.__init__(self)
         b.KnownName.__init__(self, parent, name, pp_type)
-        ns.Namespace.__init__(self, name, parent)
 
     def json(self):
         data = {'Class': 'GlobalInstance'}
         el_data = b.Element.json(self)
-        ns_data = ns.Namespace.json(self)
         n_data = b.KnownName.json(self)
         data.update(el_data)
-        data.update(ns_data)
         data.update(n_data)
         return data
 
     def typelabel(self):
         return 'global_instance'
 
-    def load_variable(self, known_name: b.KnownName, target: regs.Register) -> ex.Expression:
-        member = self.names.get(known_name.name)
-
-        if not isinstance(member, GlobalInstanceMember):
-            raise UserWarning(f'Variable {known_name.name} not found')
-
-        instance = GlobalInstanceLoad(self)
-        return ClassMemberLoad(instance, member.classvar, target)
-
     def emit(self):
+        assert self.members
         label = self.address_label()
 
         return flatten([
             f'// Global instance {self.qualname()}',
             f'{label}:',  # instance label
             '// Memebers',
-            [
-                e.emit() for e in self.names.values()
-                if isinstance(e, GlobalInstanceMember)
-            ],
-            '// Methods',
-            [
-                e.emit() for e in self.names.values()
-                if isinstance(e, b.Element) and not isinstance(e, GlobalInstanceMember)
-            ],
+            [e.emit() for e in self.members],
             f'// Global instance {self.qualname()} end'
         ])
 

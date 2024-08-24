@@ -8,7 +8,6 @@ import semu.pseudopython.pptypes as t
 import semu.pseudopython.expressions as ex
 import semu.pseudopython.calls as calls
 import semu.pseudopython.namespaces as ns
-import semu.pseudopython.classes as cls
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
 import semu.pseudopython.pointers as ptrs
@@ -103,23 +102,6 @@ def validate_call(arg_types: t.PhysicalTypes, args: ex.Expressions):
             raise UserWarning(
                 f'Argument type mismatch: need {arg_type}, got {arg.pp_type}'
             )
-
-
-def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
-    path = []
-
-    cursor = ast_attr
-
-    while isinstance(cursor, ast.Attribute):
-        path.append(cursor.attr)
-        cursor = cursor.value
-
-    if not isinstance(cursor, ast.Name):
-        raise UserWarning(f'Unsupported attribute path {cursor}')
-
-    path.append(cursor.id)
-    path.reverse()
-    return path
 
 
 def find_module(namespace: ns.Namespace, names: List[str]):
@@ -217,58 +199,26 @@ def funptr_validate(param_type_expr: ex.Expression, return_type_expr: ex.Express
     return (arg_types, return_type)
 
 
-def simple_assign(target_name: b.KnownName, source: ex.PhyExpression):
-
+def simple_assign(value: ex.ValueLoader, source: ex.PhyExpression):
     lg.debug(
         f'Assigning {source}: {source.pp_type}'
         ' to '
-        f'{target_name.name}:{target_name.pp_type}'
+        f'{value.name}:{value.pp_type}'
     )
 
-    t_type = target_name.pp_type
+    t_type = value.pp_type
     e_type = source.pp_type
 
+    assign_target = value.source   # Assigning by a pointer
+
     if isinstance(source, meth.PointerToGlobalMethod):
-        lg.debug(f'Assigning method to {target_name}')
+        lg.debug(f'Assigning method to {value}')
         e_type = source.get_method().callable_type()
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
-    if isinstance(target_name, ex.GlobalVariable):
-        lg.debug(f'Assigning to global {target_name.name}')
-        load = ptrs.PointerToGlobal(target_name)
-        return ex.Assignor(load, source)
-
-    if isinstance(target_name, cls.GlobalInstanceMember):
-        lg.debug(f'Assigning to global member {target_name.name}')
-        load = cls.GlobalInstanceLoad(target_name.instance())
-        member_load = cls.ClassMemberLoad(load, target_name.classvar)
-        return ex.Assignor(member_load, source)
-
-    if isinstance(target_name, calls.LocalVariable):
-        lg.debug(f'Assigning to local {target_name.name}')
-        load = ptrs.PointerToLocal(target_name)
-        return ex.Assignor(load, source)
-
-    if isinstance(target_name, meth.StackPointerMember):
-        lg.debug(f'Assigning to stack member {target_name.name}')
-        load_instance = ptrs.PointerToLocal(target_name.instance_parameter)
-        deref = ptrs.Deref(load_instance)
-        member_load = cls.ClassMemberLoad(deref, target_name.variable)
-        return ex.Assignor(member_load, source)
-
-    if isinstance(target_name, meth.GlobalPointerMember):
-        lg.debug(
-            f'Assigning to global member {target_name.name}'
-            f' (index {target_name.variable.inx})'
-        )
-
-        load = ptrs.PointerToGlobal(target_name.instance_pointer)
-        member_load = cls.ClassMemberLoad(load, target_name.variable)
-        return ex.Assignor(member_load, source)
-
-    raise UserWarning(f'Unsupported assign target {target_name.name}')
+    return ex.Assignor(assign_target, source)
 
 
 def array_assign(array: b.KnownName, index: ex.PhyExpression, source: ex.PhyExpression):

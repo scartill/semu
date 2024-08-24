@@ -23,27 +23,6 @@ class ExpressionTranslator:
     def __init__(self, context: ns.Namespace):
         self.context = context
 
-    def resolve_object(self, ast_name: ast.AST) -> ns.NameLookup:
-        path = h.collect_path_from_attribute(ast_name)
-        top_name = path.pop(0)
-        lookup = self.context.lookup_name_upwards(top_name)
-
-        if lookup is None:
-            raise UserWarning(f'Unknown reference {top_name}')
-
-        while path:
-            next_name = path.pop(0)
-
-            if not isinstance(lookup.known_name, ns.Namespace):
-                raise UserWarning(
-                    f'Unsupported path lookup {lookup.known_name.name}'
-                    f' (type {lookup.known_name.pp_type}) has no members'
-                )
-
-            lookup = lookup.known_name.get_own_name(next_name)
-
-        return lookup
-
     def tx_builtin_call(
         self, callable: bi.BuiltinInline, ast_args: List[ast.expr],
         target: regs.Register
@@ -145,9 +124,97 @@ class ExpressionTranslator:
         slice = self.tx_expression(source.slice, slice_target)
         return f.create_subscript(value, slice, target)
 
+    def tx_known_name(
+        self, namespace: ns.Namespace, known_name: b.KnownName,
+        target: regs.Register
+    ) -> ex.Expression:
+
+        if isinstance(known_name, b.Constant):
+            lg.debug(f'KnownName: Constant {known_name}')
+            return namespace.load_const(known_name, target)
+
+        if isinstance(known_name, ex.GenericVariable):
+            lg.debug(f'KnownName: Generic variable {known_name.name}')
+            load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
+            return ex.ValueLoader(load, target, name=known_name.name)
+
+        if isinstance(known_name, bi.BuiltinInline):
+            lg.debug(f'KnownName: Builtin inline {known_name.name}')
+            return bi.BuiltinInlineWrapper(known_name)
+
+        if isinstance(known_name, meth.Method):
+            lg.debug(f'KnownName: Method {known_name.name}')
+            return meth.PointerToGlobalMethod(known_name, target)
+
+        if isinstance(known_name, calls.Function):
+            lg.debug(f'KnownName: Function {known_name.name}')
+            return calls.FunctionRef(known_name, target)
+
+        if isinstance(known_name, t.DecoratorType):
+            lg.debug(f'KnownName: Decorator type {known_name.name}')
+            return ex.DecoratorApplication(known_name)
+
+        if isinstance(known_name, cls.Class):
+            lg.debug(f'KnownName: Class {known_name.name}')
+            return ex.TypeWrapper(known_name)
+
+        if isinstance(known_name, b.PPType):
+            lg.debug(f'KnownName: Target type {known_name.name}')
+            return ex.TypeWrapper(known_name)
+
+        if isinstance(known_name, ex.BuiltinMetaoperator):
+            lg.debug(f'KnownName: Builtin metaoperator {known_name.name}')
+            return known_name
+
+        if isinstance(known_name, cls.GlobalInstance):
+            lg.debug(f'KnownName: Global instance {known_name.name}')
+
+            return ex.ValueLoader(
+                cls.GlobalInstanceLoad(known_name, target), target,
+                name=known_name.name
+            )
+
+        if isinstance(known_name, meth.GlobalPointerMember):
+            lg.debug(f'KnownName: Global pointer member {known_name.name}')
+            load = ptrs.PointerToGlobal(known_name.instance_pointer)
+            deref = ptrs.Deref(load)
+            member_load = cls.ClassMemberLoad(deref, known_name.variable)
+            return ex.ValueLoader(member_load, target, name=known_name.name)
+
+        if isinstance(known_name, meth.StackPointerMember):
+            lg.debug(f'KnownName: Stack pointer member {known_name.name}')
+            load = ptrs.PointerToLocal(known_name.instance_parameter)
+            deref = ptrs.Deref(load)
+            member_load = cls.ClassMemberLoad(deref, known_name.variable)
+            return ex.ValueLoader(member_load, target, name=known_name.name)
+
+        if isinstance(known_name, meth.GlobalInstanceMethod):
+            lg.debug(f'KnownName: Global instance method {known_name.name}')
+            return meth.BoundMethodRef.from_GIM(known_name)
+
+        if isinstance(known_name, meth.GlobalPointerMethod):
+            lg.debug(f'KnownName: Global pointer method {known_name.name}')
+            return meth.BoundMethodRef.from_GPM(known_name)
+
+        if isinstance(known_name, meth.StackPointerMethod):
+            lg.debug(f'KnownName: Stack pointer method {known_name.name}')
+            return meth.BoundMethodRef.from_SPM(known_name)
+
+        if isinstance(known_name, arr.GlobalArray):
+            lg.debug(f'KnownName: Global array {known_name.name}')
+            return ptrs.PointerToGlobal(known_name, target)
+
+        # NB: this should be the last check
+        if isinstance(known_name, ns.Namespace):
+            return ns.NamespaceWrapper(known_name)
+
+        raise UserWarning(f'Unsupported name {known_name} as expression')
+
     def tx_expression(
-        self, source: ast.AST,
-        target: regs.Register = regs.DEFAULT_REGISTER
+        self,
+        source: ast.AST,
+        target: regs.Register = regs.DEFAULT_REGISTER,
+        namespace: ns.Namespace | None = None
     ) -> ex.Expression:
 
         if isinstance(source, ast.Constant):
@@ -156,106 +223,54 @@ class ExpressionTranslator:
             lg.debug(f'Literal {value} ({pp_type})')
             return ex.ConstantExpression(pp_type, value, target)
 
-        if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
-            lookup = self.resolve_object(source)
-            namespace = lookup.namespace
-            known_name = lookup.known_name
+        if isinstance(source, ast.Name):
+            lg.debug(f'Expression: Name {source.id}')
+            name = source.id
 
-            if isinstance(known_name, b.Constant):
-                lg.debug(f'Expression: Constant {known_name}')
-                return namespace.load_const(known_name, target)
+            if not namespace:
+                lookup = self.context.lookup_name_upwards(name)
+                return self.tx_expression(source, target, namespace=lookup.namespace)
+            else:
+                lookup = namespace.get_own_name(source.id)
+                return self.tx_known_name(lookup.namespace, lookup.known_name, target)
 
-            if isinstance(known_name, ex.GenericVariable):
-                lg.debug(f'Expression: Generic variable {known_name.name}')
-                load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
-                return ex.ValueLoader(load, target)
+        if isinstance(source, ast.Attribute):
+            lg.debug(f'Expression: Attribute {source.attr}')
+            value = self.tx_expression(source.value, namespace=namespace)
 
-            if isinstance(known_name, cls.GlobalInstanceMember):
-                lg.debug(f'Expression: Global instance member {known_name.name}')
-                load = cls.GlobalInstanceLoad(known_name.instance())
-                member_load = cls.ClassMemberLoad(load, known_name.classvar)
-                return ex.ValueLoader(member_load, target)
+            if isinstance(value, ns.NamespaceWrapper):
+                lg.debug('Attribute: namespace')
+                return self.tx_known_name(
+                    value.namespace, value.namespace.names[source.attr], target
+                )
 
-            if isinstance(known_name, bi.BuiltinInline):
-                lg.debug(f'Expression: Builtin inline {known_name.name}')
-                return bi.BuiltinInlineWrapper(known_name)
-
-            if isinstance(known_name, meth.Method):
-                lg.debug(f'Expression: Method {known_name.name}')
-                return meth.PointerToGlobalMethod(known_name, target)
-
-            if isinstance(known_name, calls.Function):
-                lg.debug(f'Expression: Function {known_name.name}')
-                return calls.FunctionRef(known_name, target)
-
-            if isinstance(known_name, t.DecoratorType):
-                lg.debug(f'Expression: Decorator type {known_name.name}')
-                return ex.DecoratorApplication(known_name)
-
-            if isinstance(known_name, cls.Class):
-                lg.debug(f'Expression: Class {known_name.name}')
-                return ex.TypeWrapper(known_name)
-
-            if isinstance(known_name, b.PPType):
-                lg.debug(f'Expression: Target type {known_name.name}')
-                return ex.TypeWrapper(known_name)
-
-            if isinstance(known_name, ex.BuiltinMetaoperator):
-                lg.debug(f'Expression: Builtin metaoperator {known_name.name}')
-                return known_name
-
-            if isinstance(known_name, cls.GlobalInstance):
-                lg.debug(f'Expression: Global instance {known_name.name}')
-                return ex.ValueLoader(cls.GlobalInstanceLoad(known_name, target), target)
-
-            if isinstance(known_name, meth.GlobalPointerMember):
-                lg.debug(f'Expression: Global pointer member {known_name.name}')
-                load = ptrs.PointerToGlobal(known_name.instance_pointer)
-                deref = ptrs.Deref(load)
-                member_load = cls.ClassMemberLoad(deref, known_name.variable)
-                return ex.ValueLoader(member_load, target)
-
-            if isinstance(known_name, meth.StackPointerMember):
-                lg.debug(f'Expression: Stack pointer member {known_name.name}')
-                load = ptrs.PointerToLocal(known_name.instance_parameter)
-                deref = ptrs.Deref(load)
-                member_load = cls.ClassMemberLoad(deref, known_name.variable)
-                return ex.ValueLoader(member_load, target)
-
-            if isinstance(known_name, meth.GlobalInstanceMethod):
-                lg.debug(f'Expression: Global instance method {known_name.name}')
-                return meth.BoundMethodRef.from_GIM(known_name)
-
-            if isinstance(known_name, meth.GlobalPointerMethod):
-                lg.debug(f'Expression: Global pointer method {known_name.name}')
-                return meth.BoundMethodRef.from_GPM(known_name)
-
-            if isinstance(known_name, meth.StackPointerMethod):
-                lg.debug(f'Expression: Stack pointer method {known_name.name}')
-                return meth.BoundMethodRef.from_SPM(known_name)
-
-            if isinstance(known_name, arr.GlobalArray):
-                lg.debug(f'Expression: Global array {known_name.name}')
-                return ptrs.PointerToGlobal(known_name, target)
-
-            raise UserWarning(f'Unsupported name {known_name} as expression')
+            if isinstance(value.pp_type, ex.ICompoundType):
+                lg.debug('Attribute: compound type')
+                assert isinstance(value, ex.PhyExpression)
+                load = value.pp_type.load_member(value, source.attr, regs.DEFAULT_REGISTER)
+                return ex.ValueLoader(load, target, name=source.attr)
 
         if isinstance(source, ast.BinOp):
+            lg.debug('Expression: BinOp')
             left = self.tx_expression(source.left, regs.REGISTERS[0])
             right = self.tx_expression(source.right, regs.REGISTERS[1])
             return f.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
+            lg.debug('Expression: Call')
             return self.tx_call(source, target)
 
         if isinstance(source, ast.UnaryOp):
+            lg.debug('Expression: UnaryOp')
             right = self.tx_expression(source.operand, regs.REGISTERS[0])
             return f.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
+            lg.debug('Expression: BoolOp')
             return self.tx_boolop(source, target)
 
         if isinstance(source, ast.Compare):
+            lg.debug('Expression: Compare')
             left = self.tx_expression(source.left, regs.REGISTERS[0])
             ops = source.ops
 
@@ -270,9 +285,11 @@ class ExpressionTranslator:
             return f.create_compare(left, ops[0], right, target)
 
         if isinstance(source, ast.Subscript):
+            lg.debug('Expression: Subscript')
             return self.tx_subscript(source, target)
 
         if isinstance(source, (ast.Tuple, ast.List)):
+            lg.debug('Expression: Tuple/List')
             return ex.MetaList(list(self.tx_expression(e) for e in source.elts))
 
         raise UserWarning(f'Unsupported expression {source}')

@@ -5,7 +5,6 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.modules as mods
@@ -61,14 +60,14 @@ class TopLevel(ns.Namespace, b.Element):
     def parent_prefix(self) -> str:
         return ''
 
-    def lookup_name_upwards(self, name: str) -> ns.NameLookup | None:
+    def lookup_name_upwards(self, name: str) -> ns.NameLookup:
         lg.debug(f'Looking up {name} on the top level')
 
         if known_name := self.names.get(name):
             lg.debug(f'Found {name} on the top level (type {known_name.pp_type})')
             return ns.NameLookup(self, known_name)
-        else:
-            return None
+
+        raise UserWarning(f'Unknown reference {name} on the top level')
 
     def emit(self):
         temp = regs.get_temp([])

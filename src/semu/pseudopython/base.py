@@ -35,12 +35,26 @@ class INamespace:
         raise NotImplementedError()
 
 
-class KnownName:
-    name: str
+class TypedObject:
     pp_type: PPType
+
+    def __init__(self, pp_type: PPType) -> None:
+        self.pp_type = pp_type
+
+    def json(self) -> JSON:
+        return {
+            'Class': 'TypedObject',
+            'Type': str(self.pp_type)
+        }
+
+
+class KnownName(TypedObject):
+    name: str
     parent: INamespace
 
     def __init__(self, namespace: INamespace | None, name: str, pp_type: PPType):
+        super().__init__(pp_type)
+
         if namespace is not None:
             self.parent = namespace
         else:
@@ -48,14 +62,17 @@ class KnownName:
             self.parent = INamespace()
 
         self.name = name
-        self.pp_type = pp_type
 
     def json(self) -> JSON:
-        return {
+        data = super().json()
+
+        data.update({
             'Class': 'KnownName',
             'Name': self.name,
             'Type': str(self.pp_type)
-        }
+        })
+
+        return data
 
     def qualname(self) -> str:
         return f'{self.parent.parent_prefix()}{self.name}'
@@ -120,6 +137,16 @@ class VoidElement(Element):
         data = Element.json(self)
         data['Class'] = 'VoidElement'
         data['Void'] = self.comment
+        return data
+
+
+class IFunction(KnownName):
+    def __init__(self, namespace: INamespace, name: str, pp_type: PPType):
+        super().__init__(namespace, name, pp_type)
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'IFunction'
         return data
 
 

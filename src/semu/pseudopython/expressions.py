@@ -131,11 +131,16 @@ class StackVariable(GenericVariable):
 
 class ValueLoader(PhyExpression):
     source: PhyExpression
+    name: str | None
 
-    def __init__(self, source: PhyExpression, target: regs.Register):
+    def __init__(self, source: PhyExpression, target: regs.Register, name: str | None = None):
         assert isinstance(source.pp_type, t.PointerType)
         super().__init__(source.pp_type.ref_type, target)
         self.source = source
+        self.name = name
+
+    def __str__(self) -> str:
+        return self.name if self.name else '<dynamic>'
 
     def json(self):
         data = super().json()
@@ -294,3 +299,16 @@ class MetaList(Expression):
             'Class': 'MetaList',
             'Elements': [e.json() for e in self.elements]
         }
+
+
+class ICompoundType:
+    def load_member(
+        self, parent_load: PhyExpression, name: str, target: regs.Register
+    ) -> PhyExpression:
+
+        raise NotImplementedError()
+
+
+class ISequenceType:
+    def load_item(self, parent_load: PhyExpression, index: int) -> PhyExpression:
+        raise NotImplementedError()

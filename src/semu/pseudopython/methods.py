@@ -53,10 +53,9 @@ class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
         calls.FormalParameter.__init__(self, namespace, name, offset, instance_type)
         ns.Namespace.__init__(self, name, namespace)
 
-        for cls_var in instance_type.ref_type.names.values():
-            if isinstance(cls_var, cls.ClassVariable):
-                member_pointer = StackPointerMember(self, cls_var)
-                self.add_name(member_pointer)
+        for cls_var in instance_type.ref_type.class_vars.values():
+            member_pointer = StackPointerMember(self, cls_var)
+            self.add_name(member_pointer)
 
         for method in instance_type.ref_type.names.values():
             if isinstance(method, Method):
@@ -138,8 +137,7 @@ class GlobalInstancePointer(ex.GlobalVariable, ns.Namespace):
         ns.Namespace.__init__(self, name, parent)
 
         class_vars = [
-            cv for cv in pp_type.ref_type.names.values()
-            if isinstance(cv, cls.ClassVariable)
+            cv for cv in pp_type.ref_type.class_vars.values()
         ]
 
         for cv in sorted(class_vars, key=lambda x: x.inx):
