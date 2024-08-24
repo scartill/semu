@@ -11,5 +11,3 @@ purposes due to its total transparency.
 Written in Python.
 
 See wiki for more information
-
-Planned features: protected mode, MMU, storage, multiprocessor
