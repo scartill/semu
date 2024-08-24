@@ -8,7 +8,7 @@ import semu.pseudopython.elements as el
 import semu.pseudopython.registers as regs
 
 
-ArgDefs = List[Tuple[str, b.TargetType]]
+ArgDefs = List[Tuple[str, b.PPType]]
 
 
 @dataclass
@@ -52,7 +52,7 @@ class Namespace(n.INamespace):
         known_name = self.names.get(name)
 
         if known_name:
-            lg.debug(f'Found {name} in {self.namespace()} (type {known_name.target_type})')
+            lg.debug(f'Found {name} in {self.namespace()} (type {known_name.pp_type})')
             return NameLookup(self, known_name)
 
         return self.parent.lookup_name_upwards(name)
@@ -65,7 +65,7 @@ class Namespace(n.INamespace):
         if not known_name:
             raise UserWarning(f'Unknown reference {name} in {self.namespace()}')
 
-        lg.debug(f'Found own {name} in {self.namespace()} (type {known_name.target_type})')
+        lg.debug(f'Found own {name} in {self.namespace()} (type {known_name.pp_type})')
         return NameLookup(self, known_name)
 
     def load_const(self, known_name: n.KnownName, target: regs.Register):
@@ -73,10 +73,10 @@ class Namespace(n.INamespace):
             raise UserWarning(f'Unsupported const reference {known_name.name}')
 
         return el.ConstantExpression(
-            known_name.target_type, known_name.value, target
+            known_name.pp_type, known_name.value, target
         )
 
-    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
+    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
         raise NotImplementedError()
 
     def load_variable(
@@ -89,7 +89,7 @@ class Namespace(n.INamespace):
         raise NotImplementedError()
 
     def create_function(
-        self, name: str, args: ArgDefs, decors: el.Expressions, target_type: b.TargetType
+        self, name: str, args: ArgDefs, decors: el.Expressions, pp_type: b.PPType
     ) -> 'Namespace':
 
         raise NotImplementedError()

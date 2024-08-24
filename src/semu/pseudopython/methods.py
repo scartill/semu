@@ -14,13 +14,13 @@ import semu.pseudopython.pointers as ptrs
 
 
 class Method(calls.Function):
-    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
         super().__init__(name, parent, return_type)
 
     def callable_type(self):
         return MethodPointerType(
             cast(cls.Class, self.parent),
-            [cast(t.PhysicalType, p.target_type) for p in self.formals()],
+            [cast(t.PhysicalType, p.pp_type) for p in self.formals()],
             cast(t.PhysicalType, self.return_type)
         )
 
@@ -111,7 +111,7 @@ class MethodPointerType(t.AbstractCallableType):
         return data
 
 
-class BoundMethodPointerType(b.TargetType):
+class BoundMethodPointerType(b.PPType):
     unbound_type: MethodPointerType
 
     def __init__(self, unbound_type: MethodPointerType):
@@ -133,13 +133,13 @@ class BoundMethodPointerType(b.TargetType):
 
 class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
     def __init__(
-        self, parent: ns.Namespace, name: str, target_type: cls.InstancePointerType
+        self, parent: ns.Namespace, name: str, pp_type: cls.InstancePointerType
     ):
-        el.GlobalVariable.__init__(self, parent, name, target_type)
+        el.GlobalVariable.__init__(self, parent, name, pp_type)
         ns.Namespace.__init__(self, name, parent)
 
         class_vars = [
-            cv for cv in target_type.ref_type.names.values()
+            cv for cv in pp_type.ref_type.names.values()
             if isinstance(cv, cls.ClassVariable)
         ]
 
@@ -148,7 +148,7 @@ class GlobalInstancePointer(el.GlobalVariable, ns.Namespace):
             mp = GlobalPointerMember(self, cv)
             self.add_name(mp)
 
-        for method in target_type.ref_type.names.values():
+        for method in pp_type.ref_type.names.values():
             if isinstance(method, Method):
                 self.add_name(GlobalPointerMethod(self, method))
 
@@ -168,8 +168,8 @@ class GlobalPointerMember(n.KnownName):
     def __init__(
         self, instance_pointer: GlobalInstancePointer, variable: cls.ClassVariable
     ):
-        assert isinstance(variable.target_type, t.PhysicalType)
-        member_type = variable.target_type
+        assert isinstance(variable.pp_type, t.PhysicalType)
+        member_type = variable.pp_type
         super().__init__(instance_pointer, variable.name, member_type)
         self.variable = variable
         self.instance_pointer = instance_pointer
@@ -214,8 +214,8 @@ class StackPointerMember(n.KnownName):
     def __init__(
         self, instance_parameter: InstanceFormalParameter, variable: cls.ClassVariable
     ):
-        assert isinstance(variable.target_type, t.PhysicalType)
-        super().__init__(instance_parameter, variable.name, variable.target_type)
+        assert isinstance(variable.pp_type, t.PhysicalType)
+        super().__init__(instance_parameter, variable.name, variable.pp_type)
         self.variable = variable
         self.instance_parameter = instance_parameter
 

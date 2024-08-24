@@ -10,10 +10,10 @@ class INamespace:
 
 class KnownName:
     name: str
-    target_type: b.TargetType
+    pp_type: b.PPType
     parent: INamespace
 
-    def __init__(self, namespace: INamespace | None, name: str, target_type: b.TargetType):
+    def __init__(self, namespace: INamespace | None, name: str, pp_type: b.PPType):
         if namespace is not None:
             self.parent = namespace
         else:
@@ -21,13 +21,13 @@ class KnownName:
             self.parent = INamespace()
 
         self.name = name
-        self.target_type = target_type
+        self.pp_type = pp_type
 
     def json(self) -> b.JSON:
         return {
             'Class': 'KnownName',
             'Name': self.name,
-            'Type': str(self.target_type)
+            'Type': str(self.pp_type)
         }
 
     def qualname(self) -> str:
@@ -45,9 +45,9 @@ class Constant(KnownName):
 
     def __init__(
         self, namespace: INamespace, name: str,
-        target_type: b.TargetType, value: Any
+        pp_type: b.PPType, value: Any
     ):
-        super().__init__(namespace, name, target_type)
+        super().__init__(namespace, name, pp_type)
         self.value = value
 
     def json(self):

@@ -14,8 +14,8 @@ import semu.pseudopython.namespaces as ns
 class ClassVariable(n.KnownName):
     inx: int
 
-    def __init__(self, parent: 'Class', name: str, inx: int, target_type: b.TargetType):
-        n.KnownName.__init__(self, parent, name, target_type)
+    def __init__(self, parent: 'Class', name: str, inx: int, pp_type: b.PPType):
+        n.KnownName.__init__(self, parent, name, pp_type)
         self.inx = inx
 
     def json(self):
@@ -44,15 +44,15 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         data.update(nt_data)
         return data
 
-    def create_variable(self, name: str, target_type: t.PhysicalType) -> n.KnownName:
+    def create_variable(self, name: str, pp_type: t.PhysicalType) -> n.KnownName:
         n_vars = len([x for x in self.names.values() if isinstance(x, ClassVariable)])
-        var = ClassVariable(self, name, n_vars, target_type)
+        var = ClassVariable(self, name, n_vars, pp_type)
         self.add_name(var)
         return var
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, target_type: b.TargetType
+        decors: el.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
         static = any(
@@ -64,13 +64,13 @@ class Class(t.NamedType, ns.Namespace, el.Element):
         if static:
             lg.debug(f'Creating static method {name}')
             assert Class.fun_factory
-            function = Class.fun_factory(self, name, args, decors, target_type)
+            function = Class.fun_factory(self, name, args, decors, pp_type)
         else:
             lg.debug(f'Creating instance method {name}')
             full_args: ns.ArgDefs = [('this', InstancePointerType(self))]
             full_args.extend(args)
             assert Class.method_factory
-            function = Class.method_factory(self, name, full_args, decors, target_type)
+            function = Class.method_factory(self, name, full_args, decors, pp_type)
 
         self.add_name(function)
         return function
@@ -103,9 +103,9 @@ class GlobalInstanceMember(n.KnownName, el.Element):
     classvar: ClassVariable
 
     def __init__(
-        self, namespace: n.INamespace, classvar: ClassVariable, target_type: b.TargetType
+        self, namespace: n.INamespace, classvar: ClassVariable, pp_type: b.PPType
     ):
-        super().__init__(namespace, classvar.name, target_type)
+        super().__init__(namespace, classvar.name, pp_type)
         self.classvar = classvar
 
     def instance(self):
@@ -134,9 +134,9 @@ class ClassMemberLoad(el.PhyExpression):
         self, instance_load: el.PhyExpression, member: ClassVariable,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(member.target_type, t.PhysicalType)
-        target_type = t.PointerType(member.target_type)
-        super().__init__(target_type, target)
+        assert isinstance(member.pp_type, t.PhysicalType)
+        pp_type = t.PointerType(member.pp_type)
+        super().__init__(pp_type, target)
         self.instance_load = instance_load
         self.member = member
 
@@ -166,9 +166,9 @@ class ClassMemberLoad(el.PhyExpression):
 
 
 class GlobalInstance(n.KnownName, el.Element, ns.Namespace):
-    def __init__(self, parent: ns.Namespace, name: str, target_type: Class):
+    def __init__(self, parent: ns.Namespace, name: str, pp_type: Class):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, parent, name, target_type)
+        n.KnownName.__init__(self, parent, name, pp_type)
         ns.Namespace.__init__(self, name, parent)
 
     def json(self):
@@ -219,8 +219,8 @@ class GlobalInstanceLoad(el.PhyExpression):
     def __init__(
         self, instance: GlobalInstance, target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(instance.target_type, Class)
-        pointer_type = InstancePointerType(instance.target_type)
+        assert isinstance(instance.pp_type, Class)
+        pointer_type = InstancePointerType(instance.pp_type)
         super().__init__(pointer_type, target)
         self.instance = instance
 

@@ -12,9 +12,9 @@ class Unary(PhyExpression):
     operand: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
+        self, pp_type: b.PPType, operand: PhyExpression, target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.operand = operand
 
     def json(self):
@@ -27,9 +27,9 @@ class Unary(PhyExpression):
 @dataclass
 class Not(Unary):
     def __init__(
-        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
+        self, pp_type: b.PPType, operand: PhyExpression, target: regs.Register
     ):
-        super().__init__(target_type, operand, target)
+        super().__init__(pp_type, operand, target)
 
     def json(self):
         data = super().json()
@@ -59,10 +59,10 @@ class BoolOp(PhyExpression):
     values: Sequence[PhyExpression]
 
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhyExpression],
+        self, pp_type: b.PPType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.values = values
 
     def _initial(self) -> int:
@@ -108,10 +108,10 @@ class BoolOp(PhyExpression):
 @dataclass
 class And(BoolOp):
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhyExpression],
+        self, pp_type: b.PPType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
-        super().__init__(target_type, values, target)
+        super().__init__(pp_type, values, target)
 
     def _initial(self) -> int:
         return 1
@@ -123,10 +123,10 @@ class And(BoolOp):
 @dataclass
 class Or(BoolOp):
     def __init__(
-        self, target_type: b.TargetType, values: Sequence[PhyExpression],
+        self, pp_type: b.PPType, values: Sequence[PhyExpression],
         target: regs.Register
     ):
-        super().__init__(target_type, values, target)
+        super().__init__(pp_type, values, target)
 
     def _initial(self) -> int:
         return 0

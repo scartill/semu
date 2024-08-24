@@ -73,7 +73,7 @@ class Translator(et.ExpressionTranslator):
         if not isinstance(pp_expr, el.TypeWrapper):
             raise UserWarning(f'Unsupported type expression {pp_expr}')
 
-        return pp_expr.target_type
+        return pp_expr.pp_type
 
     def tx_ann_assign(self, assign: ast.AnnAssign):
         if assign.simple != 1:
@@ -82,15 +82,15 @@ class Translator(et.ExpressionTranslator):
         if not isinstance(assign.target, ast.Name):
             raise UserWarning('Unsupported type declaration')
 
-        target_type = self.tx_type(assign.annotation)
-        return self.context.create_variable(assign.target.id, target_type)
+        pp_type = self.tx_type(assign.annotation)
+        return self.context.create_variable(assign.target.id, pp_type)
 
     def tx_if(self, ast_if: ast.If):
         test = self.tx_phy_expression(ast_if.test)
         true_body = self.tx_body(ast_if.body)
 
-        if test.target_type != t.Bool32:
-            raise UserWarning(f'If test must be of type bool32, got {test.target_type}')
+        if test.pp_type != t.Bool32:
+            raise UserWarning(f'If test must be of type bool32, got {test.pp_type}')
 
         if ast_if.orelse:
             false_body = self.tx_body(ast_if.orelse)
@@ -106,8 +106,8 @@ class Translator(et.ExpressionTranslator):
         if not isinstance(test, el.PhyExpression):
             raise UserWarning(f'While test must be a physical expression, got {test}')
 
-        if test.target_type != t.Bool32:
-            raise UserWarning(f'While test must be of type bool32, got {test.target_type}')
+        if test.pp_type != t.Bool32:
+            raise UserWarning(f'While test must be of type bool32, got {test.pp_type}')
 
         return flow.While(test, body)
 
@@ -175,7 +175,7 @@ class Translator(et.ExpressionTranslator):
         if ast_return.value:
             value = self.tx_expression(ast_return.value)
             f_type = func.return_type
-            e_type = value.target_type
+            e_type = value.pp_type
 
             if f_type != e_type:
                 raise UserWarning(f'Return type mismatch {f_type} != {e_type}')
@@ -197,9 +197,9 @@ class Translator(et.ExpressionTranslator):
         lg.debug(f'Found function {name}')
 
         if ast_function.returns is None:
-            target_type = t.Unit
+            pp_type = t.Unit
         else:
-            target_type = self.tx_type(ast_function.returns)
+            pp_type = self.tx_type(ast_function.returns)
 
         args = []
         for ast_arg in ast_function.args.args:
@@ -215,7 +215,7 @@ class Translator(et.ExpressionTranslator):
             for ast_decor in ast_function.decorator_list
         ]
 
-        function = self.context.create_function(name, args, decors, target_type)
+        function = self.context.create_function(name, args, decors, pp_type)
         self.context = function
         assert isinstance(function, calls.Function)
         function.body = self.tx_body(ast_function.body)

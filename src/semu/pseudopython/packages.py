@@ -66,7 +66,7 @@ class TopLevel(ns.Namespace, el.Element):
         lg.debug(f'Looking up {name} on the top level')
 
         if known_name := self.names.get(name):
-            lg.debug(f'Found {name} on the top level (type {known_name.target_type})')
+            lg.debug(f'Found {name} on the top level (type {known_name.pp_type})')
             return ns.NameLookup(self, known_name)
         else:
             return None

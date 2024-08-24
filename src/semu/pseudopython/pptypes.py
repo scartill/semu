@@ -4,7 +4,7 @@ import semu.pseudopython.base as b
 import semu.pseudopython.names as n
 
 
-class ModuleType(b.TargetType):
+class ModuleType(b.PPType):
     def __init__(self):
         super().__init__()
 
@@ -17,7 +17,7 @@ class ModuleType(b.TargetType):
         return data
 
 
-class PackageType(b.TargetType):
+class PackageType(b.PPType):
     def __init__(self):
         super().__init__()
 
@@ -30,7 +30,7 @@ class PackageType(b.TargetType):
         return data
 
 
-class ClassType(b.TargetType):
+class ClassType(b.PPType):
     def __init__(self):
         super().__init__()
 
@@ -43,14 +43,14 @@ class ClassType(b.TargetType):
         return data
 
 
-class NamedType(b.TargetType, n.KnownName):
+class NamedType(b.PPType, n.KnownName):
     def __init__(self, name: str, namespace: n.INamespace | None = None):
-        b.TargetType.__init__(self)
+        b.PPType.__init__(self)
         n.KnownName.__init__(self, namespace, name, b.Builtin)
 
     def json(self):
         data: b.JSON = {'Class': 'NamedType'}
-        data['TargetType'] = b.TargetType.json(self)
+        data['PPType'] = b.PPType.json(self)
         data['KnownName'] = n.KnownName.json(self)
         return data
 
@@ -78,9 +78,9 @@ class DecoratorType(NamedType):
         return data
 
 
-class PhysicalType(b.TargetType):
+class PhysicalType(b.PPType):
     def __init__(self):
-        b.TargetType.__init__(self)
+        b.PPType.__init__(self)
 
     def __str__(self) -> str:
         return f'type:{self.json()["Class"]}'

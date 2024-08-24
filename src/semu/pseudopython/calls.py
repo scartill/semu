@@ -17,12 +17,12 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     decorators: List[el.DecoratorApplication]
     body: el.Elements
-    return_type: b.TargetType
+    return_type: b.PPType
     return_target: regs.Register = regs.DEFAULT_REGISTER
     returns: bool = False
     local_num: int = 0
 
-    def __init__(self, name: str, parent: ns.Namespace, return_type: b.TargetType):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
         el.Element.__init__(self)
         n.KnownName.__init__(self, parent, name, t.AbstractCallable)
         ns.Namespace.__init__(self, name, parent)
@@ -32,7 +32,7 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def callable_type(self):
         return ptrs.FunctionPointerType(
-            [cast(t.PhysicalType, p.target_type) for p in self.formals()],
+            [cast(t.PhysicalType, p.pp_type) for p in self.formals()],
             cast(t.PhysicalType, self.return_type)
         )
 
@@ -65,13 +65,13 @@ class Function(n.KnownName, ns.Namespace, el.Element):
             lambda p: isinstance(p, FormalParameter), self.names.values()
         ))
 
-    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        if not isinstance(target_type, t.PhysicalType):
-            raise ValueError(f'Invalid target type {target_type}')
+    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
+        if not isinstance(pp_type, t.PhysicalType):
+            raise ValueError(f'Invalid target type {pp_type}')
 
         offset = self.local_num * WORD_SIZE
         self.local_num += 1
-        local = LocalVariable(self, name, offset, target_type)
+        local = LocalVariable(self, name, offset, pp_type)
         self.add_name(local)
         return local
 
@@ -81,11 +81,11 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, target_type: b.TargetType
+        decors: el.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
         assert Function.factory
-        function = Function.factory(self, name, args, decors, target_type)
+        function = Function.factory(self, name, args, decors, pp_type)
         self.add_name(function)
         return function
 
@@ -123,9 +123,9 @@ class Function(n.KnownName, ns.Namespace, el.Element):
 
 class FormalParameter(el.StackVariable):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
+        self, namespace: n.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
-        super().__init__(namespace, name, offset, target_type)
+        super().__init__(namespace, name, offset, pp_type)
 
     def json(self):
         data = super().json()
@@ -136,9 +136,9 @@ class FormalParameter(el.StackVariable):
 class SimpleFormalParameter(FormalParameter):
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int,
-        target_type: t.PhysicalType
+        pp_type: t.PhysicalType
     ):
-        super().__init__(namespace, name, offset, target_type)
+        super().__init__(namespace, name, offset, pp_type)
 
     def json(self):
         data = super().json()
@@ -148,10 +148,10 @@ class SimpleFormalParameter(FormalParameter):
 
 class LocalVariable(el.StackVariable, el.Element):
     def __init__(
-        self, namespace: n.INamespace, name: str, offset: int, target_type: t.PhysicalType
+        self, namespace: n.INamespace, name: str, offset: int, pp_type: t.PhysicalType
     ):
         el.Element.__init__(self)
-        el.StackVariable.__init__(self, namespace, name, offset, target_type)
+        el.StackVariable.__init__(self, namespace, name, offset, pp_type)
 
     def json(self):
         data = super().json()
@@ -164,7 +164,7 @@ class LocalVariable(el.StackVariable, el.Element):
         temp = regs.get_temp([])
 
         return [
-            f'// Creating local variable {self.name} of type {self.target_type}',
+            f'// Creating local variable {self.name} of type {self.pp_type}',
             f'ldc 0 {temp}',
             f'push {temp}',
             f'// End variable {self.name}'
@@ -226,7 +226,7 @@ class FunctionRef(el.PhyExpression):
 
 @dataclass
 class Return(el.Element):
-    def return_type(self) -> b.TargetType:
+    def return_type(self) -> b.PPType:
         raise NotImplementedError()
 
     def json(self):
@@ -242,7 +242,7 @@ class ReturnValue(Return):
     expression: el.PhyExpression
 
     def return_type(self):
-        return self.expression.target_type
+        return self.expression.pp_type
 
     def json(self):
         data = super().json()
@@ -338,11 +338,11 @@ class CallFrame(el.PhyExpression):
     call: el.PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType,
+        self, pp_type: b.PPType,
         actuals: list[ActualParameter], call: el.PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.actuals = actuals
         self.call = call
 

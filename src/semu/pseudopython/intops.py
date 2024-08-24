@@ -11,9 +11,9 @@ class UOp(PhyExpression):
     operand: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
+        self, pp_type: b.PPType, operand: PhyExpression, target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.operand = operand
 
     def json(self):
@@ -29,9 +29,9 @@ class UOp(PhyExpression):
 @dataclass
 class Neg(UOp):
     def __init__(
-        self, target_type: b.TargetType, operand: PhyExpression, target: regs.Register
+        self, pp_type: b.PPType, operand: PhyExpression, target: regs.Register
     ):
-        super().__init__(target_type, operand, target)
+        super().__init__(pp_type, operand, target)
         self.operand = operand
 
     def emit(self):
@@ -54,10 +54,10 @@ class BinOp(PhyExpression):
     right: PhyExpression
 
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.left = left
         self.right = right
 
@@ -80,10 +80,10 @@ class BinOp(PhyExpression):
 @dataclass
 class IntBinOp(BinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def json(self):
         data = super().json()
@@ -113,10 +113,10 @@ class IntBinOp(BinOp):
 
 class Add(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def op(self):
         return 'add'
@@ -124,10 +124,10 @@ class Add(IntBinOp):
 
 class Sub(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def op(self):
         return 'sub'
@@ -135,10 +135,10 @@ class Sub(IntBinOp):
 
 class Mul(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def op(self):
         return 'mul'
@@ -146,10 +146,10 @@ class Mul(IntBinOp):
 
 class Div(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def op(self):
         return 'div'
@@ -157,10 +157,10 @@ class Div(IntBinOp):
 
 class Mod(IntBinOp):
     def __init__(
-        self, target_type: b.TargetType, left: PhyExpression, right: PhyExpression,
+        self, pp_type: b.PPType, left: PhyExpression, right: PhyExpression,
         target: regs.Register
     ):
-        super().__init__(target_type, left, right, target)
+        super().__init__(pp_type, left, right, target)
 
     def op(self):
         return 'mod'

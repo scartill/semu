@@ -49,15 +49,15 @@ class GlobalArray(el.Element, n.KnownName):
     items: List['Globals']
 
     def __init__(
-        self, namespace: ns.Namespace, name: str, target_type: ArrayType,
+        self, namespace: ns.Namespace, name: str, pp_type: ArrayType,
         items: List['Globals']
     ):
         el.Element.__init__(self)
-        n.KnownName.__init__(self, namespace, name, target_type)
+        n.KnownName.__init__(self, namespace, name, pp_type)
         self.items = items
 
     def item_type(self) -> t.PhysicalType:
-        return cast(ArrayType, self.target_type).item_type
+        return cast(ArrayType, self.pp_type).item_type
 
     def typelabel(self) -> str:
         return 'global_array'
@@ -70,7 +70,7 @@ class GlobalArray(el.Element, n.KnownName):
 
     def emit(self):
         label = self.address_label()
-        tt = self.target_type
+        tt = self.pp_type
         assert isinstance(tt, ArrayType)
 
         return flatten([
@@ -93,12 +93,12 @@ class ArrayItemPointerLoad(el.PhyExpression):
         instance_load: el.PhyExpression, index: el.PhyExpression,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(instance_load.target_type, t.PointerType)
-        instance_type = instance_load.target_type.ref_type
+        assert isinstance(instance_load.pp_type, t.PointerType)
+        instance_type = instance_load.pp_type.ref_type
         assert isinstance(instance_type, ArrayType)
         item_type = instance_type.item_type
-        target_type = t.PointerType(item_type)
-        super().__init__(target_type, target)
+        pp_type = t.PointerType(item_type)
+        super().__init__(pp_type, target)
         self.instance_load = instance_load
         self.index = index
 

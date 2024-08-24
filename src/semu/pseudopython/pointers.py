@@ -11,8 +11,8 @@ class PointerToGlobal(el.PhyExpression):
     known_name: n.KnownName
 
     def __init__(self, known_name: n.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
-        assert isinstance(known_name.target_type, t.PhysicalType)
-        super().__init__(t.PointerType(known_name.target_type), target)
+        assert isinstance(known_name.pp_type, t.PhysicalType)
+        super().__init__(t.PointerType(known_name.pp_type), target)
         self.known_name = known_name
 
     def json(self):
@@ -36,9 +36,9 @@ class PointerToLocal(el.PhyExpression):
         self, variable: el.StackVariable,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(variable.target_type, t.PhysicalType)
-        target_type = t.PointerType(variable.target_type)
-        super().__init__(target_type, target)
+        assert isinstance(variable.pp_type, t.PhysicalType)
+        pp_type = t.PointerType(variable.pp_type)
+        super().__init__(pp_type, target)
         self.variable = variable
 
     def json(self):
@@ -118,20 +118,20 @@ class Deref(el.PhyExpression):
     def __init__(
         self, source: el.PhyExpression, target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(source.target_type, t.PointerType)
-        super().__init__(source.target_type.ref_type, target)
+        assert isinstance(source.pp_type, t.PointerType)
+        super().__init__(source.pp_type.ref_type, target)
         self.source = source
 
     def json(self):
         data = el.Expression.json(self)
-        data.update({'DerefOf': self.target_type.json()})
+        data.update({'DerefOf': self.pp_type.json()})
         return data
 
     def emit(self) -> el.Sequence[str]:
-        assert isinstance(self.target_type, t.PhysicalType)
+        assert isinstance(self.pp_type, t.PhysicalType)
 
         return flatten([
-            f'// Dereference pointer type: {self.target_type}',
+            f'// Dereference pointer type: {self.pp_type}',
             '// Calculate the address',
             self.source.emit(),
             '// Do the dereference',

@@ -39,8 +39,8 @@ class Module(n.KnownName, ns.Namespace, el.Element):
     def typelabel(self) -> str:
         return 'module'
 
-    def create_variable(self, name: str, target_type: b.TargetType) -> el.Element:
-        creator = h.create_global_variable(self, name, target_type)
+    def create_variable(self, name: str, pp_type: b.PPType) -> el.Element:
+        creator = h.create_global_variable(self, name, pp_type)
         self.add_name(creator)
         return creator
 
@@ -50,10 +50,10 @@ class Module(n.KnownName, ns.Namespace, el.Element):
 
     def create_function(
         self, name: str, args: ns.ArgDefs,
-        decors: el.Expressions, target_type: b.TargetType
+        decors: el.Expressions, pp_type: b.PPType
     ) -> ns.Namespace:
 
-        function = h.create_function(self, name, args, decors, target_type)
+        function = h.create_function(self, name, args, decors, pp_type)
         self.add_name(function)
         return function
 

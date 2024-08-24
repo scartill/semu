@@ -50,24 +50,24 @@ class VoidElement(Element):
 
 @dataclass
 class Expression:
-    target_type: b.TargetType
+    pp_type: b.PPType
 
-    def __init__(self, target_type: b.TargetType):
+    def __init__(self, pp_type: b.PPType):
         super().__init__()
-        self.target_type = target_type
+        self.pp_type = pp_type
 
     def json(self):
         return {
             'Class': 'Expression',
-            'Type': self.target_type.json()
+            'Type': self.pp_type.json()
         }
 
 
 class PhyExpression(Expression, Element):
     target: regs.Register
 
-    def __init__(self, target_type: b.TargetType, target: regs.Register):
-        Expression.__init__(self, target_type)
+    def __init__(self, pp_type: b.PPType, target: regs.Register):
+        Expression.__init__(self, pp_type)
         Element.__init__(self)
         self.target = target
 
@@ -92,17 +92,17 @@ class ConstantExpression(PhyExpression):
     value: int | bool
 
     def __init__(
-        self, target_type: b.TargetType, value: int | bool,
+        self, pp_type: b.PPType, value: int | bool,
         target: regs.Register
     ):
-        super().__init__(target_type, target)
+        super().__init__(pp_type, target)
         self.value = value
 
     def _convert_value(self) -> int:
-        if self.target_type == t.Int32:
+        if self.pp_type == t.Int32:
             return self.value
 
-        if self.target_type == t.Bool32:
+        if self.pp_type == t.Bool32:
             return 1 if self.value else 0
 
         raise NotImplementedError()
@@ -122,8 +122,8 @@ type PhyExpressions = Sequence[PhyExpression]
 
 
 class GenericVariable(n.KnownName):
-    def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
-        n.KnownName.__init__(self, namespace, name, target_type)
+    def __init__(self, namespace: n.INamespace, name: str, pp_type: b.PPType):
+        n.KnownName.__init__(self, namespace, name, pp_type)
 
     def json(self):
         data = n.KnownName.json(self)
@@ -132,8 +132,8 @@ class GenericVariable(n.KnownName):
 
 
 class GlobalVariable(Element, GenericVariable):
-    def __init__(self, namespace: n.INamespace, name: str, target_type: b.TargetType):
-        GenericVariable.__init__(self, namespace, name, target_type)
+    def __init__(self, namespace: n.INamespace, name: str, pp_type: b.PPType):
+        GenericVariable.__init__(self, namespace, name, pp_type)
         Element.__init__(self)
 
     def typelabel(self) -> str:
@@ -149,7 +149,7 @@ class GlobalVariable(Element, GenericVariable):
         label = self.address_label()
 
         return [
-            f'// Begin variable {self.name} of type {self.target_type}',
+            f'// Begin variable {self.name} of type {self.pp_type}',
             f'{label}:',        # label
             'nop',              # placeholder
             '// End variable'
@@ -161,9 +161,9 @@ class StackVariable(GenericVariable):
 
     def __init__(
         self, namespace: n.INamespace, name: str, offset: int,
-        target_type: t.PhysicalType
+        pp_type: t.PhysicalType
     ):
-        super().__init__(namespace, name, target_type)
+        super().__init__(namespace, name, pp_type)
         self.offset = offset
 
     def json(self):
@@ -181,9 +181,9 @@ class Assignor(PhyExpression):
         self, target_load: PhyExpression, source: PhyExpression,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(target_load.target_type, t.PointerType)
-        target_type = target_load.target_type.ref_type
-        super().__init__(target_type, target)
+        assert isinstance(target_load.pp_type, t.PointerType)
+        pp_type = target_load.pp_type.ref_type
+        super().__init__(pp_type, target)
         self.target_load = target_load
         self.source = source
 
@@ -228,8 +228,8 @@ class ValueLoader(PhyExpression):
     source: PhyExpression
 
     def __init__(self, source: PhyExpression, target: regs.Register):
-        assert isinstance(source.target_type, t.PointerType)
-        super().__init__(source.target_type.ref_type, target)
+        assert isinstance(source.pp_type, t.PointerType)
+        super().__init__(source.pp_type.ref_type, target)
         self.source = source
 
     def json(self):
@@ -266,7 +266,7 @@ class Retarget(PhyExpression):
     source: PhyExpression
 
     def __init__(self, source: PhyExpression, target: regs.Register):
-        super().__init__(source.target_type, target)
+        super().__init__(source.pp_type, target)
         self.source = source
 
     def json(self):
@@ -305,8 +305,8 @@ type DecoratorApplications = Sequence[DecoratorApplication]
 
 
 class TypeWrapper(Expression):
-    def __init__(self, target_type: b.TargetType):
-        super().__init__(target_type)
+    def __init__(self, pp_type: b.PPType):
+        super().__init__(pp_type)
 
     def json(self):
         data = super().json()

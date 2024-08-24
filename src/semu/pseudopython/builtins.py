@@ -17,11 +17,11 @@ Factory = Callable[[el.Expressions, regs.Register], el.Expression]
 
 class BuiltinInline(n.KnownName):
     factory: Factory
-    return_type: b.TargetType
+    return_type: b.PPType
 
     def __init__(
         self, namespace: n.INamespace, name: str,
-        return_type: b.TargetType,
+        return_type: b.PPType,
         factory: Factory
     ):
         n.KnownName.__init__(self, namespace, name, b.Builtin)
@@ -126,24 +126,24 @@ def create_assert(args: el.Expressions, target: regs.Register):
     if not isinstance(value_expr, el.ConstantExpression):
         raise UserWarning(f"'assert_eq' expects a constant value, got {value_expr}")
 
-    if source.target_type not in [t.Int32, t.Bool32]:
+    if source.pp_type not in [t.Int32, t.Bool32]:
         raise UserWarning(
-            f"'assertion' expects a int/bool source, got {source.target_type}"
+            f"'assertion' expects a int/bool source, got {source.pp_type}"
         )
 
-    if value_expr.target_type not in [t.Int32, t.Bool32]:
+    if value_expr.pp_type not in [t.Int32, t.Bool32]:
         raise UserWarning(
-            f"'assertion' expects a int/bool value, got {value_expr.target_type}"
+            f"'assertion' expects a int/bool value, got {value_expr.pp_type}"
         )
 
-    if source.target_type != value_expr.target_type:
+    if source.pp_type != value_expr.pp_type:
         raise UserWarning(
             f"'assertion' expects source and value of the same type, "
-            f"got {source.target_type} and {value_expr.target_type}"
+            f"got {source.pp_type} and {value_expr.pp_type}"
         )
 
     # Inlining the value
-    if value_expr.target_type == t.Int32:
+    if value_expr.pp_type == t.Int32:
         value = value_expr.value
     else:
         value = 1 if value_expr.value else 0
@@ -162,8 +162,8 @@ def create_bool2int(args: el.Expressions, target: regs.Register):
     if not isinstance(source, el.PhyExpression):
         raise UserWarning(f"'bool_to_int' expects a physical source, got {source}")
 
-    if source.target_type != t.Bool32:
-        raise UserWarning(f"'bool_to_int' expects a bool32 source, got {source.target_type}")
+    if source.pp_type != t.Bool32:
+        raise UserWarning(f"'bool_to_int' expects a bool32 source, got {source.pp_type}")
 
     return BoolToInt(source, target)
 
@@ -179,8 +179,8 @@ def create_deref(args: el.Expressions, target: regs.Register):
     if not isinstance(source, el.PhyExpression):
         raise UserWarning(f"'deref' expects a physical source, got {source}")
 
-    if not isinstance(source.target_type, t.PointerType):
-        raise UserWarning(f"'deref' expects a pointer source, got {source.target_type}")
+    if not isinstance(source.pp_type, t.PointerType):
+        raise UserWarning(f"'deref' expects a pointer source, got {source.pp_type}")
 
     return ptrs.Deref(source, target)
 
@@ -203,16 +203,16 @@ def create_refset(args: el.Expressions, target: regs.Register):
     if not isinstance(ref_source, el.PhyExpression):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
 
-    assert isinstance(ref_target.target_type, t.PointerType)
-    ref_type = ref_target.target_type.ref_type
+    assert isinstance(ref_target.pp_type, t.PointerType)
+    ref_type = ref_target.pp_type.ref_type
 
     if not isinstance(ref_type, t.PointerType):
-        raise UserWarning(f"'refset' expects a pointer target, got {ref_target.target_type}")
+        raise UserWarning(f"'refset' expects a pointer target, got {ref_target.pp_type}")
 
-    if ref_source.target_type != ref_type.ref_type:
+    if ref_source.pp_type != ref_type.ref_type:
         raise UserWarning(
-            f"'refset' expects a source of type {ref_target.target_type.ref_type}, "
-            f"got {ref_source.target_type}"
+            f"'refset' expects a source of type {ref_target.pp_type.ref_type}, "
+            f"got {ref_source.pp_type}"
         )
 
     available = regs.get_available([ref_target.target, ref_source.target, target])

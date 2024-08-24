@@ -37,7 +37,7 @@ class ExpressionTranslator:
             if not isinstance(lookup.known_name, ns.Namespace):
                 raise UserWarning(
                     f'Unsupported path lookup {lookup.known_name.name}'
-                    f' (type {lookup.known_name.target_type}) has no members'
+                    f' (type {lookup.known_name.pp_type}) has no members'
                 )
 
             lookup = lookup.known_name.get_own_name(next_name)
@@ -86,39 +86,39 @@ class ExpressionTranslator:
             formal = this_lookup.known_name
             assert isinstance(formal, meth.InstanceFormalParameter)
             this = ptrs.Deref(ptrs.PointerToLocal(formal))
-            target_type = callable.get_method().callable_type()
-            bound_ref = meth.BoundMethodRef(target_type, callable, this)
+            pp_type = callable.get_method().callable_type()
+            bound_ref = meth.BoundMethodRef(pp_type, callable, this)
             return h.make_bound_method_call(bound_ref, args, target)
 
-        if isinstance(callable.target_type, meth.MethodPointerType):
+        if isinstance(callable.pp_type, meth.MethodPointerType):
             # Autofind this
-            if len(args) == len(callable.target_type.arg_types) - 1:
+            if len(args) == len(callable.pp_type.arg_types) - 1:
                 lg.debug(f'Call: method pointer {callable} (auto-this)')
                 this_lookup = self.context.get_own_name('this')
                 formal = this_lookup.known_name
                 assert isinstance(formal, meth.InstanceFormalParameter)
                 this = ptrs.PointerToLocal(formal)
-                bound_ref = meth.BoundMethodRef(callable.target_type, callable, this)
+                bound_ref = meth.BoundMethodRef(callable.pp_type, callable, this)
                 return h.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
             else:
                 lg.debug(f'Call: method pointer {callable} (direct)')
-                if not isinstance(args[0].target_type, cls.InstancePointerType):
+                if not isinstance(args[0].pp_type, cls.InstancePointerType):
                     raise UserWarning(
-                        f'Unsupported instance {args[0]} (type {args[0].target_type})'
+                        f'Unsupported instance {args[0]} (type {args[0].pp_type})'
                     )
 
                 instance_load = cast(el.PhyExpression, args[0])
-                bound_ref = meth.BoundMethodRef(callable.target_type, callable, instance_load)
+                bound_ref = meth.BoundMethodRef(callable.pp_type, callable, instance_load)
                 rest_args = args[1:]
                 return h.make_bound_method_call(bound_ref, rest_args, target)
 
-        if isinstance(callable.target_type, ptrs.FunctionPointerType):
+        if isinstance(callable.pp_type, ptrs.FunctionPointerType):
             lg.debug(f'Call: function pointer {callable}')
             call = h.make_pointer_call(callable, args, target)
             return h.create_call_frame(call, args)
 
-        raise UserWarning(f'Unsupported callable {callable}: {callable.target_type}')
+        raise UserWarning(f'Unsupported callable {callable}: {callable.pp_type}')
 
     def tx_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
@@ -151,10 +151,10 @@ class ExpressionTranslator:
     ) -> el.Expression:
 
         if isinstance(source, ast.Constant):
-            target_type = h.get_constant_type(source)
-            value = h.get_constant_value(target_type, source)
-            lg.debug(f'Literal {value} ({target_type})')
-            return el.ConstantExpression(target_type, value, target)
+            pp_type = h.get_constant_type(source)
+            value = h.get_constant_value(pp_type, source)
+            lg.debug(f'Literal {value} ({pp_type})')
+            return el.ConstantExpression(pp_type, value, target)
 
         if isinstance(source, ast.Name) or isinstance(source, ast.Attribute):
             lookup = self.resolve_object(source)
@@ -196,7 +196,7 @@ class ExpressionTranslator:
                 lg.debug(f'Expression: Class {known_name.name}')
                 return el.TypeWrapper(known_name)
 
-            if isinstance(known_name, b.TargetType):
+            if isinstance(known_name, b.PPType):
                 lg.debug(f'Expression: Target type {known_name.name}')
                 return el.TypeWrapper(known_name)
 

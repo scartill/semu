@@ -5,15 +5,15 @@ from typing import Sequence, Dict, Any
 JSON = Dict[str, Any]
 
 
-class TargetType:
+class PPType:
     def json(self) -> JSON:
-        return {'Class': 'TargetType'}
+        return {'Class': 'PPType'}
 
     def __str__(self) -> str:
-        return 'target-type'
+        return 'pp-type'
 
 
-class BuiltinType(TargetType):
+class BuiltinType(PPType):
     def __init__(self):
         super().__init__()
 
@@ -26,5 +26,5 @@ class BuiltinType(TargetType):
         return 'BuiltinType'
 
 
-type TargetTypes = Sequence[TargetType]
+type TargetTypes = Sequence[PPType]
 Builtin = BuiltinType()

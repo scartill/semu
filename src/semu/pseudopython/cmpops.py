@@ -156,7 +156,7 @@ class Compare(PhyExpression):
         self, target: regs.Register,
         left: PhyExpression, op: CompareOp, right: PhyExpression
     ):
-        super().__init__(target_type=t.Bool32, target=target)
+        super().__init__(pp_type=t.Bool32, target=target)
         self.left = left
         self.op = op
         self.right = right

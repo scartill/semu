@@ -82,14 +82,14 @@ def bool32const(ast_value: ast.AST):
         raise UserWarning(f'Unsupported const int argument {ast_value}')
 
 
-def get_constant_value(target_type: b.TargetType, source: ast.AST):
-    if target_type == t.Int32:
+def get_constant_value(pp_type: b.PPType, source: ast.AST):
+    if pp_type == t.Int32:
         return int32const(source)
 
-    if target_type == t.Bool32:
+    if pp_type == t.Bool32:
         return bool32const(source)
 
-    raise UserWarning(f'Unsupported constant type {target_type}')
+    raise UserWarning(f'Unsupported constant type {pp_type}')
 
 
 def create_binop(
@@ -102,7 +102,7 @@ def create_binop(
     if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported binop right {right}')
 
-    required_type: b.TargetType | None = None
+    required_type: b.PPType | None = None
     Op = None
 
     if isinstance(op, ast.Add):
@@ -120,22 +120,22 @@ def create_binop(
     if Op is None:
         raise UserWarning(f'Unsupported binop {op}')
 
-    if left.target_type != right.target_type:
-        raise UserWarning(f'Type mismatch {left.target_type} != {right.target_type}')
+    if left.pp_type != right.pp_type:
+        raise UserWarning(f'Type mismatch {left.pp_type} != {right.pp_type}')
 
-    target_type = left.target_type
+    pp_type = left.pp_type
 
-    if target_type != required_type:
-        raise UserWarning(f'Unsupported binop type {target_type}')
+    if pp_type != required_type:
+        raise UserWarning(f'Unsupported binop type {pp_type}')
 
-    return Op(target_type, left, right, target)
+    return Op(pp_type, left, right, target)
 
 
 def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
     if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported unary right {right}')
 
-    required_type: b.TargetType | None = None
+    required_type: b.PPType | None = None
     Op = None
 
     if isinstance(op, ast.Not):
@@ -149,29 +149,29 @@ def create_unary(right: el.Expression, op: ast.AST, target: regs.Register):
     if Op is None:
         raise UserWarning(f'Unsupported unary op {op}')
 
-    target_type = right.target_type
+    pp_type = right.pp_type
 
-    if target_type != required_type:
-        raise UserWarning(f'Unsupported binop type {target_type}')
+    if pp_type != required_type:
+        raise UserWarning(f'Unsupported binop type {pp_type}')
 
-    return Op(target_type, right, target)
+    return Op(pp_type, right, target)
 
 
 def create_boolop(args: el.Expressions, op: ast.AST, target: regs.Register):
-    target_type: b.TargetType = t.Bool32
+    pp_type: b.PPType = t.Bool32
 
     for arg in args:
         if not isinstance(arg, el.PhyExpression):
             raise UserWarning(f'Unsupported boolop arg {arg}')
 
-        if arg.target_type != t.Bool32:
-            raise UserWarning(f'Unsupported boolop type {arg.target_type}')
+        if arg.pp_type != t.Bool32:
+            raise UserWarning(f'Unsupported boolop type {arg.pp_type}')
 
     if isinstance(op, ast.And):
-        return boolops.And(target_type, cast(el.PhyExpressions, args), target)
+        return boolops.And(pp_type, cast(el.PhyExpressions, args), target)
 
     if isinstance(op, ast.Or):
-        return boolops.Or(target_type, cast(el.PhyExpressions, args), target)
+        return boolops.Or(pp_type, cast(el.PhyExpressions, args), target)
 
     raise UserWarning(f'Unsupported boolop {op}')
 
@@ -196,10 +196,10 @@ def create_compare(
     if not isinstance(right, el.PhyExpression):
         raise UserWarning(f'Unsupported compare right {right}')
 
-    operand_type = left.target_type
+    operand_type = left.pp_type
 
-    if right.target_type != operand_type:
-        raise UserWarning(f'Unsupported compare type {right.target_type}')
+    if right.pp_type != operand_type:
+        raise UserWarning(f'Unsupported compare type {right.pp_type}')
 
     Op = COMPARE_OPS.get(type(ast_op))  # type: ignore
 
@@ -215,10 +215,10 @@ TFunction = TypeVar('TFunction', calls.Function, meth.Method)
 def create_callable(
     Cls: Type[TFunction],
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, target_type: b.TargetType
+    decors: el.Expressions, pp_type: b.PPType
 ) -> TFunction:
 
-    function = Cls(name, context, target_type)
+    function = Cls(name, context, pp_type)
 
     for d in decors:
         if not isinstance(d, el.DecoratorApplication):
@@ -249,18 +249,18 @@ def create_callable(
 
 def create_function(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, target_type: b.TargetType
+    decors: el.Expressions, pp_type: b.PPType
 ) -> calls.Function:
 
-    return create_callable(calls.Function, context, name, args, decors, target_type)
+    return create_callable(calls.Function, context, name, args, decors, pp_type)
 
 
 def create_method(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
-    decors: el.Expressions, target_type: b.TargetType
+    decors: el.Expressions, pp_type: b.PPType
 ) -> meth.Method:
 
-    return create_callable(meth.Method, context, name, args, decors, target_type)
+    return create_callable(meth.Method, context, name, args, decors, pp_type)
 
 
 def validate_function(func: calls.Function):
@@ -279,9 +279,9 @@ def validate_call(arg_types: t.PhysicalTypes, args: el.Expressions):
         )
 
     for arg_type, arg in zip(arg_types, args):
-        if arg_type != arg.target_type:
+        if arg_type != arg.pp_type:
             raise UserWarning(
-                f'Argument type mismatch: need {arg_type}, got {arg.target_type}'
+                f'Argument type mismatch: need {arg_type}, got {arg.pp_type}'
             )
 
 
@@ -299,13 +299,13 @@ def make_pointer_call(
 ):
     callable_pointers = (ptrs.FunctionPointerType, meth.MethodPointerType)
 
-    if not isinstance(pointer.target_type, callable_pointers):
-        raise UserWarning(f'Unsupported pointer type {pointer.target_type}')
+    if not isinstance(pointer.pp_type, callable_pointers):
+        raise UserWarning(f'Unsupported pointer type {pointer.pp_type}')
 
     if not isinstance(pointer, el.PhyExpression):
         raise UserWarning(f'Unrepresentable function pointer {pointer}')
 
-    t_type = pointer.target_type
+    t_type = pointer.pp_type
     lg.debug(f'Indirect call to function {t_type}')
     validate_call(t_type.arg_types, args)
     return calls.FunctionCall(pointer, t_type.return_type, target)
@@ -315,7 +315,7 @@ def make_method_call(
     m_ref: el.PhyExpression, callable_type: meth.MethodPointerType,
     args: el.Expressions, target: regs.Register
 ):
-    lg.debug(f'Direct method call to {m_ref.target_type}')
+    lg.debug(f'Direct method call to {m_ref.pp_type}')
     validate_call(callable_type.arg_types, args)
     return meth.MethodCall(m_ref, callable_type.return_type, target)
 
@@ -333,7 +333,7 @@ def create_call_frame(call: el.Expression, args: el.Expressions):
         for inx, arg in enumerate(args)
     ]
 
-    return calls.CallFrame(call.target_type, actuals, call, call.target)
+    return calls.CallFrame(call.pp_type, actuals, call, call.target)
 
 
 def collect_path_from_attribute(ast_attr: ast.AST) -> List[str]:
@@ -423,27 +423,27 @@ def load_module(settings: CompileSettings, parent: ns.Namespace, name: str, name
 
 
 def create_global_variable(
-    parent: ns.Namespace, name: str, target_type: b.TargetType
+    parent: ns.Namespace, name: str, pp_type: b.PPType
 ) -> arr.Globals:
 
-    if isinstance(target_type, cls.Class):
-        lg.debug(f'Creating a global instance {name} of {target_type}')
-        instance = cls.GlobalInstance(parent, name, target_type)
+    if isinstance(pp_type, cls.Class):
+        lg.debug(f'Creating a global instance {name} of {pp_type}')
+        instance = cls.GlobalInstance(parent, name, pp_type)
 
         is_classvar = lambda x: isinstance(x, cls.ClassVariable)
 
-        for classvar in filter(is_classvar, target_type.names.values()):
-            if not isinstance(classvar.target_type, t.PhysicalType):
-                raise UserWarning(f'Unsupported class variable {classvar.target_type}')
+        for classvar in filter(is_classvar, pp_type.names.values()):
+            if not isinstance(classvar.pp_type, t.PhysicalType):
+                raise UserWarning(f'Unsupported class variable {classvar.pp_type}')
 
-            member_type = classvar.target_type
+            member_type = classvar.pp_type
             assert isinstance(classvar, cls.ClassVariable)
             member = cls.GlobalInstanceMember(instance, classvar, member_type)
             instance.add_name(member)
 
         is_method = lambda x: isinstance(x, meth.Method)
 
-        for method in filter(is_method, target_type.names.values()):
+        for method in filter(is_method, pp_type.names.values()):
 
             method = meth.GlobalInstanceMethod(
                 instance,
@@ -454,39 +454,39 @@ def create_global_variable(
 
         return instance
 
-    if isinstance(target_type, cls.InstancePointerType):
-        lg.debug(f'Creating a global instance pointer {name} of {target_type}')
-        return meth.GlobalInstancePointer(parent, name, target_type)
+    if isinstance(pp_type, cls.InstancePointerType):
+        lg.debug(f'Creating a global instance pointer {name} of {pp_type}')
+        return meth.GlobalInstancePointer(parent, name, pp_type)
 
-    if isinstance(target_type, arr.ArrayType):
+    if isinstance(pp_type, arr.ArrayType):
         lg.debug(f'Creating a global array {name}')
 
         items = [
-            create_global_variable(parent, f'{name}_{inx}', target_type.item_type)
-            for inx in range(target_type.length)
+            create_global_variable(parent, f'{name}_{inx}', pp_type.item_type)
+            for inx in range(pp_type.length)
         ]
 
-        return arr.GlobalArray(parent, name, target_type, items)
+        return arr.GlobalArray(parent, name, pp_type, items)
 
-    if not isinstance(target_type, t.PhysicalType):
+    if not isinstance(pp_type, t.PhysicalType):
         raise UserWarning(f'Type {name} must be representable')
 
     lg.debug(f'Creating a global variable {name}')
-    create = el.GlobalVariable(parent, name, target_type)
+    create = el.GlobalVariable(parent, name, pp_type)
     return create
 
 
 def create_ptr_type(slice: el.Expression):
-    if isinstance(slice.target_type, cls.InstancePointerType):
-        return el.TypeWrapper(cls.InstancePointerType(slice.target_type.ref_type))
+    if isinstance(slice.pp_type, cls.InstancePointerType):
+        return el.TypeWrapper(cls.InstancePointerType(slice.pp_type.ref_type))
 
-    if isinstance(slice.target_type, cls.Class):
-        return el.TypeWrapper(cls.InstancePointerType(slice.target_type))
+    if isinstance(slice.pp_type, cls.Class):
+        return el.TypeWrapper(cls.InstancePointerType(slice.pp_type))
 
-    if isinstance(slice.target_type, t.PhysicalType):
-        return el.TypeWrapper(t.PointerType(slice.target_type))
+    if isinstance(slice.pp_type, t.PhysicalType):
+        return el.TypeWrapper(t.PointerType(slice.pp_type))
 
-    raise UserWarning(f'Unsupported pointer type {slice.target_type}')
+    raise UserWarning(f'Unsupported pointer type {slice.pp_type}')
 
 
 def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expression):
@@ -496,7 +496,7 @@ def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expres
     if not isinstance(return_type_expr, el.TypeWrapper):
         raise UserWarning('Unsupported function pointer type (return type is not a type)')
 
-    if not isinstance(return_type_expr.target_type, t.NamedPhysicalType):
+    if not isinstance(return_type_expr.pp_type, t.NamedPhysicalType):
         raise UserWarning(
             'Unsupported function pointer type (return type is not a named type)'
         )
@@ -505,13 +505,13 @@ def _funptr_validate(param_type_expr: el.Expression, return_type_expr: el.Expres
         if not isinstance(param_type, el.TypeWrapper):
             raise UserWarning('Unsupported function pointer type (param type is not a type)')
 
-        if not isinstance(param_type.target_type, t.NamedPhysicalType):
+        if not isinstance(param_type.pp_type, t.NamedPhysicalType):
             raise UserWarning(
                 'Unsupported function pointer type (param type is not a named type)'
             )
 
-    arg_types = [cast(t.NamedPhysicalType, e.target_type) for e in param_type_expr.elements]
-    return_type = return_type_expr.target_type
+    arg_types = [cast(t.NamedPhysicalType, e.pp_type) for e in param_type_expr.elements]
+    return_type = return_type_expr.pp_type
     return (arg_types, return_type)
 
 
@@ -542,10 +542,10 @@ def create_methptr_type(slice: el.Expression):
     if not isinstance(class_type_expr, el.TypeWrapper):
         raise UserWarning('Unsupported method pointer type (class type is not a type)')
 
-    if not isinstance(class_type_expr.target_type, cls.Class):
+    if not isinstance(class_type_expr.pp_type, cls.Class):
         raise UserWarning('Unsupported method pointer type (class type is not a class)')
 
-    class_type = class_type_expr.target_type
+    class_type = class_type_expr.pp_type
     (arg_types, return_type) = _funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types
@@ -565,7 +565,7 @@ def create_array_type(slice: el.Expression):
     if not isinstance(item_type_expr, el.TypeWrapper):
         raise UserWarning('Unsupported item type (item type is not a type)')
 
-    item_type = item_type_expr.target_type
+    item_type = item_type_expr.pp_type
 
     if not isinstance(item_type, t.PhysicalType):
         raise UserWarning(f'Item type must be representable {item_type}')
@@ -596,7 +596,7 @@ def create_subscript(value: el.Expression, slice: el.Expression, target):
         case arr.ArrayOperator:
             return create_array_type(slice)
         case _:
-            raise UserWarning(f'Unsupported subscript slice type {slice.target_type}')
+            raise UserWarning(f'Unsupported subscript slice type {slice.pp_type}')
 
 
 def make_bound_method_call(
@@ -619,13 +619,13 @@ def make_bound_method_call(
 def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
 
     lg.debug(
-        f'Assigning {source}: {source.target_type}'
+        f'Assigning {source}: {source.pp_type}'
         ' to '
-        f'{target_name.name}:{target_name.target_type}'
+        f'{target_name.name}:{target_name.pp_type}'
     )
 
-    t_type = target_name.target_type
-    e_type = source.target_type
+    t_type = target_name.pp_type
+    e_type = source.pp_type
 
     if isinstance(source, meth.PointerToGlobalMethod):
         lg.debug(f'Assigning method to {target_name}')
@@ -671,7 +671,7 @@ def simple_assign(target_name: n.KnownName, source: el.PhyExpression):
 
 
 def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpression):
-    e_type = source.target_type
+    e_type = source.pp_type
 
     if not isinstance(array, arr.GlobalArray):
         raise UserWarning(f'Unsupported array assign target {array}')
@@ -681,7 +681,7 @@ def array_assign(array: n.KnownName, index: el.PhyExpression, source: el.PhyExpr
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
-    if index.target_type != t.Int32:
+    if index.pp_type != t.Int32:
         raise UserWarning(f'Unsupported index value {index}')
 
     load = ptrs.PointerToGlobal(array)
