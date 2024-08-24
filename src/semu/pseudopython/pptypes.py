@@ -168,9 +168,6 @@ class PointerType(PhysicalType):
         return data
 
 
-# class CompoundType()
-
-
 Module = ModuleType()
 Package = PackageType()
 Class = ClassType()

@@ -1,5 +1,4 @@
 from typing import Sequence
-from dataclasses import dataclass
 
 from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
@@ -7,7 +6,6 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 
 
-@dataclass
 class Expression:
     pp_type: b.PPType
 
@@ -46,7 +44,6 @@ class PhyExpression(Expression, b.Element):
 Expressions = Sequence[Expression]
 
 
-@dataclass
 class ConstantExpression(PhyExpression):
     value: int | bool
 
@@ -85,7 +82,7 @@ class GenericVariable(b.KnownName):
         b.KnownName.__init__(self, namespace, name, pp_type)
 
     def json(self):
-        data = b.KnownName.json(self)
+        data = super().json()
         data['Class'] = 'GenericVariable'
         return data
 
@@ -130,6 +127,44 @@ class StackVariable(GenericVariable):
         data['Class'] = 'StackVariable'
         data['Offset'] = self.offset
         return data
+
+
+class ValueLoader(PhyExpression):
+    source: PhyExpression
+
+    def __init__(self, source: PhyExpression, target: regs.Register):
+        assert isinstance(source.pp_type, t.PointerType)
+        super().__init__(source.pp_type.ref_type, target)
+        self.source = source
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'Assignor',
+            'Target': self.target,
+            'Expression': self.source.json()
+        })
+
+        return data
+
+    def emit(self):
+        available = regs.get_available([
+            self.source.target,
+            self.target
+        ])
+
+        address = available.pop()
+
+        return flatten([
+            f'// Loading value from reg:{self.source.target} to reg:{self.target}',
+            '// Calculating address',
+            self.source.emit(),
+            f'mrr {self.source.target} {address}',
+            '// Load value',
+            f'mmr {address} {self.target}',
+            '// End value load'
+        ])
 
 
 class Assignor(PhyExpression):
@@ -180,44 +215,6 @@ class Assignor(PhyExpression):
             '// Assign',
             f'mrm {value} {address}',
             '// End assignment'
-        ])
-
-
-class ValueLoader(PhyExpression):
-    source: PhyExpression
-
-    def __init__(self, source: PhyExpression, target: regs.Register):
-        assert isinstance(source.pp_type, t.PointerType)
-        super().__init__(source.pp_type.ref_type, target)
-        self.source = source
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'Assignor',
-            'Target': self.target,
-            'Expression': self.source.json()
-        })
-
-        return data
-
-    def emit(self):
-        available = regs.get_available([
-            self.source.target,
-            self.target
-        ])
-
-        address = available.pop()
-
-        return flatten([
-            f'// Loading value from reg:{self.source.target} to reg:{self.target}',
-            '// Calculating address',
-            self.source.emit(),
-            f'mrr {self.source.target} {address}',
-            '// Load value',
-            f'mmr {address} {self.target}',
-            '// End value load'
         ])
 
 
