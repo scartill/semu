@@ -98,7 +98,7 @@ class ExpressionTranslator:
 
     def tx_boolop(self, source: ast.BoolOp, target: regs.Register):
         values = source.values
-        args = [self.tx_expression(value) for value in values]
+        args = [self.tx_phy_value(value) for value in values]
         return f.create_boolop(args, source.op, target)
 
     def tx_phy_expression(
@@ -257,8 +257,8 @@ class ExpressionTranslator:
 
         if isinstance(source, ast.BinOp):
             lg.debug('Expression: BinOp')
-            left = self.tx_expression(source.left, regs.REGISTERS[0])
-            right = self.tx_expression(source.right, regs.REGISTERS[1])
+            left = self.tx_phy_value(source.left, regs.REGISTERS[0])
+            right = self.tx_phy_value(source.right, regs.REGISTERS[1])
             return f.create_binop(left, right, source.op, target)
 
         if isinstance(source, ast.Call):
@@ -267,7 +267,7 @@ class ExpressionTranslator:
 
         if isinstance(source, ast.UnaryOp):
             lg.debug('Expression: UnaryOp')
-            right = self.tx_expression(source.operand, regs.REGISTERS[0])
+            right = self.tx_phy_value(source.operand, regs.REGISTERS[0])
             return f.create_unary(right, source.op, target)
 
         if isinstance(source, ast.BoolOp):
@@ -276,7 +276,7 @@ class ExpressionTranslator:
 
         if isinstance(source, ast.Compare):
             lg.debug('Expression: Compare')
-            left = self.tx_expression(source.left, regs.REGISTERS[0])
+            left = self.tx_phy_value(source.left, regs.REGISTERS[0])
             ops = source.ops
 
             if len(source.comparators) != 1:
@@ -286,7 +286,7 @@ class ExpressionTranslator:
 
             assert len(ops) == 1
 
-            right = self.tx_expression(source.comparators[0], regs.REGISTERS[1])
+            right = self.tx_phy_value(source.comparators[0], regs.REGISTERS[1])
             return f.create_compare(left, ops[0], right, target)
 
         if isinstance(source, ast.Subscript):

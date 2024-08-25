@@ -1,5 +1,7 @@
 # type: ignore
 
+FORTY_TWO is 42
+
 class C:
     i: int
     b: bool
@@ -8,8 +10,8 @@ class C:
         pass
 
 c: C
-c.i = 1
+c.i = FORTY_TWO
 c.b = True
 
-assert_eq(c.i, 1)
+assert_eq(c.i, 42)
 assert_eq(c.b, True)

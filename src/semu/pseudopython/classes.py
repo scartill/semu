@@ -23,7 +23,7 @@ class ClassVariable(b.KnownName):
         return data
 
 
-class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
+class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
@@ -78,17 +78,6 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
         self.add_name(function)
         return function
 
-    def load_member(
-        self, parent_load: ex.PhyExpression, name: str, target: regs.Register
-    ) -> ex.PhyExpression:
-
-        classvar = self.names.get(name)
-
-        if not isinstance(classvar, ClassVariable):
-            raise UserWarning(f'Class variable {name} not found')
-
-        return ClassMemberLoad(parent_load, classvar, target)
-
     def emit(self):
         return flatten([
             f'// Class {self.qualname()}',
@@ -97,7 +86,7 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
         ])
 
 
-class InstancePointerType(t.PointerType):
+class InstancePointerType(t.PointerType, ex.ICompoundType):
     ref_type: Class
 
     def __init__(self, ref_type: Class):
@@ -111,6 +100,17 @@ class InstancePointerType(t.PointerType):
             return False
 
         return self.ref_type == value.ref_type
+
+    def load_member(
+        self, parent_load: ex.PhyExpression, name: str, target: regs.Register
+    ) -> ex.PhyExpression:
+
+        classvar = self.ref_type.names.get(name)
+
+        if not isinstance(classvar, ClassVariable):
+            raise UserWarning(f'Class variable {name} not found')
+
+        return ClassMemberLoad(parent_load, classvar, target)
 
 
 class GlobalInstanceMember(b.Element):
