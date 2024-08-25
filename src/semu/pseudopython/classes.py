@@ -110,7 +110,8 @@ class InstancePointerType(t.PointerType, ex.ICompoundType):
         if not isinstance(classvar, ClassVariable):
             raise UserWarning(f'Class variable {name} not found')
 
-        return ClassMemberLoad(parent_load, classvar, target)
+        load = ClassMemberLoad(parent_load, classvar, target)
+        return ex.Assignable(load, target, name=name)
 
 
 class GlobalInstanceMember(b.Element):

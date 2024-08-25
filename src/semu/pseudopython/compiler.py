@@ -82,7 +82,7 @@ class Translator(et.ExpressionTranslator):
         return self.context.create_variable(assign.target.id, pp_type)
 
     def tx_if(self, ast_if: ast.If):
-        test = self.tx_phy_expression(ast_if.test)
+        test = self.tx_phy_value(ast_if.test)
         true_body = self.tx_body(ast_if.body)
 
         if test.pp_type != t.Bool32:

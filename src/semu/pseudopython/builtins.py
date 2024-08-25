@@ -161,6 +161,9 @@ def create_bool2int(args: ex.Expressions, target: regs.Register):
 
     source = args[0]
 
+    if isinstance(source, ex.Assignable):
+        source = ptrs.Deref(source)
+
     if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'bool_to_int' expects a physical source, got {source}")
 

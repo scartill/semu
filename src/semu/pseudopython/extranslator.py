@@ -253,7 +253,7 @@ class ExpressionTranslator:
                 lg.debug('Attribute: compound type')
                 assert isinstance(value, ex.PhyExpression)
                 load = value.pp_type.load_member(value, source.attr, regs.DEFAULT_REGISTER)
-                return ex.Assignable(load, target, name=source.attr)
+                return load
 
         if isinstance(source, ast.BinOp):
             lg.debug('Expression: BinOp')
