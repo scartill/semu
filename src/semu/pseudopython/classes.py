@@ -207,7 +207,7 @@ class GlobalInstance(b.KnownName, b.Element):
         return flatten([
             f'// Global instance {self.qualname()}',
             f'{label}:',  # instance label
-            '// Memebers',
+            '// Members',
             [e.emit() for e in self.members],
             f'// Global instance {self.qualname()} end'
         ])
