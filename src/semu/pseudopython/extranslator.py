@@ -42,10 +42,7 @@ class ExpressionTranslator:
             lg.debug(f'Call: inline {callable.inline.name}')
             return self.tx_builtin_call(callable.inline, ast_call.args, target)
 
-        args = [
-            self.tx_expression(ast_arg)
-            for ast_arg in ast_call.args
-        ]
+        args = [self.tx_phy_value(ast_arg) for ast_arg in ast_call.args]
 
         if isinstance(callable, meth.BoundMethodRef):
             lg.debug(f'Call: bound method {callable}')
@@ -115,6 +112,16 @@ class ExpressionTranslator:
 
         return expression
 
+    def tx_phy_value(
+        self, source: ast.AST, target: regs.Register = regs.DEFAULT_REGISTER
+    ):
+        load = self.tx_phy_expression(source, target)
+
+        if isinstance(load, ex.Assignable):
+            return ptrs.Deref(load)
+
+        return load
+
     def tx_subscript(self, source: ast.Subscript, target: regs.Register):
         available = regs.get_available([target])
         value_target = available.pop()
@@ -136,7 +143,7 @@ class ExpressionTranslator:
         if isinstance(known_name, ex.GenericVariable):
             lg.debug(f'KnownName: Generic variable {known_name.name}')
             load = namespace.load_variable(known_name, regs.DEFAULT_REGISTER)
-            return ex.ValueLoader(load, target, name=known_name.name)
+            return ex.Assignable(load, target, name=known_name.name)
 
         if isinstance(known_name, bi.BuiltinInline):
             lg.debug(f'KnownName: Builtin inline {known_name.name}')
@@ -168,25 +175,22 @@ class ExpressionTranslator:
 
         if isinstance(known_name, cls.GlobalInstance):
             lg.debug(f'KnownName: Global instance {known_name.name}')
-
-            return ex.ValueLoader(
-                cls.GlobalInstanceLoad(known_name, target), target,
-                name=known_name.name
-            )
+            load = cls.GlobalInstanceLoad(known_name, target)
+            return load
 
         if isinstance(known_name, meth.GlobalPointerMember):
             lg.debug(f'KnownName: Global pointer member {known_name.name}')
             load = ptrs.PointerToGlobal(known_name.instance_pointer)
             deref = ptrs.Deref(load)
             member_load = cls.ClassMemberLoad(deref, known_name.variable)
-            return ex.ValueLoader(member_load, target, name=known_name.name)
+            return ex.Assignable(member_load, target, name=known_name.name)
 
         if isinstance(known_name, meth.StackPointerMember):
             lg.debug(f'KnownName: Stack pointer member {known_name.name}')
             load = ptrs.PointerToLocal(known_name.instance_parameter)
             deref = ptrs.Deref(load)
             member_load = cls.ClassMemberLoad(deref, known_name.variable)
-            return ex.ValueLoader(member_load, target, name=known_name.name)
+            return ex.Assignable(member_load, target, name=known_name.name)
 
         if isinstance(known_name, meth.GlobalInstanceMethod):
             lg.debug(f'KnownName: Global instance method {known_name.name}')
@@ -237,6 +241,7 @@ class ExpressionTranslator:
         if isinstance(source, ast.Attribute):
             lg.debug(f'Expression: Attribute {source.attr}')
             value = self.tx_expression(source.value, namespace=namespace)
+            print('VALUE', value, type(value), value.pp_type, type(value.pp_type))
 
             if isinstance(value, ns.NamespaceWrapper):
                 lg.debug('Attribute: namespace')
@@ -248,7 +253,7 @@ class ExpressionTranslator:
                 lg.debug('Attribute: compound type')
                 assert isinstance(value, ex.PhyExpression)
                 load = value.pp_type.load_member(value, source.attr, regs.DEFAULT_REGISTER)
-                return ex.ValueLoader(load, target, name=source.attr)
+                return ex.Assignable(load, target, name=source.attr)
 
         if isinstance(source, ast.BinOp):
             lg.debug('Expression: BinOp')

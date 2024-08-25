@@ -129,61 +129,53 @@ class StackVariable(GenericVariable):
         return data
 
 
-class ValueLoader(PhyExpression):
-    source: PhyExpression
+class Assignable(PhyExpression):
     name: str | None
+    pointer: PhyExpression
 
-    def __init__(self, source: PhyExpression, target: regs.Register, name: str | None = None):
-        assert isinstance(source.pp_type, t.PointerType)
-        super().__init__(source.pp_type.ref_type, target)
-        self.source = source
+    def __init__(
+        self, pointer: PhyExpression,
+        target: regs.Register = regs.DEFAULT_REGISTER,
+        name: str | None = None
+    ):
+
+        assert isinstance(pointer.pp_type, t.PointerType)
+        super().__init__(pointer.pp_type, target)
+        self.pointer = pointer
         self.name = name
+
+    def valuetype(self) -> t.PhysicalType:
+        assert isinstance(self.pp_type, t.PointerType)
+        return self.pp_type.ref_type
 
     def __str__(self) -> str:
         return self.name if self.name else '<dynamic>'
 
     def json(self):
         data = super().json()
-
-        data.update({
-            'Class': 'Assignor',
-            'Target': self.target,
-            'Expression': self.source.json()
-        })
-
+        data['Class'] = 'Assignable'
         return data
 
     def emit(self):
-        available = regs.get_available([
-            self.source.target,
-            self.target
-        ])
-
-        address = available.pop()
-
         return flatten([
-            f'// Loading value from reg:{self.source.target} to reg:{self.target}',
-            '// Calculating address',
-            self.source.emit(),
-            f'mrr {self.source.target} {address}',
-            '// Load value',
-            f'mmr {address} {self.target}',
-            '// End value load'
+            f'// Assignable {self} pass-through',
+            self.pointer.emit(),
+            f'mrr {self.pointer.target} {self.target}'
         ])
 
 
 class Assignor(PhyExpression):
-    target_load: PhyExpression
+    assignable: Assignable
     source: PhyExpression
 
     def __init__(
-        self, target_load: PhyExpression, source: PhyExpression,
+        self, assignable: Assignable, source: PhyExpression,
         target: regs.Register = regs.DEFAULT_REGISTER
     ):
-        assert isinstance(target_load.pp_type, t.PointerType)
-        pp_type = target_load.pp_type.ref_type
+        assert isinstance(assignable.pp_type, t.PointerType)
+        pp_type = assignable.pp_type.ref_type
         super().__init__(pp_type, target)
-        self.target_load = target_load
+        self.assignable = assignable
         self.source = source
 
     def json(self):
@@ -191,7 +183,7 @@ class Assignor(PhyExpression):
 
         data.update({
             'Class': 'Assignor',
-            'Target': self.target_load.json(),
+            'Target': self.assignable.json(),
             'Expression': self.source.json()
         })
 
@@ -199,7 +191,7 @@ class Assignor(PhyExpression):
 
     def emit(self) -> b.Sequence[str]:
         available = regs.get_available([
-            self.target_load.target,
+            self.assignable.target,
             self.source.target
         ])
 
@@ -213,8 +205,8 @@ class Assignor(PhyExpression):
             f'push {self.source.target}',
             '// Calculating value end',
             '// Calculating address',
-            self.target_load.emit(),
-            f'mrr {self.target_load.target} {address}',
+            self.assignable.emit(),
+            f'mrr {self.assignable.target} {address}',
             f'pop {value}',
             '// Calculating address end',
             '// Assign',

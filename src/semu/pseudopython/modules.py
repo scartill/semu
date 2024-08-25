@@ -1,4 +1,5 @@
 
+import logging as lg
 from typing import Sequence, cast, Callable
 
 from semu.pseudopython.flatten import flatten
@@ -46,6 +47,7 @@ class Module(b.KnownName, ns.Namespace, b.Element):
         return creator
 
     def load_variable(self, known_name: b.KnownName, target: regs.Register) -> ex.Expression:
+        lg.debug(f'Module variable load {known_name.name} (type: {known_name.pp_type})')
         assert isinstance(known_name, ex.GlobalVariable)
         return ptrs.PointerToGlobal(known_name, target)
 

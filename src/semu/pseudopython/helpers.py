@@ -199,26 +199,24 @@ def funptr_validate(param_type_expr: ex.Expression, return_type_expr: ex.Express
     return (arg_types, return_type)
 
 
-def simple_assign(value: ex.ValueLoader, source: ex.PhyExpression):
+def simple_assign(assignable: ex.Assignable, source: ex.PhyExpression):
     lg.debug(
         f'Assigning {source}: {source.pp_type}'
         ' to '
-        f'{value.name}:{value.pp_type}'
+        f'{assignable.name}:{assignable.pp_type}'
     )
 
-    t_type = value.pp_type
+    t_type = assignable.valuetype()
     e_type = source.pp_type
 
-    assign_target = value.source   # Assigning by a pointer
-
     if isinstance(source, meth.PointerToGlobalMethod):
-        lg.debug(f'Assigning method to {value}')
+        lg.debug(f'Assigning method to {assignable}')
         e_type = source.get_method().callable_type()
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch {t_type} != {e_type}')
 
-    return ex.Assignor(assign_target, source)
+    return ex.Assignor(assignable, source)
 
 
 def array_assign(array: b.KnownName, index: ex.PhyExpression, source: ex.PhyExpression):
@@ -237,5 +235,5 @@ def array_assign(array: b.KnownName, index: ex.PhyExpression, source: ex.PhyExpr
 
     load = ptrs.PointerToGlobal(array)
     item_load = arr.ArrayItemPointerLoad(load, index)
-    assign = ex.Assignor(item_load, source)
+    assign = ex.Assignor(ex.Assignable(item_load), source)
     return assign

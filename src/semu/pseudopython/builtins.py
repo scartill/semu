@@ -120,6 +120,9 @@ def create_assert(args: ex.Expressions, target: regs.Register):
     if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'assertion' expects a physical source, got {source}")
 
+    if isinstance(source, ex.Assignable):
+        source = ptrs.Deref(source)
+
     value_expr = args[1]
 
     if not isinstance(value_expr, ex.ConstantExpression):
@@ -188,36 +191,36 @@ def create_refset(args: ex.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'refset' expects 2 arguments, got {len(args)}")
 
-    loader = args[0]
+    assignable = args[0]
 
-    if not isinstance(loader, ex.ValueLoader):
-        raise UserWarning(f"'refset' expects a physical target, got {loader}")
+    if not isinstance(assignable, ex.Assignable):
+        raise UserWarning(f"'refset' expects an assignable pointer, got {assignable}")
 
-    ref_target = loader.source
+    pointer_to_target = assignable.pointer
     ref_source = args[1]
-
-    if not isinstance(ref_target, ex.PhyExpression):
-        raise UserWarning(f"'refset' expects a physical target, got {ref_target}")
 
     if not isinstance(ref_source, ex.PhyExpression):
         raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
 
-    assert isinstance(ref_target.pp_type, t.PointerType)
-    ref_type = ref_target.pp_type.ref_type
+    assert isinstance(pointer_to_target.pp_type, t.PointerType)
+    ptt_type = pointer_to_target.pp_type.ref_type
 
-    if not isinstance(ref_type, t.PointerType):
-        raise UserWarning(f"'refset' expects a pointer target, got {ref_target.pp_type}")
-
-    if ref_source.pp_type != ref_type.ref_type:
+    if not isinstance(ptt_type, t.PointerType):
         raise UserWarning(
-            f"'refset' expects a source of type {ref_target.pp_type.ref_type}, "
+            f"'refset' expects a pointer target, got {pointer_to_target.pp_type}"
+        )
+
+    if ref_source.pp_type != ptt_type.ref_type:
+        raise UserWarning(
+            f"'refset' expects a source of type {ptt_type.ref_type}, "
             f"got {ref_source.pp_type}"
         )
 
-    available = regs.get_available([ref_target.target, ref_source.target, target])
-    deref_target = available.pop()
+    available = regs.get_available([pointer_to_target.target, ref_source.target, target])
+    assignable_target = available.pop()
     assignor_target = available.pop()
-    return ex.Assignor(ptrs.Deref(ref_target, deref_target), ref_source, assignor_target)
+    assignable_of_pointer = ex.Assignable(pointer_to_target, assignable_target)
+    return ex.Assignor(assignable_of_pointer, ref_source, assignor_target)
 
 
 def create_ref(args: ex.Expressions, target: regs.Register):
@@ -226,12 +229,12 @@ def create_ref(args: ex.Expressions, target: regs.Register):
     if len(args) != 1:
         raise UserWarning(f"'ref' expects 1 argument, got {len(args)}")
 
-    loader = args[0]
+    assignable = args[0]
 
-    if not isinstance(loader, ex.ValueLoader):
-        raise UserWarning(f"'ref' expects a physical source, got {loader}")
+    if not isinstance(assignable, ex.Assignable):
+        raise UserWarning(f"'ref' expects an assignable, got {assignable}")
 
-    source = loader.source
+    source = assignable.pointer
     return ex.Retarget(source, target)
 
 

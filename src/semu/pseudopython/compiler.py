@@ -55,10 +55,10 @@ class Translator(et.ExpressionTranslator):
 
         ast_target = ast_assign.targets[0]
         ast_value = ast_assign.value
-        source = self.tx_phy_expression(ast_value)
+        source = self.tx_phy_value(ast_value)
         target = self.tx_phy_expression(ast_target)
 
-        if not isinstance(target, ex.ValueLoader):
+        if not isinstance(target, ex.Assignable):
             raise UserWarning(f'Unsupported assign target {target}')
 
         return h.simple_assign(target, source)
