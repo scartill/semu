@@ -1,10 +1,9 @@
 # type: ignore
 
-def test_example(i: int):
-    j: int
-    checkpoint(0)
-    j = i
-    assert_eq(j, 42)
+b: int
+b = 1
 
+c: int
 
-test_example(42)
+c = 3 - b
+assert_eq(c, 2)

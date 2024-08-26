@@ -84,17 +84,20 @@ class While(b.Element):
         temp = regs.get_temp([self.test.target])
 
         return flatten([
-            '// while block',
+            '// While block',
             f'{start_label}:',
             self.test.emit(),
+            '// ^ Test expression',
             f'ldr &{body_label} {temp}',
             f'jgt {self.test.target} {temp}',
             f'ldr &{end_label} {temp}',
             f'jmp {temp}',
+            '// Body of while begin',
             f'{body_label}:',
             [statement.emit() for statement in self.body],
+            '// Body of while end',
             f'ldr &{start_label} {temp}',
             f'jmp {temp}',
             f'{end_label}:',
-            '// end while block'
+            '// While block end'
         ])

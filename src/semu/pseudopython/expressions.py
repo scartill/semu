@@ -158,9 +158,9 @@ class Assignable(PhyExpression):
 
     def emit(self):
         return flatten([
-            f'// Assignable {self} pass-through',
             self.pointer.emit(),
-            f'mrr {self.pointer.target} {self.target}'
+            f'mrr {self.pointer.target} {self.target}',
+            f'// ^ Assignable {self} pass-through'
         ])
 
 

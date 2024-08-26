@@ -286,6 +286,7 @@ class FunctionCall(ex.PhyExpression):
             f'cll {self.func_ref.target}',
             '// Store return value',
             f'mrr {Function.return_target} {self.target}',
+            '// End function call'
         ])
 
 
@@ -319,7 +320,9 @@ class CallFrame(ex.PhyExpression):
         return flatten([
             '// Begin call frame',
             [actual.emit() for actual in self.actuals],
+            '// ^ Actual parameters',
             self.call.emit(),
+            '// ^ Call',
             '// Unwinding',
             [
                 [

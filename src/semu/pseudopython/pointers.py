@@ -24,8 +24,8 @@ class PointerToGlobal(ex.PhyExpression):
         label = self.known_name.address_label()
 
         return [
-            f'// Loading global pointer to {self.known_name.name}',
-            f'ldr &{label} {self.target}'
+            f'ldr &{label} {self.target}',
+            f'// ^ Loading global pointer to {self.known_name.name}'
         ]
 
 
@@ -131,11 +131,12 @@ class Deref(ex.PhyExpression):
         assert isinstance(self.pp_type, t.PhysicalType)
 
         return flatten([
-            f'// Dereference pointer type: {self.pp_type}',
-            '// Calculate the address',
+            f'// Being dereference (pointer type: {self.pp_type})',
             self.source.emit(),
-            '// Do the dereference',
-            f'mmr {self.source.target} {self.target}'
+            '// ^ Calculate the address',
+            f'mmr {self.source.target} {self.target}',
+            '// ^ Do the dereference',
+            '// End dereference'
         ])
 
 

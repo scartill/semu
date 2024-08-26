@@ -77,9 +77,11 @@ class Assertion(ex.PhyExpression):
 
     def emit(self) -> Sequence[str]:
         return flatten([
+            '// Assertion begin',
             self.source.emit(),
             '// Assertion',
             f'%assert {self.source.target} {self.value}',
+            '// Assertion end'
         ])
 
 
