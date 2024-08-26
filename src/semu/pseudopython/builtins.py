@@ -239,12 +239,14 @@ def create_ref(args: ex.Expressions, target: regs.Register):
     if len(args) != 1:
         raise UserWarning(f"'ref' expects 1 argument, got {len(args)}")
 
-    assignable = args[0]
+    source = args[0]
 
-    if not isinstance(assignable, ex.Assignable):
-        raise UserWarning(f"'ref' expects an assignable, got {assignable}")
+    if not isinstance(source, ex.PhyExpression):
+        raise UserWarning(f"'ref' expects a physical source, got {source}")
 
-    source = assignable.pointer
+    if not isinstance(source.pp_type, t.PointerType):
+        raise UserWarning(f"'ref' expects a pointer/assignable, got {source}")
+
     return ex.Retarget(source, target)
 
 

@@ -59,7 +59,7 @@ class ExpressionTranslator:
 
         # Stripping 'assignable', in required
         if isinstance(callable, ex.Assignable):
-            callable = ptrs.Deref(callable)
+            callable = ptrs.Deref(callable, target)
 
         if isinstance(callable.pp_type, ptrs.FunctionPointerType):
             lg.debug(f'Call: direct {callable}')
