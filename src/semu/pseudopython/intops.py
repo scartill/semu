@@ -99,14 +99,15 @@ class IntBinOp(BinOp):
         l_target = self.left.target
         r_target = self.right.target
         target = self.target
+        l_temp = regs.get_temp([l_target, r_target, target])
 
         return flatten([
             f'// BinOp begin to reg:{target}',
             self.left.emit(),
             f'push {l_target}',
             self.right.emit(),
-            f'pop {l_target}',
-            f'{self.op()} {l_target} {r_target} {target}',
+            f'pop {l_temp}',
+            f'{self.op()} {l_temp} {r_target} {target}',
             '// BinOp end'
         ])
 
