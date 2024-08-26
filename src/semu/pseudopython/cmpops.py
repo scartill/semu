@@ -176,7 +176,6 @@ class Compare(ex.PhyExpression):
     def emit(self) -> Sequence[str]:
         l_target = self.left.target
         r_target = self.right.target
-        assert l_target != r_target
 
         available = regs.get_available([
             self.target,

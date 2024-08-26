@@ -1,10 +1,15 @@
 # type: ignore
 
-a: int
-pa: ptr[int]
+pf: fun[[int, int], bool]
 
-a = 1
-pa = ref(a)
+def is_greater_than(a: int, b: int) -> bool:
+    return a > b
 
-refset(pa, 2 + 3)
-assert_eq(deref(pa), 5)
+pf = is_greater_than
+
+b: bool
+b = is_greater_than(1, 2)
+assert_eq(b, False)
+
+b = pf(2, 1)
+assert_eq(b, True)

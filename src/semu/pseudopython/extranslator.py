@@ -36,6 +36,10 @@ class ExpressionTranslator:
         return f.create_inline(callable, args, target)
 
     def tx_call(self, ast_call: ast.Call, target: regs.Register):
+        '''
+            NB: First, we try built-in functions, then we try to resolve a physical value
+        '''
+
         callable = self.tx_expression(ast_call.func)
 
         if isinstance(callable, bi.BuiltinInlineWrapper):
@@ -52,6 +56,10 @@ class ExpressionTranslator:
             raise UserWarning(
                 f'Unsupported callable {callable} (not built-in, bound, or physical)'
             )
+
+        # Stripping 'assignable', in required
+        if isinstance(callable, ex.Assignable):
+            callable = ptrs.Deref(callable)
 
         if isinstance(callable.pp_type, ptrs.FunctionPointerType):
             lg.debug(f'Call: direct {callable}')
@@ -120,7 +128,7 @@ class ExpressionTranslator:
         load = self.tx_phy_expression(source, target)
 
         if isinstance(load, ex.Assignable):
-            return ptrs.Deref(load)
+            return ptrs.Deref(load, target)
 
         return load
 
