@@ -157,21 +157,15 @@ class ExpressionTranslator:
 
         if isinstance(known_name, calls.Function):
             lg.debug(f'KnownName: Function {known_name.name}')
-            load = ptrs.PointerToGlobal(known_name, target)
-            # NB: Late real type binding
-            load.pp_type = known_name.callable_type()
+            load = calls.PointerToFunction(known_name, target)
             return load
 
         if isinstance(known_name, t.DecoratorType):
             lg.debug(f'KnownName: Decorator type {known_name.name}')
             return ex.DecoratorApplication(known_name)
 
-        if isinstance(known_name, cls.Class):
-            lg.debug(f'KnownName: Class {known_name.name}')
-            return ex.TypeWrapper(known_name)
-
         if isinstance(known_name, b.PPType):
-            lg.debug(f'KnownName: Target type {known_name.name}')
+            lg.debug(f'KnownName: Known type {known_name}')
             return ex.TypeWrapper(known_name)
 
         if isinstance(known_name, ex.BuiltinMetaoperator):
@@ -246,7 +240,6 @@ class ExpressionTranslator:
         if isinstance(source, ast.Attribute):
             lg.debug(f'Expression: Attribute {source.attr}')
             value = self.tx_expression(source.value, namespace=namespace)
-            print('VALUE', value, type(value), value.pp_type, type(value.pp_type))
 
             if isinstance(value, ns.NamespaceWrapper):
                 lg.debug('Attribute: namespace')
@@ -256,7 +249,6 @@ class ExpressionTranslator:
 
             if isinstance(value.pp_type, ex.ICompoundType):
                 lg.debug('Attribute: compound type')
-                assert isinstance(value, ex.PhyExpression)
                 load = value.pp_type.load_member(value, source.attr, regs.DEFAULT_REGISTER)
                 return load
 

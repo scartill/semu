@@ -1,9 +1,21 @@
 # type: ignore
 
-b: int
-b = 1
+class A:
+    i: int
+    b: bool
 
-c: int
+    @staticmethod
+    def foo():
+        checkpoint(0)
 
-c = 3 - b
-assert_eq(c, 2)
+A.foo()
+
+# a: A
+# a.i = 1
+# a.b = True
+
+# assert_eq(a.i, 1)
+# assert_eq(bool_to_int(a.b), 1)
+
+# a.b = False
+# assert_eq(bool_to_int(a.b), 0)

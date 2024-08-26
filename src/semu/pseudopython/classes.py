@@ -8,6 +8,7 @@ import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
 import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.calls as calls
 
 
 class ClassVariable(b.KnownName):
@@ -23,7 +24,10 @@ class ClassVariable(b.KnownName):
         return data
 
 
-class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
+class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
+    '''
+        NB: ICompoundType here is required to support static method calls
+    '''
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
 
@@ -33,6 +37,9 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
         b.Element.__init__(self)
         ns.Namespace.__init__(self, name, parent)
         self.class_vars = {}
+
+    def __str__(self):
+        return f'class<{self.name}>'
 
     def json(self):
         data = {'Class': 'Class'}
@@ -77,6 +84,17 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
 
         self.add_name(function)
         return function
+
+    def load_member(
+        self, parent_load: ex.Expression, name: str, target: regs.Register
+    ) -> ex.PhyExpression:
+        method = self.names.get(name)
+
+        if not isinstance(method, calls.Function):
+            raise UserWarning(f'Static method {name} is not found')
+
+        load = calls.PointerToFunction(method, target)
+        return load
 
     def emit(self):
         return flatten([

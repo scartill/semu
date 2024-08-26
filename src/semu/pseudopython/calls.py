@@ -198,6 +198,17 @@ class Return(b.Element):
         return data
 
 
+class PointerToFunction(ptrs.PointerToGlobal):
+    def __init__(self, function: Function, target: regs.Register = regs.DEFAULT_REGISTER):
+        super().__init__(function, target)
+        self.pp_type = function.callable_type()
+
+    def json(self):
+        data = ex.Expression.json(self)
+        data.update({'PointerToFunction': self.known_name.name})
+        return data
+
+
 @dataclass
 class ReturnValue(Return):
     func: Function
