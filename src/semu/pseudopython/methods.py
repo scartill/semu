@@ -29,6 +29,7 @@ class Method(calls.Function):
         return data
 
 
+# TODO: DELETE
 class PointerToGlobalMethod(ptrs.PointerToGlobal):
     def __init__(
         self, method: Method, target: regs.Register = regs.DEFAULT_REGISTER
@@ -70,7 +71,7 @@ class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
         }
 
 
-class MethodPointerType(t.AbstractCallableType):
+class MethodPointerType(t.PhysicalType):
     class_type: cls.Class
     arg_types: t.PhysicalTypes
     return_type: t.PhysicalType
@@ -110,7 +111,7 @@ class MethodPointerType(t.AbstractCallableType):
         return data
 
 
-class BoundMethodPointerType(b.PPType):
+class BoundMethodPointerType(t.AbstractCallableType):
     unbound_type: MethodPointerType
 
     def __init__(self, unbound_type: MethodPointerType):
@@ -130,6 +131,7 @@ class BoundMethodPointerType(b.PPType):
         return f'bound<{self.unbound_type}>'
 
 
+# TODO: DELETE
 class GlobalInstancePointer(ex.GlobalVariable, ns.Namespace):
     def __init__(
         self, parent: ns.Namespace, name: str, pp_type: cls.InstancePointerType
@@ -159,6 +161,7 @@ class GlobalInstancePointer(ex.GlobalVariable, ns.Namespace):
         return data
 
 
+# TODO: DELETE
 class GlobalPointerMember(b.KnownName):
     variable: cls.ClassVariable
     instance_pointer: GlobalInstancePointer
@@ -183,6 +186,7 @@ class GlobalPointerMember(b.KnownName):
         return data
 
 
+# TODO: DELETE
 class GlobalPointerMethod(b.KnownName):
     method: Method
     instance_pointer: GlobalInstancePointer
@@ -205,6 +209,7 @@ class GlobalPointerMethod(b.KnownName):
         return data
 
 
+# TDOD: DELETE
 class StackPointerMember(b.KnownName):
     variable: cls.ClassVariable
     instance_parameter: InstanceFormalParameter
@@ -229,6 +234,7 @@ class StackPointerMember(b.KnownName):
         })
 
 
+# TODO: DELETE
 class StackPointerMethod(b.KnownName):
     method: Method
     instance_parameter: InstanceFormalParameter
@@ -252,6 +258,7 @@ class StackPointerMethod(b.KnownName):
         return data
 
 
+# TODO: DELETE
 class GlobalInstanceMethod(b.KnownName):
     instance: cls.GlobalInstance
     method: Method

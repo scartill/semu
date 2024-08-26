@@ -186,30 +186,6 @@ class ActualParameter(b.Element):
         ])
 
 
-class FunctionRef(ex.PhyExpression):
-    func: Function
-
-    def __init__(self, func: Function, target: regs.Register):
-        super().__init__(func.callable_type(), target)
-        self.func = func
-
-    def json(self):
-        data = super().json()
-
-        data.update({
-            'Class': 'FunctionRef',
-            'Function': self.func.name
-        })
-
-        return data
-
-    def emit(self):
-        return [
-            f'// Function reference {self.func.namespace()}',
-            f'ldr &{self.func.address_label()} {self.target}'
-        ]
-
-
 @dataclass
 class Return(b.Element):
     def return_type(self) -> b.PPType:
@@ -303,14 +279,8 @@ class FunctionCall(ex.PhyExpression):
         return data
 
     def emit(self):
-        name = (
-            self.func_ref.func.name
-            if isinstance(self.func_ref, FunctionRef)
-            else '<dynamic>'
-        )
-
         return flatten([
-            f'// Begin function call {name}',
+            '// Begin function call',
             self.func_ref.emit(),
             '// Calling',
             f'cll {self.func_ref.target}',

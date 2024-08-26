@@ -48,13 +48,15 @@ class ExpressionTranslator:
             lg.debug(f'Call: bound method {callable}')
             return f.make_bound_method_call(callable, args, target)
 
-        if isinstance(callable, calls.FunctionRef):
-            lg.debug(f'Call: function {callable}')
+        if not isinstance(callable, ex.PhyExpression):
+            raise UserWarning(
+                f'Unsupported callable {callable} (not built-in, bound, or physical)'
+            )
+
+        if isinstance(callable.pp_type, ptrs.FunctionPointerType):
+            lg.debug(f'Call: direct {callable}')
             call = f.make_direct_call(callable, args, target)
             return f.create_call_frame(call, args)
-
-        if not isinstance(callable, ex.PhyExpression):
-            raise UserWarning(f'Unsupported callable {callable} (not built-in or physical)')
 
         if isinstance(callable, meth.PointerToGlobalMethod):
             lg.debug(f'Call: global method {callable}')
@@ -155,7 +157,10 @@ class ExpressionTranslator:
 
         if isinstance(known_name, calls.Function):
             lg.debug(f'KnownName: Function {known_name.name}')
-            return calls.FunctionRef(known_name, target)
+            load = ptrs.PointerToGlobal(known_name, target)
+            # NB: Late real type binding
+            load.pp_type = known_name.callable_type()
+            return load
 
         if isinstance(known_name, t.DecoratorType):
             lg.debug(f'KnownName: Decorator type {known_name.name}')

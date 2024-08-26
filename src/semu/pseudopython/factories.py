@@ -346,12 +346,13 @@ def create_subscript(value: ex.Expression, slice: ex.Expression, target):
 
 
 def make_direct_call(
-    func_ref: calls.FunctionRef, args: ex.Expressions, target: regs.Register
+    callable: ex.PhyExpression, args: ex.Expressions, target: regs.Register
 ):
-    lg.debug(f'Direct call to {func_ref.func.name}')
-    c_type = func_ref.func.callable_type()
+    lg.debug('Direct call to function')
+    assert isinstance(callable.pp_type, ptrs.FunctionPointerType)
+    c_type = callable.pp_type
     h.validate_call(c_type.arg_types, args)
-    return calls.FunctionCall(func_ref, c_type.return_type, target)
+    return calls.FunctionCall(callable, c_type.return_type, target)
 
 
 def make_pointer_call(
