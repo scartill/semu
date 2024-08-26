@@ -1,21 +1,10 @@
 # type: ignore
 
-class A:
-    i: int
-    b: bool
+a: int
+pa: ptr[int]
 
-    @staticmethod
-    def foo():
-        checkpoint(0)
+a = 1
+pa = ref(a)
 
-A.foo()
-
-# a: A
-# a.i = 1
-# a.b = True
-
-# assert_eq(a.i, 1)
-# assert_eq(bool_to_int(a.b), 1)
-
-# a.b = False
-# assert_eq(bool_to_int(a.b), 0)
+refset(pa, 2 + 3)
+assert_eq(deref(pa), 5)

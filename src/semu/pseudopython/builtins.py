@@ -183,6 +183,9 @@ def create_deref(args: ex.Expressions, target: regs.Register):
 
     source = args[0]
 
+    if isinstance(source, ex.Assignable):
+        source = ptrs.Deref(source)
+
     if not isinstance(source, ex.PhyExpression):
         raise UserWarning(f"'deref' expects a physical source, got {source}")
 
@@ -196,36 +199,38 @@ def create_refset(args: ex.Expressions, target: regs.Register):
     if len(args) != 2:
         raise UserWarning(f"'refset' expects 2 arguments, got {len(args)}")
 
-    assignable = args[0]
+    dest = args[0]
 
-    if not isinstance(assignable, ex.Assignable):
-        raise UserWarning(f"'refset' expects an assignable pointer, got {assignable}")
+    if isinstance(dest, ex.Assignable):
+        dest = ptrs.Deref(dest)
 
-    pointer_to_target = assignable.pointer
-    ref_source = args[1]
+    source = args[1]
 
-    if not isinstance(ref_source, ex.PhyExpression):
-        raise UserWarning(f"'refset' expects a physical source, got {ref_source}")
-
-    assert isinstance(pointer_to_target.pp_type, t.PointerType)
-    ptt_type = pointer_to_target.pp_type.ref_type
-
-    if not isinstance(ptt_type, t.PointerType):
+    if not isinstance(source, ex.PhyExpression):
         raise UserWarning(
-            f"'refset' expects a pointer target, got {pointer_to_target.pp_type}"
+            f"'refset' expects a physical source, got {source} (type {type(source)})")
+
+    if not isinstance(dest, ex.PhyExpression):
+        raise UserWarning(
+            f"'refset' expects a physical destination, got {dest} (type {type(dest)})"
         )
 
-    if ref_source.pp_type != ptt_type.ref_type:
+    if not isinstance(dest.pp_type, t.PointerType):
+        raise UserWarning(f"'refset' expects a pointer source, got {dest.pp_type}")
+
+    value_type = dest.pp_type.ref_type
+
+    if source.pp_type != value_type:
         raise UserWarning(
-            f"'refset' expects a source of type {ptt_type.ref_type}, "
-            f"got {ref_source.pp_type}"
+            f"'refset' expects a source of type {value_type}, "
+            f"got {source.pp_type}"
         )
 
-    available = regs.get_available([pointer_to_target.target, ref_source.target, target])
+    available = regs.get_available([dest.target, source.target, target])
     assignable_target = available.pop()
     assignor_target = available.pop()
-    assignable_of_pointer = ex.Assignable(pointer_to_target, assignable_target)
-    return ex.Assignor(assignable_of_pointer, ref_source, assignor_target)
+    assignable_of_pointer = ex.Assignable(dest, assignable_target)
+    return ex.Assignor(assignable_of_pointer, source, assignor_target)
 
 
 def create_ref(args: ex.Expressions, target: regs.Register):

@@ -214,7 +214,7 @@ def simple_assign(assignable: ex.Assignable, source: ex.PhyExpression):
         e_type = source.get_method().callable_type()
 
     if t_type != e_type:
-        raise UserWarning(f'Type mismatch {t_type} != {e_type}')
+        raise UserWarning(f'Type mismatch: target {t_type}, source {e_type}')
 
     return ex.Assignor(assignable, source)
 
