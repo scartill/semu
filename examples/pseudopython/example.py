@@ -19,4 +19,4 @@ c.b = True
 assert_eq(c.i, 42)
 assert_eq(c.b, True)
 
-# c.foo()
+c.foo()

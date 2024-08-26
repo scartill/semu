@@ -140,13 +140,13 @@ class VoidElement(Element):
         return data
 
 
-class IFunction(KnownName):
+class ICallable(KnownName):
     def __init__(self, namespace: INamespace, name: str, pp_type: PPType):
         super().__init__(namespace, name, pp_type)
 
     def json(self):
         data = super().json()
-        data['Class'] = 'IFunction'
+        data['Class'] = 'ICallable'
         return data
 
 
