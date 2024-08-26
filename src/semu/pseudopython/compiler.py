@@ -96,7 +96,7 @@ class Translator(et.ExpressionTranslator):
         return flow.If(test, true_body, false_body)
 
     def tx_while(self, ast_while: ast.While):
-        test = self.tx_expression(ast_while.test)
+        test = self.tx_phy_value(ast_while.test)
         body = self.tx_body(ast_while.body)
 
         if not isinstance(test, ex.PhyExpression):

@@ -218,7 +218,7 @@ def create_global_variable(
         instance = cls.GlobalInstance(parent, name, pp_type)
 
         members = [
-            cls.GlobalInstanceMember(instance, classvar)
+            cls.ClassMember(instance, classvar)
             for classvar in pp_type.names.values()
             if isinstance(classvar, cls.ClassVariable)
         ]

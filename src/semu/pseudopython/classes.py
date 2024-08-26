@@ -86,6 +86,34 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace):
         ])
 
 
+class ClassMember(b.Element):
+    instance: 'GlobalInstance'
+    classvar: ClassVariable
+
+    def __init__(self, instance: 'GlobalInstance', classvar: ClassVariable):
+        self.instance = instance
+        self.classvar = classvar
+
+    def get_instance(self):
+        return self.instance
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'ClassMember'
+        data['ClassVariable'] = self.classvar.name
+        data['Instance'] = self.instance.name
+        return data
+
+    def emit(self):
+        return [
+            f'// Global instance member {self.instance.qualname()}@{self.classvar.qualname()}',
+            'nop'
+        ]
+
+
+type ClassMembers = Sequence[ClassMember]
+
+
 class InstancePointerType(t.PointerType, ex.ICompoundType):
     ref_type: Class
 
@@ -112,34 +140,6 @@ class InstancePointerType(t.PointerType, ex.ICompoundType):
 
         load = ClassMemberLoad(parent_load, classvar, target)
         return ex.Assignable(load, target, name=name)
-
-
-class GlobalInstanceMember(b.Element):
-    instance: 'GlobalInstance'
-    classvar: ClassVariable
-
-    def __init__(self, instance: 'GlobalInstance', classvar: ClassVariable):
-        self.instance = instance
-        self.classvar = classvar
-
-    def get_instance(self):
-        return self.instance
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'GlobalInstanceMember'
-        data['ClassVariable'] = self.classvar.name
-        data['Instance'] = self.instance.name
-        return data
-
-    def emit(self):
-        return [
-            f'// Global instance member {self.instance.qualname()}@{self.classvar.qualname()}',
-            'nop'
-        ]
-
-
-type GlobalInstanceMembers = Sequence[GlobalInstanceMember]
 
 
 class ClassMemberLoad(ex.PhyExpression):
@@ -182,7 +182,7 @@ class ClassMemberLoad(ex.PhyExpression):
 
 
 class GlobalInstance(b.KnownName, b.Element):
-    members: GlobalInstanceMembers
+    members: ClassMembers
 
     def __init__(
         self, parent: ns.Namespace, name: str, pp_type: Class
