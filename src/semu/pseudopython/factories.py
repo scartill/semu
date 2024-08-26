@@ -164,7 +164,7 @@ def create_callable(
             formal = meth.InstanceFormalParameter(function, arg_name, offset, arg_type)
         elif isinstance(arg_type, t.PhysicalType):
             lg.debug(f'Adding physical formal {arg_name} at {offset} of type {arg_type}')
-            formal = calls.SimpleFormalParameter(function, arg_name, offset, arg_type)
+            formal = calls.FormalParameter(function, arg_name, offset, arg_type)
         else:
             raise UserWarning(f'Unsupported formal type {arg_type}')
 

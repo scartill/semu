@@ -132,19 +132,6 @@ class FormalParameter(ex.StackVariable):
         return data
 
 
-class SimpleFormalParameter(FormalParameter):
-    def __init__(
-        self, namespace: b.INamespace, name: str, offset: int,
-        pp_type: t.PhysicalType
-    ):
-        super().__init__(namespace, name, offset, pp_type)
-
-    def json(self):
-        data = super().json()
-        data['Class'] = 'SimpleFormalParameter'
-        return data
-
-
 class LocalVariable(ex.StackVariable, b.Element):
     def __init__(
         self, namespace: b.INamespace, name: str, offset: int, pp_type: t.PhysicalType

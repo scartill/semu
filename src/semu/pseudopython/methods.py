@@ -45,6 +45,7 @@ class PointerToGlobalMethod(ptrs.PointerToGlobal):
         return data
 
 
+# TODO: DELETE
 class InstanceFormalParameter(calls.FormalParameter, ns.Namespace):
     def __init__(
         self, namespace: ns.Namespace, name: str, offset: int,
