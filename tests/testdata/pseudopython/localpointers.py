@@ -22,7 +22,7 @@ a = 1
 b: int
 b = 21
 
-pa: ptr[a]
+pa: ptr[int]
 pa = ref(a)
 
 assert_eq(a, 1)

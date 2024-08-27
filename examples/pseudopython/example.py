@@ -1,15 +1,30 @@
 # type: ignore
 
-pf: fun[[int, int], bool]
+def foo(pa: ptr[int], b: int, c: bool):
+    a: int
+    a = deref(pa)
+    assert_eq(a, 1)
 
-def is_greater_than(a: int, b: int) -> bool:
-    return a > b
+    pc: ptr[int]
+    pc = pa
+    assert_eq(deref(pc), 1)
 
-pf = is_greater_than
+    refset(pa, 21 + b)
 
-b: bool
-b = is_greater_than(1, 2)
-assert_eq(b, False)
+    if c:
+        checkpoint(0)
+    else:
+        checkpoint(1)
 
-b = pf(2, 1)
-assert_eq(b, True)
+a: int
+a = 1
+
+b: int
+b = 21
+
+pa: ptr[int]
+pa = ref(a)
+
+assert_eq(a, 1)
+foo(pa, 21, True)
+assert_eq(a, 42)
