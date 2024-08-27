@@ -1,23 +1,17 @@
 # type: ignore
 
-import inner
-import children.child
-import another.another
+class C:
+    i: int
 
-assert_eq(inner.foo(), 42)
-checkpoint(0)
-assert_eq(children.child.bar(), 101)
-checkpoint(1)
+    def method_a():
+        checkpoint(0)
+        assert_eq(this.i, 1)
 
-import children.sibling
+    def method_b():
+        checkpoint(1)
+        assert_eq(this.i, 1)
+        method_a()
 
-assert_eq(children.sibling.bar(), 102)
-checkpoint(2)
-
-import children.third.deep
-
-assert_eq(children.third.deep.foo(), 103)
-checkpoint(3)
-
-assert_eq(another.another.another(), 104)
-checkpoint(4)
+c: C
+c.i = 1
+c.method_b()

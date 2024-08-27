@@ -10,9 +10,16 @@ import semu.pseudopython.expressions as ex
 class PointerToGlobal(ex.PhyExpression):
     known_name: b.KnownName
 
-    def __init__(self, known_name: b.KnownName, target: regs.Register = regs.DEFAULT_REGISTER):
-        assert isinstance(known_name.pp_type, t.PhysicalType)
-        super().__init__(t.PointerType(known_name.pp_type), target)
+    def __init__(
+        self, known_name: b.KnownName,
+        target: regs.Register = regs.DEFAULT_REGISTER,
+        pp_type: t.PointerType | None = None
+    ):
+        if pp_type is None:
+            assert isinstance(known_name.pp_type, t.PhysicalType)
+            pp_type = t.PointerType(known_name.pp_type)
+
+        super().__init__(pp_type, target)
         self.known_name = known_name
 
     def json(self):

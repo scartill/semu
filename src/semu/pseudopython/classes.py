@@ -6,8 +6,9 @@ from semu.pseudopython.flatten import flatten
 import semu.pseudopython.registers as regs
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
-import semu.pseudopython.expressions as ex
 import semu.pseudopython.namespaces as ns
+import semu.pseudopython.expressions as ex
+import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.calls as calls
 
 
@@ -136,7 +137,7 @@ class Method(calls.Function):
 
 class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
     '''
-        NB: ICompoundType here is required to support static method calls
+        NB: ICompoundType here is required to support static methods
     '''
     fun_factory: Callable | None = None
     method_factory: Callable | None = None
@@ -204,6 +205,7 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
             raise UserWarning(f'Static method {name} is not found')
 
         # Load a static method
+        lg.debug(f'Loading {name} static method')
         load = calls.PointerToFunction(method, target)
         return load
 
@@ -347,27 +349,21 @@ class GlobalInstance(b.KnownName, b.Element):
         ])
 
 
-class GlobalInstanceLoad(ex.PhyExpression):
-    instance: GlobalInstance
-
+class PointerToGlobalInstance(ptrs.PointerToGlobal):
     def __init__(
         self, instance: GlobalInstance, target: regs.Register = regs.DEFAULT_REGISTER
     ):
         assert isinstance(instance.pp_type, Class)
-        pointer_type = InstancePointerType(instance.pp_type)
-        super().__init__(pointer_type, target)
-        self.instance = instance
+        super().__init__(instance, target, InstancePointerType(instance.pp_type))
+
+    def instance(self) -> GlobalInstance:
+        assert isinstance(self.known_name, GlobalInstance)
+        return self.known_name
 
     def json(self):
         data = super().json()
-        data.update({'GlobalInstanceLoad': self.instance.name})
+        data['Class'] = 'PointerToGlobalInstance'
         return data
-
-    def emit(self):
-        return [
-            f'// Creating pointer to global instance {self.instance.qualname()}',
-            f'ldr &{self.instance.address_label()} {self.target}',
-        ]
 
 
 class MethodCall(ex.PhyExpression):

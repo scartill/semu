@@ -72,7 +72,7 @@ class ExpressionTranslator:
                 this_lookup = self.context.get_own_name('this')
                 formal = this_lookup.known_name
                 assert isinstance(formal, calls.FormalParameter)
-                this = ptrs.PointerToLocal(formal)
+                this = ptrs.Deref(ptrs.PointerToLocal(formal))
                 bound_ref = cls.BoundMethodRef(this, callable)
                 return f.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
@@ -150,12 +150,11 @@ class ExpressionTranslator:
 
         if isinstance(known_name, cls.Method):
             lg.debug(f'KnownName: Method {known_name.name}')
-            return ptrs.PointerToGlobal(known_name, target)
+            return calls.PointerToFunction(known_name, target)
 
         if isinstance(known_name, calls.Function):
             lg.debug(f'KnownName: Function {known_name.name}')
-            load = calls.PointerToFunction(known_name, target)
-            return load
+            return calls.PointerToFunction(known_name, target)
 
         if isinstance(known_name, t.DecoratorType):
             lg.debug(f'KnownName: Decorator type {known_name.name}')
@@ -171,7 +170,7 @@ class ExpressionTranslator:
 
         if isinstance(known_name, cls.GlobalInstance):
             lg.debug(f'KnownName: Global instance {known_name.name}')
-            load = cls.GlobalInstanceLoad(known_name, target)
+            load = cls.PointerToGlobalInstance(known_name, target)
             return load
 
         if isinstance(known_name, arr.GlobalArray):
