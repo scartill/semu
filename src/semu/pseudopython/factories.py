@@ -16,7 +16,6 @@ import semu.pseudopython.namespaces as ns
 import semu.pseudopython.classes as cls
 import semu.pseudopython.builtins as bi
 import semu.pseudopython.pointers as ptrs
-import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
 import semu.pseudopython.helpers as h
 
@@ -159,15 +158,10 @@ def create_callable(
         offset = -(total - inx + 2) * WORD_SIZE
         lg.debug(f'Adding formal {arg_name} at {offset} of type {arg_type}')
 
-        if isinstance(arg_type, cls.InstancePointerType):
-            lg.debug(f'Adding instance formal {arg_name} at {offset} of type {arg_type}')
-            formal = meth.InstanceFormalParameter(function, arg_name, offset, arg_type)
-        elif isinstance(arg_type, t.PhysicalType):
-            lg.debug(f'Adding physical formal {arg_name} at {offset} of type {arg_type}')
-            formal = calls.FormalParameter(function, arg_name, offset, arg_type)
-        else:
-            raise UserWarning(f'Unsupported formal type {arg_type}')
+        if not isinstance(arg_type, t.PhysicalType):
+            raise UserWarning(f'Invalid argument type {arg_type} (non-phsyical)')
 
+        formal = calls.FormalParameter(function, arg_name, offset, arg_type)
         function.add_name(formal)
 
     return function
@@ -184,9 +178,9 @@ def create_function(
 def create_method(
     context: ns.Namespace, name: str, args: ns.ArgDefs,
     decors: ex.Expressions, pp_type: b.PPType
-) -> meth.Method:
+) -> cls.Method:
 
-    return create_callable(meth.Method, context, name, args, decors, pp_type)
+    return create_callable(cls.Method, context, name, args, decors, pp_type)
 
 
 def create_inline(inline: bi.BuiltinInline, args: ex.Expressions, target: regs.Register):
@@ -228,7 +222,7 @@ def create_global_variable(
 
     if isinstance(pp_type, cls.InstancePointerType):
         lg.debug(f'Creating a global instance pointer {name} of {pp_type}')
-        return meth.GlobalInstancePointer(parent, name, pp_type)
+        return ex.GlobalVariable(parent, name, pp_type)
 
     if isinstance(pp_type, arr.ArrayType):
         lg.debug(f'Creating a global array {name}')
@@ -295,7 +289,7 @@ def create_methptr_type(slice: ex.Expression):
     (arg_types, return_type) = h.funptr_validate(param_type_expr, return_type_expr)
     this_type = cls.InstancePointerType(class_type)
     full_arg_types = [this_type] + arg_types
-    return ex.TypeWrapper(meth.MethodPointerType(class_type, full_arg_types, return_type))
+    return ex.TypeWrapper(cls.MethodPointerType(class_type, full_arg_types, return_type))
 
 
 def create_array_type(slice: ex.Expression):
@@ -358,7 +352,7 @@ def make_direct_call(
 def make_pointer_call(
     pointer: ex.Expression, args: ex.Expressions, target: regs.Register
 ):
-    callable_pointers = (ptrs.FunctionPointerType, meth.MethodPointerType)
+    callable_pointers = (ptrs.FunctionPointerType, cls.MethodPointerType)
 
     if not isinstance(pointer.pp_type, callable_pointers):
         raise UserWarning(f'Unsupported pointer type {pointer.pp_type}')
@@ -373,16 +367,16 @@ def make_pointer_call(
 
 
 def make_method_call(
-    m_ref: ex.PhyExpression, callable_type: meth.MethodPointerType,
+    m_ref: ex.PhyExpression, callable_type: cls.MethodPointerType,
     args: ex.Expressions, target: regs.Register
 ):
     lg.debug(f'Direct method call to {m_ref.pp_type}')
     h.validate_call(callable_type.arg_types, args)
-    return meth.MethodCall(m_ref, callable_type.return_type, target)
+    return cls.MethodCall(m_ref, callable_type.return_type, target)
 
 
 def make_bound_method_call(
-    bound_ref: meth.BoundMethodRef, args: ex.Expressions, target: regs.Register
+    bound_ref: cls.BoundMethodRef, args: ex.Expressions, target: regs.Register
 ):
     this = bound_ref.instance_load
     ref = bound_ref.method_load
@@ -394,5 +388,5 @@ def make_bound_method_call(
     # 'this' pointer is the first argument
     full_args = [this]
     full_args.extend(cast(ex.PhyExpressions, args))
-    call = make_method_call(ref, bound_ref.callable_type, full_args, target)
+    call = make_method_call(ref, bound_ref.callable_type(), full_args, target)
     return create_call_frame(call, full_args)

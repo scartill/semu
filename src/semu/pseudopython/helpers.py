@@ -5,13 +5,13 @@ from pathlib import Path
 
 import semu.pseudopython.base as b
 import semu.pseudopython.pptypes as t
+import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.expressions as ex
 import semu.pseudopython.calls as calls
+import semu.pseudopython.classes as cls
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.modules as mods
 import semu.pseudopython.packages as pack
-import semu.pseudopython.pointers as ptrs
-import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
 
 
@@ -83,7 +83,7 @@ def get_constant_value(pp_type: b.PPType, source: ast.AST):
     raise UserWarning(f'Unsupported constant type {pp_type}')
 
 
-TFunction = TypeVar('TFunction', calls.Function, meth.Method)
+TFunction = TypeVar('TFunction', calls.Function, cls.Method)
 
 
 def validate_function(func: calls.Function):
@@ -208,10 +208,6 @@ def simple_assign(assignable: ex.Assignable, source: ex.PhyExpression):
 
     t_type = assignable.valuetype()
     e_type = source.pp_type
-
-    if isinstance(source, meth.PointerToGlobalMethod):
-        lg.debug(f'Assigning method to {assignable}')
-        e_type = source.get_method().callable_type()
 
     if t_type != e_type:
         raise UserWarning(f'Type mismatch: target {t_type}, source {e_type}')

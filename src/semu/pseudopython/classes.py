@@ -1,5 +1,5 @@
 import logging as lg
-from typing import Callable, Sequence
+from typing import Callable, Sequence, cast
 
 from semu.common.hwconf import WORD_SIZE
 from semu.pseudopython.flatten import flatten
@@ -14,13 +14,123 @@ import semu.pseudopython.calls as calls
 class ClassVariable(b.KnownName):
     inx: int
 
-    def __init__(self, parent: ns.Namespace, name: str, inx: int, pp_type: b.PPType):
+    def __init__(self, parent: 'Class', name: str, inx: int, pp_type: b.PPType):
         b.KnownName.__init__(self, parent, name, pp_type)
         self.inx = inx
 
     def json(self):
         data = b.KnownName.json(self)
         data['Class'] = 'ClassVariable'
+        return data
+
+
+class MethodPointerType(t.PhysicalType):
+    class_type: 'Class'
+    arg_types: t.PhysicalTypes
+    return_type: t.PhysicalType
+
+    def __init__(
+        self, class_type: 'Class',
+        arg_types: t.PhysicalTypes, return_type: t.PhysicalType
+    ):
+        super().__init__()
+        self.class_type = class_type
+        self.arg_types = arg_types
+        self.return_type = return_type
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, MethodPointerType):
+            return False
+
+        return (
+            self.class_type == o.class_type
+            and self.arg_types == o.arg_types
+            and self.return_type == o.return_type
+        )
+
+    def __str__(self) -> str:
+        return (
+            f'<{self.class_type.name}::'
+            f'({", ".join(str(e) for e in self.arg_types)} -> {self.return_type}>)'
+        )
+
+    def json(self):
+        data = super().json()
+        data.update({
+            'Class': 'MethodPointerType',
+            'argTypes': [e.json() for e in self.arg_types],
+            'ReturnType': self.return_type.json()
+        })
+        return data
+
+
+class BoundMethodPointerType(t.AbstractCallableType):
+    unbound_type: MethodPointerType
+
+    def __init__(self, unbound_type: MethodPointerType):
+        self.unbound_type = unbound_type
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'BoundMethodPointerType',
+            'UnboundType': str(self.unbound_type)
+        })
+
+        return data
+
+    def __str__(self) -> str:
+        return f'bound<{self.unbound_type}>'
+
+
+class BoundMethodRef(ex.Expression):
+    instance_load: ex.PhyExpression
+    method_load: ex.PhyExpression
+
+    def __init__(self, instance_load: ex.PhyExpression, method_load: ex.PhyExpression):
+        assert isinstance(method_load.pp_type, MethodPointerType)
+        super().__init__(t.AbstractCallable)
+        self.instance_load = instance_load
+        self.method_load = method_load
+
+    def callable_type(self):
+        assert isinstance(self.method_load.pp_type, MethodPointerType)
+        return self.method_load.pp_type
+
+    def json(self):
+        data = super().json()
+
+        data.update({
+            'Class': 'BoundMethodRef',
+            'InstanceLoad': self.instance_load.json(),
+            'MethodLoad': self.method_load.json()
+        })
+
+        return data
+
+    def __str__(self):
+        return f'bound-method<{self.callable_type()}>'
+
+
+class Method(calls.Function):
+    def __init__(self, name: str, parent: ns.Namespace, return_type: b.PPType):
+        calls.Function.__init__(self, name, parent, return_type)
+
+    def get_class(self) -> 'Class':
+        assert isinstance(self.parent, 'Class')
+        return self.parent
+
+    def callable_type(self):
+        return MethodPointerType(
+            cast('Class', self.parent),
+            [cast(t.PhysicalType, p.pp_type) for p in self.formals()],
+            cast(t.PhysicalType, self.return_type)
+        )
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'Method'
         return data
 
 
@@ -149,15 +259,19 @@ class InstancePointerType(t.PointerType, ex.ICompoundType):
 
     def load_member(
         self, parent_load: ex.PhyExpression, name: str, target: regs.Register
-    ) -> ex.PhyExpression:
+    ) -> ex.Expression:
 
-        classvar = self.ref_type.names.get(name)
+        member = self.ref_type.names.get(name)
 
-        if not isinstance(classvar, ClassVariable):
-            raise UserWarning(f'Class variable {name} not found')
+        if isinstance(member, ClassVariable):
+            load = ClassMemberLoad(parent_load, member, target)
+            return ex.Assignable(load, target, name=name)
 
-        load = ClassMemberLoad(parent_load, classvar, target)
-        return ex.Assignable(load, target, name=name)
+        if isinstance(member, calls.Function):
+            method_load = calls.PointerToFunction(member)
+            return BoundMethodRef(parent_load, method_load)
+
+        raise UserWarning(f'Instance member {name} not found')
 
 
 class ClassMemberLoad(ex.PhyExpression):
@@ -253,3 +367,31 @@ class GlobalInstanceLoad(ex.PhyExpression):
             f'// Creating pointer to global instance {self.instance.qualname()}',
             f'ldr &{self.instance.address_label()} {self.target}',
         ]
+
+
+class MethodCall(ex.PhyExpression):
+    method_ref: ex.PhyExpression
+
+    def __init__(
+        self, method_ref: ex.PhyExpression, return_type: t.PhysicalType,
+        target: regs.Register
+    ):
+        super().__init__(return_type, target)
+        self.method_ref = method_ref
+
+    def json(self):
+        data = super().json()
+        data['Class'] = 'MethodCall'
+        data['Method'] = self.method_ref.json()
+        return data
+
+    def emit(self):
+        return flatten([
+            '// Begin method call',
+            self.method_ref.emit(),
+            '// Calling',
+            f'cll {self.method_ref.target}',
+            '// Store return value',
+            f'mrr {calls.Function.return_target} {self.target}',
+            '// End method call'
+        ])

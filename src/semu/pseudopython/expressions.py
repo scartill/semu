@@ -296,7 +296,7 @@ class MetaList(Expression):
 class ICompoundType:
     def load_member(
         self, parent_load: Expression, name: str, target: regs.Register
-    ) -> PhyExpression:
+    ) -> Expression:
 
         raise NotImplementedError()
 

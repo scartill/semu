@@ -10,7 +10,6 @@ import semu.pseudopython.builtins as bi
 import semu.pseudopython.namespaces as ns
 import semu.pseudopython.calls as calls
 import semu.pseudopython.classes as cls
-import semu.pseudopython.methods as meth
 import semu.pseudopython.arrays as arr
 import semu.pseudopython.pointers as ptrs
 import semu.pseudopython.helpers as h
@@ -48,7 +47,7 @@ class ExpressionTranslator:
 
         args = [self.tx_phy_value(ast_arg) for ast_arg in ast_call.args]
 
-        if isinstance(callable, meth.BoundMethodRef):
+        if isinstance(callable, cls.BoundMethodRef):
             lg.debug(f'Call: bound method {callable}')
             return f.make_bound_method_call(callable, args, target)
 
@@ -66,25 +65,15 @@ class ExpressionTranslator:
             call = f.make_direct_call(callable, args, target)
             return f.create_call_frame(call, args)
 
-        if isinstance(callable, meth.PointerToGlobalMethod):
-            lg.debug(f'Call: global method {callable}')
-            this_lookup = self.context.get_own_name('this')
-            formal = this_lookup.known_name
-            assert isinstance(formal, meth.InstanceFormalParameter)
-            this = ptrs.Deref(ptrs.PointerToLocal(formal))
-            pp_type = callable.get_method().callable_type()
-            bound_ref = meth.BoundMethodRef(pp_type, callable, this)
-            return f.make_bound_method_call(bound_ref, args, target)
-
-        if isinstance(callable.pp_type, meth.MethodPointerType):
+        if isinstance(callable.pp_type, cls.MethodPointerType):
             # Autofind this
             if len(args) == len(callable.pp_type.arg_types) - 1:
                 lg.debug(f'Call: method pointer {callable} (auto-this)')
                 this_lookup = self.context.get_own_name('this')
                 formal = this_lookup.known_name
-                assert isinstance(formal, meth.InstanceFormalParameter)
+                assert isinstance(formal, calls.FormalParameter)
                 this = ptrs.PointerToLocal(formal)
-                bound_ref = meth.BoundMethodRef(callable.pp_type, callable, this)
+                bound_ref = cls.BoundMethodRef(callable, this)
                 return f.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
             else:
@@ -95,7 +84,7 @@ class ExpressionTranslator:
                     )
 
                 instance_load = cast(ex.PhyExpression, args[0])
-                bound_ref = meth.BoundMethodRef(callable.pp_type, callable, instance_load)
+                bound_ref = cls.BoundMethodRef(callable, instance_load)
                 rest_args = args[1:]
                 return f.make_bound_method_call(bound_ref, rest_args, target)
 
@@ -159,9 +148,9 @@ class ExpressionTranslator:
             lg.debug(f'KnownName: Builtin inline {known_name.name}')
             return bi.BuiltinInlineWrapper(known_name)
 
-        if isinstance(known_name, meth.Method):
+        if isinstance(known_name, cls.Method):
             lg.debug(f'KnownName: Method {known_name.name}')
-            return meth.PointerToGlobalMethod(known_name, target)
+            return ptrs.PointerToGlobal(known_name, target)
 
         if isinstance(known_name, calls.Function):
             lg.debug(f'KnownName: Function {known_name.name}')
@@ -184,32 +173,6 @@ class ExpressionTranslator:
             lg.debug(f'KnownName: Global instance {known_name.name}')
             load = cls.GlobalInstanceLoad(known_name, target)
             return load
-
-        if isinstance(known_name, meth.GlobalPointerMember):
-            lg.debug(f'KnownName: Global pointer member {known_name.name}')
-            load = ptrs.PointerToGlobal(known_name.instance_pointer)
-            deref = ptrs.Deref(load)
-            member_load = cls.ClassMemberLoad(deref, known_name.variable)
-            return ex.Assignable(member_load, target, name=known_name.name)
-
-        if isinstance(known_name, meth.StackPointerMember):
-            lg.debug(f'KnownName: Stack pointer member {known_name.name}')
-            load = ptrs.PointerToLocal(known_name.instance_parameter)
-            deref = ptrs.Deref(load)
-            member_load = cls.ClassMemberLoad(deref, known_name.variable)
-            return ex.Assignable(member_load, target, name=known_name.name)
-
-        if isinstance(known_name, meth.GlobalInstanceMethod):
-            lg.debug(f'KnownName: Global instance method {known_name.name}')
-            return meth.BoundMethodRef.from_GIM(known_name)
-
-        if isinstance(known_name, meth.GlobalPointerMethod):
-            lg.debug(f'KnownName: Global pointer method {known_name.name}')
-            return meth.BoundMethodRef.from_GPM(known_name)
-
-        if isinstance(known_name, meth.StackPointerMethod):
-            lg.debug(f'KnownName: Stack pointer method {known_name.name}')
-            return meth.BoundMethodRef.from_SPM(known_name)
 
         if isinstance(known_name, arr.GlobalArray):
             lg.debug(f'KnownName: Global array {known_name.name}')

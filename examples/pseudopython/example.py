@@ -1,30 +1,31 @@
 # type: ignore
 
-def foo(pa: ptr[int], b: int, c: bool):
-    a: int
-    a = deref(pa)
-    assert_eq(a, 1)
+class C:
+    i: int
 
-    pc: ptr[int]
-    pc = pa
-    assert_eq(deref(pc), 1)
+    def get_forty_two() -> int:
+        return 42
 
-    refset(pa, 21 + b)
+    def is_greater_than(a: int) -> bool:
+        return a > this.b
 
-    if c:
-        checkpoint(0)
-    else:
-        checkpoint(1)
+c: C
+c.i = 101
 
-a: int
-a = 1
+ft: int
+ft = c.get_forty_two()
+assert_eq(ft, 42)
 
-b: int
-b = 21
+# b: bool
+# b = c.is_greater_than(1)
+# assert_eq(b, False)
 
-pa: ptr[int]
-pa = ref(a)
+# pf: method[C, [int], bool]
+# pf = C.is_greater_than
 
-assert_eq(a, 1)
-foo(pa, 21, True)
-assert_eq(a, 42)
+
+# b = pf(ref(c), 3)
+# assert_eq(b, True)
+
+# b = pf(ref(c), 1)
+# assert_eq(b, False)
