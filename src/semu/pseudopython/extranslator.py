@@ -73,7 +73,7 @@ class ExpressionTranslator:
                 formal = this_lookup.known_name
                 assert isinstance(formal, calls.FormalParameter)
                 this = ptrs.PointerToLocal(formal)
-                bound_ref = cls.BoundMethodRef(callable, this)
+                bound_ref = cls.BoundMethodRef(this, callable)
                 return f.make_bound_method_call(bound_ref, args, target)
             # Direct method binding
             else:
@@ -84,7 +84,7 @@ class ExpressionTranslator:
                     )
 
                 instance_load = cast(ex.PhyExpression, args[0])
-                bound_ref = cls.BoundMethodRef(callable, instance_load)
+                bound_ref = cls.BoundMethodRef(instance_load, callable)
                 rest_args = args[1:]
                 return f.make_bound_method_call(bound_ref, rest_args, target)
 
@@ -212,16 +212,21 @@ class ExpressionTranslator:
             lg.debug(f'Expression: Attribute {source.attr}')
             value = self.tx_expression(source.value, namespace=namespace)
 
+            if isinstance(value, ex.Assignable):
+                lg.debug('Attribute: Stripping assignable')
+                value = ptrs.Deref(value, regs.DEFAULT_REGISTER)
+
             if isinstance(value, ns.NamespaceWrapper):
-                lg.debug('Attribute: namespace')
-                return self.tx_known_name(
-                    value.namespace, value.namespace.names[source.attr], target
-                )
+                lg.debug('Attribute: Namespace')
+                child_kn = value.namespace.get_own_name(source.attr).known_name
+                return self.tx_known_name(value.namespace, child_kn, target)
 
             if isinstance(value.pp_type, ex.ICompoundType):
-                lg.debug('Attribute: compound type')
-                load = value.pp_type.load_member(value, source.attr, regs.DEFAULT_REGISTER)
+                lg.debug('Attribute: Compound type')
+                load = value.pp_type.load_member(value, source.attr, target)
                 return load
+
+            raise UserWarning(f'Unsupported attribute {value} ({value.pp_type})')
 
         if isinstance(source, ast.BinOp):
             lg.debug('Expression: BinOp')

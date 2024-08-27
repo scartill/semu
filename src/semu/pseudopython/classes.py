@@ -203,6 +203,7 @@ class Class(b.PPType, b.KnownName, b.Element, ns.Namespace, ex.ICompoundType):
         if not isinstance(method, calls.Function):
             raise UserWarning(f'Static method {name} is not found')
 
+        # Load a static method
         load = calls.PointerToFunction(method, target)
         return load
 
