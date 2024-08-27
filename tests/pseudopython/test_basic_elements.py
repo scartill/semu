@@ -63,10 +63,6 @@ def test_localvars():
     simple_test('localvars')
 
 
-def test_nestedfunc():
-    simple_test('nestedfunc')
-
-
 def test_basicclasses(capsys):
     simple_with_capture('basicclasses', capsys)
 

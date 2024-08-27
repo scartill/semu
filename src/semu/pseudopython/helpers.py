@@ -106,9 +106,10 @@ def validate_call(arg_types: t.PhysicalTypes, args: ex.Expressions):
 
 def find_module(namespace: ns.Namespace, names: List[str]):
     name = names.pop(0)
-    lookup = namespace.lookup_name_upwards(name)
 
-    if not lookup:
+    try:
+        lookup = namespace.lookup_name_upwards(name)
+    except pack.NotFoundOnTopLevel:
         return (False, namespace, name, names)
 
     known_name = lookup.known_name

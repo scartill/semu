@@ -1,31 +1,23 @@
 # type: ignore
 
-class C:
-    i: int
+import inner
+import children.child
+import another.another
 
-    def get_forty_two() -> int:
-        return 42
+assert_eq(inner.foo(), 42)
+checkpoint(0)
+assert_eq(children.child.bar(), 101)
+checkpoint(1)
 
-    def is_greater_than(a: int) -> bool:
-        return a > this.i
+import children.sibling
 
-c: C
-c.i = 2
+assert_eq(children.sibling.bar(), 102)
+checkpoint(2)
 
-ft: int
-ft = c.get_forty_two()
-assert_eq(ft, 42)
+import children.third.deep
 
-b: bool
-b = c.is_greater_than(1)
-assert_eq(b, False)
+assert_eq(children.third.deep.foo(), 103)
+checkpoint(3)
 
-pf: method[C, [int], bool]
-pf = C.is_greater_than
-
-
-b = pf(ref(c), 3)
-assert_eq(b, True)
-
-b = pf(ref(c), 1)
-assert_eq(b, False)
+assert_eq(another.another.another(), 104)
+checkpoint(4)

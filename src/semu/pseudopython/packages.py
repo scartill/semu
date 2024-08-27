@@ -41,6 +41,11 @@ class Package(ns.Namespace, b.KnownName, b.Element):
         ])
 
 
+class NotFoundOnTopLevel(UserWarning):
+    def __init__(self, name: str):
+        UserWarning(f'Unknown reference {name} on the top level')
+
+
 class TopLevel(ns.Namespace, b.Element):
     main: mods.Module | None = None
 
@@ -67,7 +72,7 @@ class TopLevel(ns.Namespace, b.Element):
             lg.debug(f'Found {name} on the top level (type {known_name.pp_type})')
             return ns.NameLookup(self, known_name)
 
-        raise UserWarning(f'Unknown reference {name} on the top level')
+        raise NotFoundOnTopLevel(name)
 
     def emit(self):
         temp = regs.get_temp([])
