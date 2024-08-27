@@ -231,6 +231,6 @@ def array_assign(array: b.KnownName, index: ex.PhyExpression, source: ex.PhyExpr
         raise UserWarning(f'Unsupported index value {index}')
 
     load = ptrs.PointerToGlobal(array)
-    item_load = arr.ArrayItemPointerLoad(load, index)
+    item_load = arr.ArrayItemLoad(load, index)
     assign = ex.Assignor(ex.Assignable(item_load), source)
     return assign

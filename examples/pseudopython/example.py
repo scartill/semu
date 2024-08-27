@@ -1,17 +1,16 @@
 # type: ignore
 
-class C:
-    i: int
+ia: array[int, 3]
+# ia[0] = 11
+# ia[1] = 22
+# ia[2] = 33
 
-    def method_a():
-        checkpoint(0)
-        assert_eq(this.i, 1)
+# inx: int
+# inx = 1
+# ia[inx + 1] = 44
 
-    def method_b():
-        checkpoint(1)
-        assert_eq(this.i, 1)
-        method_a()
+# # j: int
+# # j = ia[1]
 
-c: C
-c.i = 1
-c.method_b()
+# # pja: ptr[array[int, 3]]
+# # pja = ia

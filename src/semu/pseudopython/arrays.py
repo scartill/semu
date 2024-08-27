@@ -83,7 +83,7 @@ class GlobalArray(b.Element, b.KnownName):
 type Globals = ex.GlobalVariable | cls.GlobalInstance | GlobalArray
 
 
-class ArrayItemPointerLoad(ex.PhyExpression):
+class ArrayItemLoad(ex.PhyExpression):
     instance_load: ex.PhyExpression
     index: ex.PhyExpression
 
